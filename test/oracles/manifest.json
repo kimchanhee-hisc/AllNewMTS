@@ -332,8 +332,8 @@
       "path": "scripts/verify-g001.mjs",
       "classification": "verification-script",
       "allowedDerivation": "Node-standard-library verification of manifest, raw bytes, provenance, traces, and generator invariants.",
-      "bytes": 18540,
-      "sha256": "efa9da615e05f672b3b9480004158cc45466b03e5af992c3815511fabd7a073e",
+      "bytes": 19763,
+      "sha256": "13bbec8e2e10d83659271eff970da39ff417063b9c219d052be82ca4d2da0d4f",
       "sourcePaths": [
         "test/oracles/sources/mts_screen/HS1200P08.xmf_",
         "test/oracles/sources/mts_screen/script.lua",
