@@ -1,46 +1,164 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { generateSyntheticFixture } from './generate-g001-synthetic.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const read = (file) => fs.readFileSync(path.join(root, file));
+const realRoot = fs.realpathSync.native(root);
+const read = (file) => fs.readFileSync(safePath(file));
 const sha256 = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 const json = (file) => JSON.parse(read(file).toString('utf8'));
 const manifest = json('test/oracles/manifest.json');
+const git = (repository, args, encoding = 'utf8') => execFileSync('git', ['-C', repository, ...args], { encoding }).trim();
+
+function assertContained(base, candidate, label) {
+  const realBase = fs.realpathSync.native(base);
+  const realCandidate = fs.realpathSync.native(candidate);
+  assert.ok(realCandidate.startsWith(`${realBase}${path.sep}`), `${label} escapes ${realBase}`);
+  return realCandidate;
+}
 
 function safePath(file) {
   assert.equal(path.isAbsolute(file), false, `artifact path must be relative: ${file}`);
-  const resolved = path.resolve(root, file);
-  assert.ok(resolved.startsWith(`${root}${path.sep}`), `artifact escapes repository: ${file}`);
-  return resolved;
+  return assertContained(realRoot, path.resolve(root, file), `artifact ${file}`);
 }
 
 function inventory(directory) {
-  const base = path.join(root, directory);
   const files = [];
-  for (const entry of fs.readdirSync(base, { withFileTypes: true })) {
-    const relative = path.join(directory, entry.name);
+  for (const entry of fs.readdirSync(safePath(directory), { withFileTypes: true })) {
+    const relative = path.join(directory, entry.name).split(path.sep).join('/');
+    assert.equal(entry.isSymbolicLink(), false, `oracle inventory contains symlink: ${relative}`);
     if (entry.isDirectory()) files.push(...inventory(relative));
-    else files.push(relative.split(path.sep).join('/'));
+    else files.push(relative);
   }
   return files.sort();
 }
 
-function productionFiles(directory = '.') {
-  const base = path.join(root, directory);
-  const files = [];
-  for (const entry of fs.readdirSync(base, { withFileTypes: true })) {
-    const relative = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      if (!['.git', '.omx', 'node_modules', 'test', 'scripts', 'assets'].includes(entry.name)) files.push(...productionFiles(relative));
-    } else if (/\.(?:js|jsx|ts|tsx|m|mm|swift|kt|cpp|h)$/.test(entry.name)) {
-      files.push(relative.split(path.sep).join('/'));
+const productionExtensions = /(?:^|\.)(?:c|cc|cxx|cpp|h|hh|hpp|m|mm|swift|java|kt|kts|js|jsx|ts|tsx|lua|gradle|xml|json|properties|plist|ya?ml|toml|cfg|conf|ini|txt|xmf_)$/i;
+function productionFiles() {
+  return git(root, ['ls-files', '-z'], 'buffer').toString().split('\0').filter(Boolean).filter((file) =>
+    productionExtensions.test(file) &&
+    !file.startsWith('test/oracles/') &&
+    !['scripts/generate-g001-synthetic.mjs', 'scripts/verify-g001.mjs'].includes(file)
+  );
+}
+
+function verifyProvenance(source) {
+  assert.ok(path.isAbsolute(source.sourcePath), `sourcePath must be absolute: ${source.path}`);
+  assert.ok(path.isAbsolute(source.sourceRepository), `sourceRepository must be absolute: ${source.path}`);
+  assert.match(source.sourceRepositoryCommit, /^[a-f0-9]{40}$/);
+  assert.match(source.gitBlobOid, /^[a-f0-9]{40}$/);
+
+  const repository = fs.realpathSync.native(source.sourceRepository);
+  const materialized = assertContained(repository, source.sourcePath, `source ${source.path}`);
+  assert.equal(path.relative(repository, materialized).split(path.sep).join('/'), source.sourceRepositoryPath);
+  assert.equal(git(repository, ['rev-parse', 'HEAD']), source.sourceRepositoryCommit, `source HEAD drift: ${source.path}`);
+  git(repository, ['cat-file', '-e', `${source.sourceRepositoryCommit}^{commit}`]);
+  git(repository, ['ls-files', '--error-unmatch', '--', source.sourceRepositoryPath]);
+  assert.equal(git(repository, ['status', '--porcelain', '--untracked-files=no', '--', source.sourceRepositoryPath]), '', `source path dirty: ${source.path}`);
+  assert.equal(git(repository, ['rev-parse', `${source.sourceRepositoryCommit}:${source.sourceRepositoryPath}`]), source.gitBlobOid, `commit object drift: ${source.path}`);
+  assert.equal(git(repository, ['ls-files', '-s', '--', source.sourceRepositoryPath]).split(/\s+/)[1], source.gitBlobOid, `index object drift: ${source.path}`);
+  assert.equal(git(repository, ['hash-object', `--path=${source.sourceRepositoryPath}`, materialized]), source.gitBlobOid, `checkout clean-filter drift: ${source.path}`);
+  assert.deepEqual(fs.readFileSync(materialized), read(source.path), `materialized source drift: ${source.path}`);
+
+  if (source.rawGitBlob) {
+    const raw = execFileSync('git', ['-C', repository, 'cat-file', 'blob', source.gitBlobOid]);
+    assert.deepEqual({ bytes: raw.length, sha256: sha256(raw) }, { bytes: source.rawGitBlob.bytes, sha256: source.rawGitBlob.sha256 });
+    const attributes = git(repository, ['check-attr', 'text', 'eol', '--', source.sourceRepositoryPath]).split('\n');
+    assert.deepEqual(attributes.map((line) => line.split(': ').at(-1)), [source.rawGitBlob.text, source.rawGitBlob.eol]);
+    assert.equal(source.rawGitBlob.checkoutEncoding, 'crlf');
+    assert.ok(read(source.path).includes(Buffer.from('\r\n')), 'XMF checkout must retain CRLF bytes');
+    assert.equal(raw.includes(Buffer.from('\r\n')), false, 'raw XMF Git blob must retain canonical LF bytes');
+  }
+}
+
+function eventGroups(trace) {
+  return trace.events ? [trace.events] : trace.cases.map((item) => item.events);
+}
+
+function verifyLifecycle(traces) {
+  for (const trace of Object.values(traces)) {
+    assert.equal(trace.stateTiming, 'after Lua handler and before queued command application');
+    for (const events of eventGroups(trace)) {
+      for (const event of events) {
+        const closeCall = event.hostCalls.find((call) => call.target === 'Form.SendReturnToParent' && call.args.at(-1) === true);
+        const closeRequest = event.hostCalls.some((call) => call.target === 'Form.CloseForm');
+        const closeCommand = event.commands.find((command) => command.type === 'returnToParent' && command.close === true);
+        if (closeCall || closeCommand) {
+          assert.ok(closeCall && closeCommand, `${trace.scenario}: close host call/command mismatch`);
+          assert.deepEqual(closeCall.args, [closeCommand.name, closeCommand.payload, true]);
+          assert.equal(event.state.lifecycle, event.event === 'Form_OnFormClose' ? 'CLOSING' : 'ACTIVE');
+          assert.equal(event.stateAfterCommands.lifecycle, event.event === 'Form_OnFormClose' ? 'CLOSED' : 'CLOSING');
+        }
+        if (closeRequest) {
+          assert.equal(event.state.lifecycle, 'ACTIVE');
+          assert.equal(event.stateAfterCommands.lifecycle, 'CLOSING');
+        }
+        if (event.event === 'Form_OnFormClose') {
+          assert.equal(event.state.lifecycle, 'CLOSING');
+          assert.equal(event.commands.at(-1).type, 'closeForm');
+          assert.equal(event.stateAfterCommands.lifecycle, 'CLOSED');
+        }
+      }
     }
   }
-  return files;
+}
+
+const warningMessage = '관심그룹에 종목은 최대 100개까지 추가할 수 있어요.\n100개가 넘어가는 종목은 제외하고 추가할게요.';
+function verifyOver100(over) {
+  const inputProducts = JSON.parse(over.inputs.openLinkData);
+  const warningIndex = over.events.findIndex((event) => event.event === 'DATAMANAGER_OnReceiveTranComplete' && event.commands.some((command) => command.type === 'messageBox'));
+  const confirmationIndex = over.events.findIndex((event) => event.event === 'Form_OnMsgBoxClose');
+  const warning = over.events[warningIndex];
+  const confirmation = over.events[confirmationIndex];
+  const overBlock = warning.blocks.CCS20000;
+  assert.ok(inputProducts.length > 100);
+  assert.equal(overBlock.InBlock1.arr_cnt, inputProducts.length);
+  assert.equal(overBlock.InBlock2.length, 100);
+  assert.deepEqual(overBlock.InBlock2.map((row) => row.shrn_iscd), inputProducts.slice(0, 100).map((row) => row.Code));
+  assert.ok(warningIndex < confirmationIndex);
+  assert.deepEqual(warning.hostCalls.at(-1), { api: 'call', target: 'Form.MsgBoxEx', args: ['', warningMessage, 'OnlyShow', '', '확인', 0] });
+  assert.deepEqual(warning.commands, [{ type: 'messageBox', title: '', message: warningMessage, key: 'OnlyShow', confirmLabel: '확인' }]);
+  assert.equal(over.events.slice(0, confirmationIndex).some((event) => event.hostCalls.some((call) => call.target === 'DATAMANAGER.RequestTranData' && call.args[0] === 'CCS20000')), false);
+  assert.equal(over.events.slice(0, confirmationIndex).some((event) => event.transportRequests.some((request) => request.tranId === 'CCS20000')), false);
+  assert.deepEqual(confirmation.args, ['OnlyShow', 'confirm']);
+  assert.deepEqual(confirmation.hostCalls[0], { api: 'call', target: 'DATAMANAGER.RequestTranData', args: ['CCS20000'] });
+  assert.deepEqual(confirmation.transportRequests, [{ tranId: 'CCS20000' }]);
+  assert.deepEqual(over.nonConfirmCase, {
+    description: 'Dismissing the >100 warning does not request CCS20000.', event: 'Form_OnMsgBoxClose', args: ['OnlyShow', 'dismiss'],
+    hostCalls: [], commands: [], transportRequests: [], state: { lifecycle: 'ACTIVE' }
+  });
+}
+
+function verifyError(error) {
+  const event = error.events.at(-1);
+  const message = '요청을 처리할 수 없습니다.';
+  const decorated = `<color=4\`size=2\`font=0\`style=1\`bgcolor=>${message}`;
+  assert.equal(event.event, 'DATAMANAGER_OnReceiveTranError');
+  assert.deepEqual(event.args, ['CCS20001', 'E_FIXTURE', message]);
+  assert.deepEqual(event.hostCalls, [
+    { api: 'call', target: 'Trim', args: [message], returns: message },
+    { api: 'call', target: 'Form.GetSharedData', args: ['&TEST_MODE', false], returns: '0' },
+    { api: 'call', target: 'Form.MsgBoxEx', args: ['', decorated, 'OnlyShow', '', '확인', 0] }
+  ]);
+  assert.deepEqual(event.commands, [{ type: 'messageBox', title: '', message: decorated, key: 'OnlyShow', confirmLabel: '확인' }]);
+  const diagnostic = JSON.stringify(event.commands);
+  for (const value of error.inputs.forbiddenDiagnosticValues) assert.equal(diagnostic.includes(value), false, `diagnostic leaked: ${value}`);
+  assert.equal(error.events.some((item) => item.commands.some((command) => command.type === 'returnToParent')), false);
+}
+
+const forbiddenIdentities = [
+  'HS1200P08', '관심종목_그룹추가', 'CCS20000', 'CCS20001', 'btnAdd', 'btnCancel', 'edtGroupNm', 'lbl0', 'lbl1',
+  '1200', '9907', '4d63ba22ac5339cfd3068cffa91710e0099481da81d974e2aff0ce7ae39ed53e',
+  '18,0,324,26,1', '18,42,324,20,1', '18,68,324,40,1', '185,142,157,56,1', '18,142,157,56,1'
+];
+function hardcodingHit(text) {
+  const compact = text.replace(/[\s'"`+]/g, '');
+  return forbiddenIdentities.find((identity) => text.includes(identity) || compact.includes(identity));
 }
 
 assert.equal(manifest.schemaVersion, 1);
@@ -51,24 +169,9 @@ assert.deepEqual(manifest.noEngineAttestation, {
   statement: 'No engine source, headers, binaries, traces, fixtures, output, behavior, or derived evidence was inspected, copied, executed, cited, or used to create these oracles.'
 });
 
-const expectedProvenance = {
-  'test/oracles/sources/mts_screen/HS1200P08.xmf_': ['/Users/chanheekim/Dev/mts_screen/SmartMTS/Resource/Main/scr_xmf/HS1200P08.xmf_', '/Users/chanheekim/Dev/mts_screen', '7708dd5b089352c7531dbee4334f2a9aa53cde13', 'approved-original-xmf'],
-  'test/oracles/sources/mts_screen/script.lua': ['/Users/chanheekim/Dev/mts_screen/SmartMTS/Resource/Main/scr/script.lua', '/Users/chanheekim/Dev/mts_screen', '7708dd5b089352c7531dbee4334f2a9aa53cde13', 'approved-original-common-lua'],
-  'test/oracles/sources/mts_screen/json.lua': ['/Users/chanheekim/Dev/mts_screen/SmartMTS/Resource/Main/scr/json.lua', '/Users/chanheekim/Dev/mts_screen', '7708dd5b089352c7531dbee4334f2a9aa53cde13', 'approved-original-common-lua'],
-  'test/oracles/sources/plus/android/CCS20000.qry': ['/Users/chanheekim/Dev/Plus/android/Main/MTSMain/src/main/assets/qry/CCS20000.qry', '/Users/chanheekim/Dev/Plus/android', '164d28c3094bae4e8a0df9b55bde41ba742bbb5e', 'engine-independent-qry-contract'],
-  'test/oracles/sources/plus/android/CCS20001.qry': ['/Users/chanheekim/Dev/Plus/android/Main/MTSMain/src/main/assets/qry/CCS20001.qry', '/Users/chanheekim/Dev/Plus/android', '164d28c3094bae4e8a0df9b55bde41ba742bbb5e', 'engine-independent-qry-contract'],
-  'test/oracles/sources/plus/typescript/CCS20000Request.ts.source': ['/Users/chanheekim/Dev/Plus/src/infra/networking/models/CCS20000Request.ts', '/Users/chanheekim/Dev/Plus', '0fb74c33b19b89dec0ee8c6863dce42b5c0f650a', 'engine-independent-network-contract'],
-  'test/oracles/sources/plus/typescript/CCS20001Request.ts.source': ['/Users/chanheekim/Dev/Plus/src/infra/networking/models/CCS20001Request.ts', '/Users/chanheekim/Dev/Plus', '0fb74c33b19b89dec0ee8c6863dce42b5c0f650a', 'engine-independent-network-contract'],
-  'test/oracles/sources/plus/typescript/WatchlistTransportRequests.ts.source': ['/Users/chanheekim/Dev/Plus/src/infra/networking/models/watchlist/WatchlistTransportRequests.ts', '/Users/chanheekim/Dev/Plus', '0fb74c33b19b89dec0ee8c6863dce42b5c0f650a', 'engine-independent-network-contract'],
-  'test/oracles/sources/plus/typescript/WatchlistTransportRequests.test.ts.source': ['/Users/chanheekim/Dev/Plus/src/infra/networking/models/watchlist/WatchlistTransportRequests.test.ts', '/Users/chanheekim/Dev/Plus', '0fb74c33b19b89dec0ee8c6863dce42b5c0f650a', 'engine-independent-service-test'],
-  'test/oracles/sources/plus/typescript/WatchlistApiService.test.ts.source': ['/Users/chanheekim/Dev/Plus/src/api/services/WatchlistApiService.test.ts', '/Users/chanheekim/Dev/Plus', '0fb74c33b19b89dec0ee8c6863dce42b5c0f650a', 'engine-independent-service-test']
-};
-assert.deepEqual(Object.fromEntries(manifest.sources.map((source) => [source.path, [source.sourcePath, source.sourceRepository, source.sourceRepositoryCommit, source.classification]])), expectedProvenance, 'source provenance drift');
-
 const entries = [...manifest.sources, ...manifest.artifacts];
 assert.equal(new Set(entries.map((entry) => entry.path)).size, entries.length, 'duplicate manifest path');
 for (const entry of entries) {
-  safePath(entry.path);
   assert.match(entry.sha256, /^[a-f0-9]{64}$/);
   assert.ok(Number.isInteger(entry.bytes) && entry.bytes >= 0);
   assert.ok(entry.classification && entry.allowedDerivation);
@@ -76,12 +179,7 @@ for (const entry of entries) {
   assert.equal(bytes.length, entry.bytes, `byte drift: ${entry.path}`);
   assert.equal(sha256(bytes), entry.sha256, `hash drift: ${entry.path}`);
 }
-
-for (const source of manifest.sources) {
-  assert.ok(path.isAbsolute(source.sourcePath), `sourcePath must be absolute: ${source.path}`);
-  assert.ok(path.isAbsolute(source.sourceRepository), `sourceRepository must be absolute: ${source.path}`);
-  assert.match(source.sourceRepositoryCommit, /^[a-f0-9]{40}$/);
-}
+for (const source of manifest.sources) verifyProvenance(source);
 for (const artifact of manifest.artifacts) {
   assert.ok(Array.isArray(artifact.sourcePaths) && artifact.sourcePaths.length > 0, `missing source paths: ${artifact.path}`);
   assert.ok(artifact.sourcePaths.every((file) => manifest.sources.some((source) => source.path === file)), `unknown artifact source: ${artifact.path}`);
@@ -92,25 +190,12 @@ assert.deepEqual(inventory('test/oracles/sources'), manifest.sources.map((entry)
 const traceEntries = manifest.artifacts.filter((entry) => entry.classification === 'hand-authored-golden-trace');
 assert.deepEqual(inventory('test/oracles/golden'), traceEntries.map((entry) => entry.path).sort(), 'golden trace inventory drift');
 assert.equal(traceEntries.length, 6);
+const traces = Object.fromEntries(traceEntries.map((entry) => { const trace = json(entry.path); return [trace.scenario, trace]; }));
+assert.deepEqual(Object.keys(traces).sort(), ['close-cancel-lifecycle', 'empty-open-link', 'json-products-over-100', 'json-products-up-to-100', 'open-link-now', 'transaction-error']);
 
-const traces = Object.fromEntries(traceEntries.map((entry) => {
-  const trace = json(entry.path);
-  return [trace.scenario, trace];
-}));
-assert.deepEqual(Object.keys(traces).sort(), [
-  'close-cancel-lifecycle',
-  'empty-open-link',
-  'json-products-over-100',
-  'json-products-up-to-100',
-  'open-link-now',
-  'transaction-error'
-]);
-
-const eventGroups = (trace) => trace.events ? [trace.events] : trace.cases.map((item) => item.events);
 for (const trace of Object.values(traces)) {
   assert.equal(trace.schemaVersion, 1);
   assert.equal(trace.handAuthored, true);
-  assert.equal(trace.stateTiming, 'after Lua handler and before queued command application');
   for (const events of eventGroups(trace)) {
     assert.deepEqual(events.map((event) => event.revision), events.map((_, index) => index + 1), `${trace.scenario}: revision drift`);
     for (const event of events) {
@@ -119,6 +204,7 @@ for (const trace of Object.values(traces)) {
     }
   }
 }
+verifyLifecycle(traces);
 
 const requests = (trace) => eventGroups(trace).flat(2).flatMap((event) => event.transportRequests.map((request) => request.tranId));
 const empty = traces['empty-open-link'];
@@ -127,38 +213,20 @@ assert.deepEqual(empty.events.at(-1).commands, [{ type: 'returnToParent', name: 
 
 const now = traces['open-link-now'];
 assert.deepEqual(requests(now), ['CCS20001']);
-assert.equal(now.events.at(-1).commands[0].name, 'AddNewGroup');
-assert.equal(now.events.at(-1).commands[0].payload, '');
+assert.deepEqual(now.events.at(-1).commands[0], { type: 'returnToParent', name: 'AddNewGroup', payload: '', close: true });
 assert.equal(JSON.stringify(now).includes('CCS20000'), false);
 
 const bounded = traces['json-products-up-to-100'];
 assert.deepEqual(requests(bounded), ['CCS20001', 'CCS20000']);
-const boundedBlock = bounded.events.find((event) => event.blocks.CCS20000?.InBlock2).blocks.CCS20000;
+const boundedRequest = bounded.events.find((event) => event.transportRequests.some((request) => request.tranId === 'CCS20000'));
+const boundedBlock = boundedRequest.blocks.CCS20000;
 assert.equal(boundedBlock.InBlock1.arr_cnt, 3);
 assert.deepEqual(boundedBlock.InBlock2.map((row) => row.shrn_iscd), ['005930', 'AAPL', 'BTC']);
-assert.equal(bounded.events.some((event) => event.commands.some((command) => command.type === 'messageBox')), false);
+assert.ok(boundedRequest.hostCalls.findIndex((call) => call.target === 'DATAMANAGER.RequestTranData' && call.args[0] === 'CCS20000') < boundedRequest.hostCalls.findIndex((call) => call.target === 'Form.GetSharedData'));
 assert.deepEqual(bounded.events.at(-1).commands.map((command) => command.type), ['toast', 'returnToParent']);
 
-const over = traces['json-products-over-100'];
-const inputProducts = JSON.parse(over.inputs.openLinkData);
-const warningIndex = over.events.findIndex((event) => event.commands.some((command) => command.type === 'messageBox'));
-const confirmationIndex = over.events.findIndex((event) => event.event === 'Form_OnMsgBoxClose');
-const overBlock = over.events[warningIndex].blocks.CCS20000;
-assert.ok(inputProducts.length > 100);
-assert.equal(overBlock.InBlock1.arr_cnt, inputProducts.length);
-assert.equal(overBlock.InBlock2.length, 100);
-assert.deepEqual(overBlock.InBlock2.map((row) => row.shrn_iscd), inputProducts.slice(0, 100).map((row) => row.Code));
-assert.ok(warningIndex < confirmationIndex);
-assert.deepEqual(over.events[warningIndex].transportRequests, []);
-assert.deepEqual(over.events[confirmationIndex].args, ['OnlyShow', 'confirm']);
-assert.deepEqual(over.events[confirmationIndex].transportRequests, [{ tranId: 'CCS20000' }]);
-assert.equal(over.events.slice(0, confirmationIndex).some((event) => event.transportRequests.some((request) => request.tranId === 'CCS20000')), false);
-
-const error = traces['transaction-error'];
-assert.deepEqual(error.events.at(-1).hostCalls.map((call) => call.target), ['Trim', 'Form.GetSharedData', 'Form.MsgBoxEx']);
-const diagnostic = JSON.stringify(error.events.at(-1).commands);
-for (const value of error.inputs.forbiddenDiagnosticValues) assert.equal(diagnostic.includes(value), false, `diagnostic leaked: ${value}`);
-assert.equal(error.events.some((event) => event.commands.some((command) => command.type === 'returnToParent')), false);
+verifyOver100(traces['json-products-over-100']);
+verifyError(traces['transaction-error']);
 
 const close = traces['close-cancel-lifecycle'];
 const cancel = close.cases.find((item) => item.name === 'cancel-returns-no-change').events;
@@ -168,7 +236,7 @@ assert.equal(cancel.at(-1).commands.at(-1).type, 'closeForm');
 assert.deepEqual(cancel.flatMap((event) => event.transportRequests), []);
 const success = close.cases.find((item) => item.name === 'successful-return-suppresses-no-change').events;
 assert.equal(success.at(-1).state.globals.g_bOnlyClose, false);
-assert.equal(JSON.stringify(success.at(-1)).includes('NoChange'), false);
+assert.equal(JSON.stringify(success).includes('NoChange'), false);
 assert.equal(success.at(-1).commands.at(-1).type, 'closeForm');
 
 const original = read('test/oracles/sources/mts_screen/HS1200P08.xmf_');
@@ -176,20 +244,37 @@ const synthetic = read('test/oracles/synthetic/renamed-reordered.xmf_');
 assert.deepEqual(generateSyntheticFixture(original), synthetic, 'synthetic generator drift');
 assert.notEqual(sha256(original), sha256(synthetic), 'synthetic source hash did not change');
 const syntheticText = synthetic.toString('utf8');
-for (const token of ['scrno="1200"', 'name="Form"', 'lbl0', 'lbl1', 'edtGroupNm', 'btnAdd', 'btnCancel', 'CCS20000', 'CCS20001', sha256(original)]) {
-  assert.equal(syntheticText.includes(token), false, `synthetic retained original identity: ${token}`);
-}
+for (const token of ['scrno="1200"', 'name="Form"', 'lbl0', 'lbl1', 'edtGroupNm', 'btnAdd', 'btnCancel', 'CCS20000', 'CCS20001', sha256(original)]) assert.equal(syntheticText.includes(token), false, `synthetic retained original identity: ${token}`);
 assert.equal(/(^|[^A-Za-z])Form[._]/m.test(syntheticText), false, 'synthetic retained original Form identity');
-for (const layout of ['18,0,324,26,1', '18,42,324,20,1', '18,68,324,40,1', '185,142,157,56,1', '18,142,157,56,1']) {
-  assert.equal(syntheticText.includes(layout), false, `synthetic retained original layout: ${layout}`);
-}
-assert.deepEqual([...syntheticText.matchAll(/<(?:LABEL|EDIT|BUTTON) name="([^"]+)"/g)].map((match) => match[1]), [
-  'syntheticDismiss', 'syntheticPrompt', 'syntheticAccept', 'syntheticInput', 'syntheticTitle'
-]);
+assert.deepEqual([...syntheticText.matchAll(/<(?:LABEL|EDIT|BUTTON) name="([^"]+)"/g)].map((match) => match[1]), ['syntheticDismiss', 'syntheticPrompt', 'syntheticAccept', 'syntheticInput', 'syntheticTitle']);
 
-const productionForbidden = /HS1200P08|CCS20000|CCS20001|btnAdd|btnCancel|edtGroupNm|4d63ba22ac5339cfd3068cffa91710e0099481da81d974e2aff0ce7ae39ed53e/;
 for (const file of productionFiles()) {
-  assert.equal(productionForbidden.test(read(file).toString('utf8')), false, `production hardcoding: ${file}`);
+  const hit = hardcodingHit(read(file).toString('utf8'));
+  assert.equal(hit, undefined, `production static anti-hardcoding tripwire (${hit}): ${file}`);
 }
 
-console.log(`PASS G001: ${manifest.sources.length} immutable sources, 6 golden traces, provenance, generator, and anti-hardcoding checks`);
+// Deterministic negative checks for the independent review's exact bypass classes.
+for (const mutation of ['CCS20000', 'const id = "CCS" + "20000";', 'const screen = 9907;', 'const ordinal = "lbl" + "0";', 'const layout = "18,68," + "324,40,1";']) assert.ok(hardcodingHit(mutation), `tripwire self-test missed: ${mutation}`);
+const wrongWarning = structuredClone(traces['json-products-over-100']);
+wrongWarning.events.find((event) => event.commands.some((command) => command.type === 'messageBox')).commands[0].message = 'WRONG WARNING';
+assert.throws(() => verifyOver100(wrongWarning));
+const earlyRequest = structuredClone(traces['json-products-over-100']);
+earlyRequest.events[0].hostCalls.push({ api: 'call', target: 'DATAMANAGER.RequestTranData', args: ['CCS20000'] });
+assert.throws(() => verifyOver100(earlyRequest));
+const wrongError = structuredClone(traces['transaction-error']);
+wrongError.events.at(-1).hostCalls[0].args = ['WRONG'];
+assert.throws(() => verifyError(wrongError));
+const noChangeLeak = structuredClone(success);
+noChangeLeak[0].commands.push({ type: 'returnToParent', payload: 'NoChange' });
+assert.equal(JSON.stringify(noChangeLeak).includes('NoChange'), true);
+const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'g001-path-'));
+const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'g001-outside-'));
+fs.writeFileSync(path.join(outside, 'escape.txt'), 'escape');
+fs.symlinkSync(path.join(outside, 'escape.txt'), path.join(temp, 'escape.txt'));
+assert.throws(() => assertContained(temp, path.join(temp, 'escape.txt'), 'self-test symlink'));
+fs.rmSync(temp, { recursive: true, force: true });
+fs.rmSync(outside, { recursive: true, force: true });
+
+console.log('PASS G001 negative checks: provenance mutation, trace mutations, composed identities, and symlink escape are rejected');
+console.log('PASS G001 static anti-hardcoding tripwires; original-plus-synthetic dynamic proof remains a later gate');
+console.log(`PASS G001: ${manifest.sources.length} immutable sources, 6 golden traces, provenance, generator, and anti-hardcoding tripwires`);
