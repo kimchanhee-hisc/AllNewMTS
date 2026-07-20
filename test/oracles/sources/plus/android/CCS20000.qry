@@ -1,0 +1,36 @@
+BEGIN_FUNCTION_MAP
+	.Func,관심종목 등록변경삭제,CCS20000,ENCRYPT,DIGSIGN=0,RECLEN=0,SERVERNO=M,VERSION=10000001,CREATER=조승희,CREDATE=20240924,MODIFYER=안태현,MODDATE=20250116,MEMFIELDLEN=0;
+	BEGIN_DATA_MAP
+	InBlock1, InBlock1, input;
+	begin
+		회원 ID, usid, usid, string, 10, 0, 0, 10, , , ;
+		처리구분, wk_tp, wk_tp, string, 1, 0, 0, 1, , , ;
+		그룹번호, grpnum, grpnum, string, 3, 0, 0, 3, , , ;
+		그룹명, grpname, grpname, string, 20, 0, 0, 20, , , ;
+		관심종목갯수, arr_cnt, arr_cnt, string, 4, 0, 0, 4, , , ;
+	end
+	InBlock2, InBlock2, input, occurs;
+	begin
+		종목구분, mrkt_div_cls_code, mrkt_div_cls_code, string, 3, 0, 0, 3, , , ;
+		종목코드, shrn_iscd, shrn_iscd, string, 20, 0, 0, 20, , , ;
+		거래소코드, exch_cls_code, exch_cls_code, string, 4, 0, 0, 4, , , ;
+		등록일자, ldate, ldate, string, 8, 0, 0, 8, , , ;
+		색상, color, color, string, 6, 0, 0, 6, , , ;
+	end
+	OutBlock1, OutBlock1, output;
+	begin
+		그룹번호, grpnum, grpnum, string, 3, 0, 0, 3, , , ;
+		그룹명, grpname, grpname, string, 20, 0, 0, 20, , , ;
+		관심종목갯수, arr_cnt, arr_cnt, string, 4, 0, 0, 4, , , ;
+	end
+	OutBlock2, OutBlock2, output, occurs;
+	begin
+		종목구분, mrkt_div_cls_code, mrkt_div_cls_code, string, 3, 0, 0, 3, , , ;
+		종목코드, shrn_iscd, shrn_iscd, string, 20, 0, 0, 20, , , ;
+		거래소코드, exch_cls_code, exch_cls_code, string, 4, 0, 0, 4, , , ;
+		등록일자, ldate, ldate, string, 8, 0, 0, 8, , , ;
+		색상, color, color, string, 6, 0, 0, 6, , , ;
+		폴더소속여부, folder_yn, folder_yn, string, 1, 0, 0, 1, , , ;
+	end
+	END_DATA_MAP
+END_FUNCTION_MAP
