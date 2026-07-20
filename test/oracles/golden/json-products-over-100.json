@@ -1,0 +1,2016 @@
+{
+  "schemaVersion": 1,
+  "scenario": "json-products-over-100",
+  "handAuthored": true,
+  "authorshipNote": "Expected control flow and values were hand-authored from approved Lua/XMF; 101 fixture items and the first 100 repeated row calls were mechanically expanded only to keep ordinal data exact. No runtime or engine produced this file.",
+  "inputs": {
+    "openLinkData": "[{\"Code\":\"P001\",\"MarketLink\":\"K\"},{\"Code\":\"P002\",\"MarketLink\":\"K\"},{\"Code\":\"P003\",\"MarketLink\":\"K\"},{\"Code\":\"P004\",\"MarketLink\":\"K\"},{\"Code\":\"P005\",\"MarketLink\":\"K\"},{\"Code\":\"P006\",\"MarketLink\":\"K\"},{\"Code\":\"P007\",\"MarketLink\":\"K\"},{\"Code\":\"P008\",\"MarketLink\":\"K\"},{\"Code\":\"P009\",\"MarketLink\":\"K\"},{\"Code\":\"P010\",\"MarketLink\":\"K\"},{\"Code\":\"P011\",\"MarketLink\":\"K\"},{\"Code\":\"P012\",\"MarketLink\":\"K\"},{\"Code\":\"P013\",\"MarketLink\":\"K\"},{\"Code\":\"P014\",\"MarketLink\":\"K\"},{\"Code\":\"P015\",\"MarketLink\":\"K\"},{\"Code\":\"P016\",\"MarketLink\":\"K\"},{\"Code\":\"P017\",\"MarketLink\":\"K\"},{\"Code\":\"P018\",\"MarketLink\":\"K\"},{\"Code\":\"P019\",\"MarketLink\":\"K\"},{\"Code\":\"P020\",\"MarketLink\":\"K\"},{\"Code\":\"P021\",\"MarketLink\":\"K\"},{\"Code\":\"P022\",\"MarketLink\":\"K\"},{\"Code\":\"P023\",\"MarketLink\":\"K\"},{\"Code\":\"P024\",\"MarketLink\":\"K\"},{\"Code\":\"P025\",\"MarketLink\":\"K\"},{\"Code\":\"P026\",\"MarketLink\":\"K\"},{\"Code\":\"P027\",\"MarketLink\":\"K\"},{\"Code\":\"P028\",\"MarketLink\":\"K\"},{\"Code\":\"P029\",\"MarketLink\":\"K\"},{\"Code\":\"P030\",\"MarketLink\":\"K\"},{\"Code\":\"P031\",\"MarketLink\":\"K\"},{\"Code\":\"P032\",\"MarketLink\":\"K\"},{\"Code\":\"P033\",\"MarketLink\":\"K\"},{\"Code\":\"P034\",\"MarketLink\":\"K\"},{\"Code\":\"P035\",\"MarketLink\":\"K\"},{\"Code\":\"P036\",\"MarketLink\":\"K\"},{\"Code\":\"P037\",\"MarketLink\":\"K\"},{\"Code\":\"P038\",\"MarketLink\":\"K\"},{\"Code\":\"P039\",\"MarketLink\":\"K\"},{\"Code\":\"P040\",\"MarketLink\":\"K\"},{\"Code\":\"P041\",\"MarketLink\":\"K\"},{\"Code\":\"P042\",\"MarketLink\":\"K\"},{\"Code\":\"P043\",\"MarketLink\":\"K\"},{\"Code\":\"P044\",\"MarketLink\":\"K\"},{\"Code\":\"P045\",\"MarketLink\":\"K\"},{\"Code\":\"P046\",\"MarketLink\":\"K\"},{\"Code\":\"P047\",\"MarketLink\":\"K\"},{\"Code\":\"P048\",\"MarketLink\":\"K\"},{\"Code\":\"P049\",\"MarketLink\":\"K\"},{\"Code\":\"P050\",\"MarketLink\":\"K\"},{\"Code\":\"P051\",\"MarketLink\":\"K\"},{\"Code\":\"P052\",\"MarketLink\":\"K\"},{\"Code\":\"P053\",\"MarketLink\":\"K\"},{\"Code\":\"P054\",\"MarketLink\":\"K\"},{\"Code\":\"P055\",\"MarketLink\":\"K\"},{\"Code\":\"P056\",\"MarketLink\":\"K\"},{\"Code\":\"P057\",\"MarketLink\":\"K\"},{\"Code\":\"P058\",\"MarketLink\":\"K\"},{\"Code\":\"P059\",\"MarketLink\":\"K\"},{\"Code\":\"P060\",\"MarketLink\":\"K\"},{\"Code\":\"P061\",\"MarketLink\":\"K\"},{\"Code\":\"P062\",\"MarketLink\":\"K\"},{\"Code\":\"P063\",\"MarketLink\":\"K\"},{\"Code\":\"P064\",\"MarketLink\":\"K\"},{\"Code\":\"P065\",\"MarketLink\":\"K\"},{\"Code\":\"P066\",\"MarketLink\":\"K\"},{\"Code\":\"P067\",\"MarketLink\":\"K\"},{\"Code\":\"P068\",\"MarketLink\":\"K\"},{\"Code\":\"P069\",\"MarketLink\":\"K\"},{\"Code\":\"P070\",\"MarketLink\":\"K\"},{\"Code\":\"P071\",\"MarketLink\":\"K\"},{\"Code\":\"P072\",\"MarketLink\":\"K\"},{\"Code\":\"P073\",\"MarketLink\":\"K\"},{\"Code\":\"P074\",\"MarketLink\":\"K\"},{\"Code\":\"P075\",\"MarketLink\":\"K\"},{\"Code\":\"P076\",\"MarketLink\":\"K\"},{\"Code\":\"P077\",\"MarketLink\":\"K\"},{\"Code\":\"P078\",\"MarketLink\":\"K\"},{\"Code\":\"P079\",\"MarketLink\":\"K\"},{\"Code\":\"P080\",\"MarketLink\":\"K\"},{\"Code\":\"P081\",\"MarketLink\":\"K\"},{\"Code\":\"P082\",\"MarketLink\":\"K\"},{\"Code\":\"P083\",\"MarketLink\":\"K\"},{\"Code\":\"P084\",\"MarketLink\":\"K\"},{\"Code\":\"P085\",\"MarketLink\":\"K\"},{\"Code\":\"P086\",\"MarketLink\":\"K\"},{\"Code\":\"P087\",\"MarketLink\":\"K\"},{\"Code\":\"P088\",\"MarketLink\":\"K\"},{\"Code\":\"P089\",\"MarketLink\":\"K\"},{\"Code\":\"P090\",\"MarketLink\":\"K\"},{\"Code\":\"P091\",\"MarketLink\":\"K\"},{\"Code\":\"P092\",\"MarketLink\":\"K\"},{\"Code\":\"P093\",\"MarketLink\":\"K\"},{\"Code\":\"P094\",\"MarketLink\":\"K\"},{\"Code\":\"P095\",\"MarketLink\":\"K\"},{\"Code\":\"P096\",\"MarketLink\":\"K\"},{\"Code\":\"P097\",\"MarketLink\":\"K\"},{\"Code\":\"P098\",\"MarketLink\":\"K\"},{\"Code\":\"P099\",\"MarketLink\":\"K\"},{\"Code\":\"P100\",\"MarketLink\":\"K\"},{\"Code\":\"P101\",\"MarketLink\":\"K\"}]",
+    "editedGroupName": "대량그룹",
+    "sharedData": {
+      "&USER_ID": "U000000001"
+    },
+    "itemCodeInfo": {
+      "markettext": "K"
+    },
+    "CCS20001": {
+      "OutBlock1": {
+        "arr_cnt": "2"
+      },
+      "OutBlock2": [
+        {
+          "grpnum": "001",
+          "grpname": "기존그룹",
+          "tot_jongcnt": "4"
+        },
+        {
+          "grpnum": "010",
+          "grpname": "대량그룹",
+          "tot_jongcnt": "0"
+        }
+      ]
+    },
+    "CCS20000": {
+      "OutBlock1": {
+        "grpnum": "010",
+        "grpname": "대량그룹",
+        "arr_cnt": "101"
+      },
+      "OutBlock2": []
+    }
+  },
+  "events": [
+    {
+      "revision": 1,
+      "event": "Form_OnFormInit",
+      "status": "ok",
+      "hostCalls": [
+        {
+          "api": "set",
+          "target": "btnAdd.border",
+          "value": "1"
+        },
+        {
+          "api": "set",
+          "target": "btnAdd.dfgcolor",
+          "value": "101"
+        },
+        {
+          "api": "call",
+          "target": "btnAdd.SetRadius",
+          "args": [
+            12,
+            "138",
+            "139",
+            "131",
+            false,
+            "166",
+            "166",
+            "131",
+            1
+          ]
+        },
+        {
+          "api": "call",
+          "target": "Form.GetOpenLinkData",
+          "args": [],
+          "returns": "<input:openLinkData>"
+        }
+      ],
+      "state": {
+        "lifecycle": "ACTIVE",
+        "globals": {
+          "g_bOnlyClose": true,
+          "g_szReceiveData": "<input:openLinkData>"
+        },
+        "controls": {
+          "btnAdd": {
+            "enabled": false
+          }
+        }
+      },
+      "blocks": {},
+      "commands": [],
+      "transportRequests": []
+    },
+    {
+      "revision": 2,
+      "event": "edtGroupNm_OnEditComplete",
+      "status": "ok",
+      "hostCalls": [
+        {
+          "api": "call",
+          "target": "Trim",
+          "args": [
+            "대량그룹"
+          ],
+          "returns": "대량그룹"
+        },
+        {
+          "api": "call",
+          "target": "Trim",
+          "args": [
+            "대량그룹"
+          ],
+          "returns": "대량그룹"
+        },
+        {
+          "api": "set",
+          "target": "btnAdd.enable",
+          "value": true
+        }
+      ],
+      "state": {
+        "lifecycle": "ACTIVE",
+        "globals": {
+          "g_bOnlyClose": true,
+          "g_szReceiveData": "<input:openLinkData>"
+        },
+        "controls": {
+          "edtGroupNm": {
+            "caption": "대량그룹"
+          },
+          "btnAdd": {
+            "enabled": true
+          }
+        }
+      },
+      "blocks": {},
+      "commands": [],
+      "transportRequests": []
+    },
+    {
+      "revision": 3,
+      "event": "btnAdd_OnClick",
+      "nestedEvent": "DATAMANAGER_OnSendTranBefore",
+      "status": "ok",
+      "hostCalls": [
+        {
+          "api": "call",
+          "target": "DATAMANAGER.RequestTranData",
+          "args": [
+            "CCS20001"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "Form.GetSharedData",
+          "args": [
+            "&USER_ID",
+            false
+          ],
+          "returns": "U000000001"
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20001",
+            "InBlock1",
+            "usid",
+            0,
+            "U000000001"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20001",
+            "InBlock1",
+            "wk_tp",
+            0,
+            "1"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20001",
+            "InBlock1",
+            "arr_cnt",
+            0,
+            "1"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20001",
+            "InBlock2",
+            "grpnum",
+            0,
+            ""
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20001",
+            "InBlock2",
+            "grpname",
+            0,
+            "대량그룹"
+          ]
+        }
+      ],
+      "state": {
+        "lifecycle": "ACTIVE",
+        "globals": {
+          "g_bOnlyClose": true,
+          "g_szReceiveData": "<input:openLinkData>"
+        },
+        "controls": {
+          "edtGroupNm": {
+            "caption": "대량그룹"
+          },
+          "btnAdd": {
+            "enabled": true
+          }
+        }
+      },
+      "blocks": {
+        "CCS20001": {
+          "InBlock1": {
+            "usid": "U000000001",
+            "wk_tp": "1",
+            "arr_cnt": "1"
+          },
+          "InBlock2": [
+            {
+              "grpnum": "",
+              "grpname": "대량그룹"
+            }
+          ]
+        }
+      },
+      "commands": [],
+      "transportRequests": [
+        {
+          "tranId": "CCS20001"
+        }
+      ]
+    },
+    {
+      "revision": 4,
+      "event": "DATAMANAGER_OnReceiveTranComplete",
+      "args": [
+        "CCS20001"
+      ],
+      "status": "ok",
+      "hostCalls": [
+        {
+          "api": "call",
+          "target": "DATAMANAGER.GetDataCount",
+          "args": [
+            false,
+            "CCS20001",
+            "OutBlock2"
+          ],
+          "returns": 2
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.GetDataValue",
+          "args": [
+            false,
+            "CCS20001",
+            "OutBlock2",
+            "grpnum",
+            1
+          ],
+          "returns": "010"
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.GetDataValue",
+          "args": [
+            false,
+            "CCS20001",
+            "OutBlock2",
+            "grpname",
+            1
+          ],
+          "returns": "대량그룹"
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock1",
+            "grpnum",
+            0,
+            "010"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock1",
+            "grpname",
+            0,
+            "대량그룹"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock1",
+            "arr_cnt",
+            0,
+            101
+          ]
+        },
+        {
+          "api": "forEach",
+          "target": "CCS20000.InBlock2",
+          "rows": "blocks.CCS20000.InBlock2",
+          "count": 100,
+          "callOrder": [
+            {
+              "target": "Form.GetItemCodeInfo",
+              "args": [
+                "$row.shrn_iscd",
+                "markettext",
+                "K"
+              ],
+              "returns": "K"
+            },
+            {
+              "target": "DATAMANAGER.SetDataValue",
+              "args": [
+                false,
+                "CCS20000",
+                "InBlock2",
+                "shrn_iscd",
+                "$index",
+                "$row.shrn_iscd"
+              ]
+            },
+            {
+              "target": "DATAMANAGER.SetDataValue",
+              "args": [
+                false,
+                "CCS20000",
+                "InBlock2",
+                "mrkt_div_cls_code",
+                "$index",
+                "K"
+              ]
+            },
+            {
+              "target": "DATAMANAGER.SetDataValue",
+              "args": [
+                false,
+                "CCS20000",
+                "InBlock2",
+                "ldate",
+                "$index",
+                ""
+              ]
+            },
+            {
+              "target": "DATAMANAGER.SetDataValue",
+              "args": [
+                false,
+                "CCS20000",
+                "InBlock2",
+                "color",
+                "$index",
+                ""
+              ]
+            },
+            {
+              "target": "DATAMANAGER.SetDataValue",
+              "args": [
+                false,
+                "CCS20000",
+                "InBlock2",
+                "exch_cls_code",
+                "$index",
+                ""
+              ]
+            }
+          ]
+        },
+        {
+          "api": "call",
+          "target": "Form.MsgBoxEx",
+          "args": [
+            "",
+            "관심그룹에 종목은 최대 100개까지 추가할 수 있어요.\n100개가 넘어가는 종목은 제외하고 추가할게요.",
+            "OnlyShow",
+            "",
+            "확인",
+            0
+          ]
+        }
+      ],
+      "state": {
+        "lifecycle": "ACTIVE",
+        "globals": {
+          "g_bOnlyClose": true,
+          "g_szReceiveData": "<input:openLinkData>"
+        },
+        "controls": {
+          "edtGroupNm": {
+            "caption": "대량그룹"
+          },
+          "btnAdd": {
+            "enabled": true
+          }
+        }
+      },
+      "blocks": {
+        "CCS20000": {
+          "InBlock1": {
+            "grpnum": "010",
+            "grpname": "대량그룹",
+            "arr_cnt": 101
+          },
+          "InBlock2": [
+            {
+              "shrn_iscd": "P001",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P002",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P003",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P004",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P005",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P006",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P007",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P008",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P009",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P010",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P011",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P012",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P013",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P014",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P015",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P016",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P017",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P018",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P019",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P020",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P021",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P022",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P023",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P024",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P025",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P026",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P027",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P028",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P029",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P030",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P031",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P032",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P033",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P034",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P035",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P036",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P037",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P038",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P039",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P040",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P041",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P042",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P043",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P044",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P045",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P046",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P047",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P048",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P049",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P050",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P051",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P052",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P053",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P054",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P055",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P056",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P057",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P058",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P059",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P060",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P061",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P062",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P063",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P064",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P065",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P066",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P067",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P068",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P069",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P070",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P071",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P072",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P073",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P074",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P075",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P076",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P077",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P078",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P079",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P080",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P081",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P082",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P083",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P084",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P085",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P086",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P087",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P088",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P089",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P090",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P091",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P092",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P093",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P094",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P095",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P096",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P097",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P098",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P099",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P100",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            }
+          ]
+        }
+      },
+      "commands": [
+        {
+          "type": "messageBox",
+          "title": "",
+          "message": "관심그룹에 종목은 최대 100개까지 추가할 수 있어요.\n100개가 넘어가는 종목은 제외하고 추가할게요.",
+          "key": "OnlyShow",
+          "confirmLabel": "확인"
+        }
+      ],
+      "transportRequests": []
+    },
+    {
+      "revision": 5,
+      "event": "Form_OnMsgBoxClose",
+      "args": [
+        "OnlyShow",
+        "confirm"
+      ],
+      "nestedEvent": "DATAMANAGER_OnSendTranBefore",
+      "status": "ok",
+      "hostCalls": [
+        {
+          "api": "call",
+          "target": "DATAMANAGER.RequestTranData",
+          "args": [
+            "CCS20000"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "Form.GetSharedData",
+          "args": [
+            "&USER_ID",
+            false
+          ],
+          "returns": "U000000001"
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock1",
+            "usid",
+            0,
+            "U000000001"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock1",
+            "wk_tp",
+            0,
+            "1"
+          ]
+        }
+      ],
+      "state": {
+        "lifecycle": "ACTIVE",
+        "globals": {
+          "g_bOnlyClose": true,
+          "g_szReceiveData": "<input:openLinkData>"
+        },
+        "controls": {
+          "edtGroupNm": {
+            "caption": "대량그룹"
+          },
+          "btnAdd": {
+            "enabled": true
+          }
+        }
+      },
+      "blocks": {
+        "CCS20000": {
+          "InBlock1": {
+            "usid": "U000000001",
+            "wk_tp": "1",
+            "grpnum": "010",
+            "grpname": "대량그룹",
+            "arr_cnt": 101
+          },
+          "InBlock2": [
+            {
+              "shrn_iscd": "P001",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P002",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P003",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P004",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P005",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P006",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P007",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P008",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P009",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P010",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P011",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P012",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P013",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P014",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P015",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P016",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P017",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P018",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P019",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P020",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P021",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P022",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P023",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P024",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P025",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P026",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P027",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P028",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P029",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P030",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P031",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P032",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P033",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P034",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P035",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P036",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P037",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P038",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P039",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P040",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P041",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P042",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P043",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P044",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P045",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P046",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P047",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P048",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P049",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P050",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P051",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P052",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P053",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P054",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P055",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P056",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P057",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P058",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P059",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P060",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P061",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P062",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P063",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P064",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P065",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P066",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P067",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P068",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P069",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P070",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P071",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P072",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P073",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P074",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P075",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P076",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P077",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P078",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P079",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P080",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P081",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P082",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P083",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P084",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P085",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P086",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P087",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P088",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P089",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P090",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P091",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P092",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P093",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P094",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P095",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P096",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P097",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P098",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P099",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "P100",
+              "mrkt_div_cls_code": "K",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            }
+          ]
+        }
+      },
+      "commands": [],
+      "transportRequests": [
+        {
+          "tranId": "CCS20000"
+        }
+      ]
+    },
+    {
+      "revision": 6,
+      "event": "DATAMANAGER_OnReceiveTranComplete",
+      "args": [
+        "CCS20000"
+      ],
+      "status": "ok",
+      "hostCalls": [
+        {
+          "api": "call",
+          "target": "Form.Toast",
+          "args": [
+            0,
+            "[대량그룹]에 추가했어요.",
+            1
+          ]
+        },
+        {
+          "api": "call",
+          "target": "Form.SendReturnToParent",
+          "args": [
+            "FinishAddProduct",
+            "대량그룹",
+            true
+          ]
+        }
+      ],
+      "state": {
+        "lifecycle": "ACTIVE",
+        "globals": {
+          "g_bOnlyClose": false,
+          "g_szReceiveData": "<input:openLinkData>"
+        },
+        "controls": {
+          "edtGroupNm": {
+            "caption": "대량그룹"
+          },
+          "btnAdd": {
+            "enabled": true
+          }
+        }
+      },
+      "blocks": {
+        "CCS20000": {
+          "OutBlock1": {
+            "grpnum": "010",
+            "grpname": "대량그룹",
+            "arr_cnt": "101"
+          },
+          "OutBlock2": []
+        }
+      },
+      "commands": [
+        {
+          "type": "toast",
+          "kind": 0,
+          "message": "[대량그룹]에 추가했어요.",
+          "duration": 1
+        },
+        {
+          "type": "returnToParent",
+          "name": "FinishAddProduct",
+          "payload": "대량그룹",
+          "close": true
+        }
+      ],
+      "transportRequests": []
+    }
+  ]
+}
