@@ -71,7 +71,7 @@
             }
           ],
           "state": {
-            "lifecycle": "CLOSING",
+            "lifecycle": "ACTIVE",
             "globals": {
               "g_bOnlyClose": true,
               "g_szReceiveData": ""
@@ -79,7 +79,10 @@
           },
           "blocks": {},
           "commands": [],
-          "transportRequests": []
+          "transportRequests": [],
+          "stateAfterCommands": {
+            "lifecycle": "CLOSING"
+          }
         },
         {
           "revision": 3,
@@ -97,7 +100,7 @@
             }
           ],
           "state": {
-            "lifecycle": "CLOSED",
+            "lifecycle": "CLOSING",
             "globals": {
               "g_bOnlyClose": true,
               "g_szReceiveData": ""
@@ -116,7 +119,10 @@
               "source": "supervisor"
             }
           ],
-          "transportRequests": []
+          "transportRequests": [],
+          "stateAfterCommands": {
+            "lifecycle": "CLOSED"
+          }
         }
       ]
     },
@@ -225,7 +231,7 @@
             }
           ],
           "state": {
-            "lifecycle": "CLOSING",
+            "lifecycle": "ACTIVE",
             "globals": {
               "g_bOnlyClose": false,
               "g_szReceiveData": ""
@@ -240,7 +246,10 @@
               "close": true
             }
           ],
-          "transportRequests": []
+          "transportRequests": [],
+          "stateAfterCommands": {
+            "lifecycle": "CLOSING"
+          }
         },
         {
           "revision": 4,
@@ -248,7 +257,7 @@
           "status": "ok",
           "hostCalls": [],
           "state": {
-            "lifecycle": "CLOSED",
+            "lifecycle": "CLOSING",
             "globals": {
               "g_bOnlyClose": false,
               "g_szReceiveData": ""
@@ -261,7 +270,10 @@
               "source": "supervisor"
             }
           ],
-          "transportRequests": []
+          "transportRequests": [],
+          "stateAfterCommands": {
+            "lifecycle": "CLOSED"
+          }
         }
       ]
     }
