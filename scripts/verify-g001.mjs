@@ -31,9 +31,25 @@ function inventory(directory) {
 
 assert.equal(manifest.schemaVersion, 1);
 assert.equal(manifest.goal, 'G001-freeze-independent-oracles');
-assert.equal(manifest.noEngineAttestation.prohibitedEngineMaterialUsed, false);
-assert.equal(manifest.noEngineAttestation.runtimeOrEngineGeneratedGoldenTraces, false);
-assert.ok(manifest.noEngineAttestation.statement.includes('No engine'));
+assert.deepEqual(manifest.noEngineAttestation, {
+  prohibitedEngineMaterialUsed: false,
+  runtimeOrEngineGeneratedGoldenTraces: false,
+  statement: 'No engine source, headers, binaries, traces, fixtures, output, behavior, or derived evidence was inspected, copied, executed, cited, or used to create these oracles.'
+});
+
+const expectedProvenance = {
+  'test/oracles/sources/mts_screen/HS1200P08.xmf_': ['/Users/chanheekim/Dev/mts_screen/SmartMTS/Resource/Main/scr_xmf/HS1200P08.xmf_', '/Users/chanheekim/Dev/mts_screen', '7708dd5b089352c7531dbee4334f2a9aa53cde13', 'approved-original-xmf'],
+  'test/oracles/sources/mts_screen/script.lua': ['/Users/chanheekim/Dev/mts_screen/SmartMTS/Resource/Main/scr/script.lua', '/Users/chanheekim/Dev/mts_screen', '7708dd5b089352c7531dbee4334f2a9aa53cde13', 'approved-original-common-lua'],
+  'test/oracles/sources/mts_screen/json.lua': ['/Users/chanheekim/Dev/mts_screen/SmartMTS/Resource/Main/scr/json.lua', '/Users/chanheekim/Dev/mts_screen', '7708dd5b089352c7531dbee4334f2a9aa53cde13', 'approved-original-common-lua'],
+  'test/oracles/sources/plus/android/CCS20000.qry': ['/Users/chanheekim/Dev/Plus/android/Main/MTSMain/src/main/assets/qry/CCS20000.qry', '/Users/chanheekim/Dev/Plus/android', '164d28c3094bae4e8a0df9b55bde41ba742bbb5e', 'engine-independent-qry-contract'],
+  'test/oracles/sources/plus/android/CCS20001.qry': ['/Users/chanheekim/Dev/Plus/android/Main/MTSMain/src/main/assets/qry/CCS20001.qry', '/Users/chanheekim/Dev/Plus/android', '164d28c3094bae4e8a0df9b55bde41ba742bbb5e', 'engine-independent-qry-contract'],
+  'test/oracles/sources/plus/typescript/CCS20000Request.ts.source': ['/Users/chanheekim/Dev/Plus/src/infra/networking/models/CCS20000Request.ts', '/Users/chanheekim/Dev/Plus', '0fb74c33b19b89dec0ee8c6863dce42b5c0f650a', 'engine-independent-network-contract'],
+  'test/oracles/sources/plus/typescript/CCS20001Request.ts.source': ['/Users/chanheekim/Dev/Plus/src/infra/networking/models/CCS20001Request.ts', '/Users/chanheekim/Dev/Plus', '0fb74c33b19b89dec0ee8c6863dce42b5c0f650a', 'engine-independent-network-contract'],
+  'test/oracles/sources/plus/typescript/WatchlistTransportRequests.ts.source': ['/Users/chanheekim/Dev/Plus/src/infra/networking/models/watchlist/WatchlistTransportRequests.ts', '/Users/chanheekim/Dev/Plus', '0fb74c33b19b89dec0ee8c6863dce42b5c0f650a', 'engine-independent-network-contract'],
+  'test/oracles/sources/plus/typescript/WatchlistTransportRequests.test.ts.source': ['/Users/chanheekim/Dev/Plus/src/infra/networking/models/watchlist/WatchlistTransportRequests.test.ts', '/Users/chanheekim/Dev/Plus', '0fb74c33b19b89dec0ee8c6863dce42b5c0f650a', 'engine-independent-service-test'],
+  'test/oracles/sources/plus/typescript/WatchlistApiService.test.ts.source': ['/Users/chanheekim/Dev/Plus/src/api/services/WatchlistApiService.test.ts', '/Users/chanheekim/Dev/Plus', '0fb74c33b19b89dec0ee8c6863dce42b5c0f650a', 'engine-independent-service-test']
+};
+assert.deepEqual(Object.fromEntries(manifest.sources.map((source) => [source.path, [source.sourcePath, source.sourceRepository, source.sourceRepositoryCommit, source.classification]])), expectedProvenance, 'source provenance drift');
 
 const entries = [...manifest.sources, ...manifest.artifacts];
 assert.equal(new Set(entries.map((entry) => entry.path)).size, entries.length, 'duplicate manifest path');
