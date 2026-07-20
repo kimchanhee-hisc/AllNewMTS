@@ -13,6 +13,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "verify:g001": "node scripts/verify-g001.mjs",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",

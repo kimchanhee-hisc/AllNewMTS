@@ -3,7 +3,10 @@
   "scenario": "close-cancel-lifecycle",
   "handAuthored": true,
   "stateTiming": "after Lua handler and before queued command application",
-  "inputs": { "openLinkData": "", "editedGroupName": "새그룹" },
+  "inputs": {
+    "openLinkData": "",
+    "editedGroupName": "새그룹"
+  },
   "cases": [
     {
       "name": "cancel-returns-no-change",
@@ -13,34 +16,105 @@
           "event": "Form_OnFormInit",
           "status": "ok",
           "hostCalls": [
-            { "api": "set", "target": "btnAdd.border", "value": "1" },
-            { "api": "set", "target": "btnAdd.dfgcolor", "value": "101" },
-            { "api": "call", "target": "btnAdd.SetRadius", "args": [12, "138", "139", "131", false, "166", "166", "131", 1] },
-            { "api": "call", "target": "Form.GetOpenLinkData", "args": [], "returns": "" }
+            {
+              "api": "set",
+              "target": "btnAdd.border",
+              "value": "1"
+            },
+            {
+              "api": "set",
+              "target": "btnAdd.dfgcolor",
+              "value": "101"
+            },
+            {
+              "api": "call",
+              "target": "btnAdd.SetRadius",
+              "args": [
+                12,
+                "138",
+                "139",
+                "131",
+                false,
+                "166",
+                "166",
+                "131",
+                1
+              ]
+            },
+            {
+              "api": "call",
+              "target": "Form.GetOpenLinkData",
+              "args": [],
+              "returns": ""
+            }
           ],
-          "state": { "lifecycle": "ACTIVE", "globals": { "g_bOnlyClose": true, "g_szReceiveData": "" } },
-          "blocks": {}, "commands": [], "transportRequests": []
+          "state": {
+            "lifecycle": "ACTIVE",
+            "globals": {
+              "g_bOnlyClose": true,
+              "g_szReceiveData": ""
+            }
+          },
+          "blocks": {},
+          "commands": [],
+          "transportRequests": []
         },
         {
           "revision": 2,
           "event": "btnCancel_OnClick",
           "status": "ok",
-          "hostCalls": [{ "api": "call", "target": "Form.CloseForm", "args": [] }],
-          "state": { "lifecycle": "CLOSING", "globals": { "g_bOnlyClose": true, "g_szReceiveData": "" } },
-          "blocks": {}, "commands": [], "transportRequests": []
+          "hostCalls": [
+            {
+              "api": "call",
+              "target": "Form.CloseForm",
+              "args": []
+            }
+          ],
+          "state": {
+            "lifecycle": "CLOSING",
+            "globals": {
+              "g_bOnlyClose": true,
+              "g_szReceiveData": ""
+            }
+          },
+          "blocks": {},
+          "commands": [],
+          "transportRequests": []
         },
         {
           "revision": 3,
           "event": "Form_OnFormClose",
           "status": "ok",
           "hostCalls": [
-            { "api": "call", "target": "Form.SendReturnToParent", "args": ["AddNewGroup", "NoChange", true] }
+            {
+              "api": "call",
+              "target": "Form.SendReturnToParent",
+              "args": [
+                "AddNewGroup",
+                "NoChange",
+                true
+              ]
+            }
           ],
-          "state": { "lifecycle": "CLOSED", "globals": { "g_bOnlyClose": true, "g_szReceiveData": "" } },
+          "state": {
+            "lifecycle": "CLOSED",
+            "globals": {
+              "g_bOnlyClose": true,
+              "g_szReceiveData": ""
+            }
+          },
           "blocks": {},
           "commands": [
-            { "type": "returnToParent", "name": "AddNewGroup", "payload": "NoChange", "close": true },
-            { "type": "closeForm", "source": "supervisor" }
+            {
+              "type": "returnToParent",
+              "name": "AddNewGroup",
+              "payload": "NoChange",
+              "close": true
+            },
+            {
+              "type": "closeForm",
+              "source": "supervisor"
+            }
           ],
           "transportRequests": []
         }
@@ -54,36 +128,118 @@
           "event": "Form_OnFormInit",
           "status": "ok",
           "hostCalls": [
-            { "api": "set", "target": "btnAdd.border", "value": "1" },
-            { "api": "set", "target": "btnAdd.dfgcolor", "value": "101" },
-            { "api": "call", "target": "btnAdd.SetRadius", "args": [12, "138", "139", "131", false, "166", "166", "131", 1] },
-            { "api": "call", "target": "Form.GetOpenLinkData", "args": [], "returns": "" }
+            {
+              "api": "set",
+              "target": "btnAdd.border",
+              "value": "1"
+            },
+            {
+              "api": "set",
+              "target": "btnAdd.dfgcolor",
+              "value": "101"
+            },
+            {
+              "api": "call",
+              "target": "btnAdd.SetRadius",
+              "args": [
+                12,
+                "138",
+                "139",
+                "131",
+                false,
+                "166",
+                "166",
+                "131",
+                1
+              ]
+            },
+            {
+              "api": "call",
+              "target": "Form.GetOpenLinkData",
+              "args": [],
+              "returns": ""
+            }
           ],
-          "state": { "lifecycle": "ACTIVE", "globals": { "g_bOnlyClose": true, "g_szReceiveData": "" } },
-          "blocks": {}, "commands": [], "transportRequests": []
+          "state": {
+            "lifecycle": "ACTIVE",
+            "globals": {
+              "g_bOnlyClose": true,
+              "g_szReceiveData": ""
+            }
+          },
+          "blocks": {},
+          "commands": [],
+          "transportRequests": []
         },
         {
           "revision": 2,
           "event": "edtGroupNm_OnEditComplete",
           "status": "ok",
           "hostCalls": [
-            { "api": "call", "target": "Trim", "args": ["새그룹"], "returns": "새그룹" },
-            { "api": "call", "target": "Trim", "args": ["새그룹"], "returns": "새그룹" },
-            { "api": "set", "target": "btnAdd.enable", "value": true }
+            {
+              "api": "call",
+              "target": "Trim",
+              "args": [
+                "새그룹"
+              ],
+              "returns": "새그룹"
+            },
+            {
+              "api": "call",
+              "target": "Trim",
+              "args": [
+                "새그룹"
+              ],
+              "returns": "새그룹"
+            },
+            {
+              "api": "set",
+              "target": "btnAdd.enable",
+              "value": true
+            }
           ],
-          "state": { "lifecycle": "ACTIVE", "globals": { "g_bOnlyClose": true, "g_szReceiveData": "" } },
-          "blocks": {}, "commands": [], "transportRequests": []
+          "state": {
+            "lifecycle": "ACTIVE",
+            "globals": {
+              "g_bOnlyClose": true,
+              "g_szReceiveData": ""
+            }
+          },
+          "blocks": {},
+          "commands": [],
+          "transportRequests": []
         },
         {
           "revision": 3,
           "event": "btnAdd_OnClick",
           "status": "ok",
           "hostCalls": [
-            { "api": "call", "target": "Form.SendReturnToParent", "args": ["AddNewGroup", "새그룹", true] }
+            {
+              "api": "call",
+              "target": "Form.SendReturnToParent",
+              "args": [
+                "AddNewGroup",
+                "새그룹",
+                true
+              ]
+            }
           ],
-          "state": { "lifecycle": "CLOSING", "globals": { "g_bOnlyClose": false, "g_szReceiveData": "" } },
+          "state": {
+            "lifecycle": "CLOSING",
+            "globals": {
+              "g_bOnlyClose": false,
+              "g_szReceiveData": ""
+            }
+          },
           "blocks": {},
-          "commands": [{ "type": "returnToParent", "name": "AddNewGroup", "payload": "새그룹", "close": true }],
+          "commands": [
+            {
+              "type": "returnToParent",
+              "name": "AddNewGroup",
+              "payload": "새그룹",
+              "close": true
+            }
+          ],
           "transportRequests": []
         },
         {
@@ -91,9 +247,20 @@
           "event": "Form_OnFormClose",
           "status": "ok",
           "hostCalls": [],
-          "state": { "lifecycle": "CLOSED", "globals": { "g_bOnlyClose": false, "g_szReceiveData": "" } },
+          "state": {
+            "lifecycle": "CLOSED",
+            "globals": {
+              "g_bOnlyClose": false,
+              "g_szReceiveData": ""
+            }
+          },
           "blocks": {},
-          "commands": [{ "type": "closeForm", "source": "supervisor" }],
+          "commands": [
+            {
+              "type": "closeForm",
+              "source": "supervisor"
+            }
+          ],
           "transportRequests": []
         }
       ]

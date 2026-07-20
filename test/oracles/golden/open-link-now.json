@@ -5,8 +5,21 @@
   "inputs": {
     "openLinkData": "Now",
     "editedGroupName": "새그룹",
-    "sharedData": { "&USER_ID": "U000000001" },
-    "CCS20001": { "OutBlock1": { "arr_cnt": "1" }, "OutBlock2": [{ "grpnum": "007", "grpname": "새그룹", "tot_jongcnt": "0" }] }
+    "sharedData": {
+      "&USER_ID": "U000000001"
+    },
+    "CCS20001": {
+      "OutBlock1": {
+        "arr_cnt": "1"
+      },
+      "OutBlock2": [
+        {
+          "grpnum": "007",
+          "grpname": "새그룹",
+          "tot_jongcnt": "0"
+        }
+      ]
+    }
   },
   "events": [
     {
@@ -14,12 +27,50 @@
       "event": "Form_OnFormInit",
       "status": "ok",
       "hostCalls": [
-        { "api": "set", "target": "btnAdd.border", "value": "1" },
-        { "api": "set", "target": "btnAdd.dfgcolor", "value": "101" },
-        { "api": "call", "target": "btnAdd.SetRadius", "args": [12, "138", "139", "131", false, "166", "166", "131", 1] },
-        { "api": "call", "target": "Form.GetOpenLinkData", "args": [], "returns": "Now" }
+        {
+          "api": "set",
+          "target": "btnAdd.border",
+          "value": "1"
+        },
+        {
+          "api": "set",
+          "target": "btnAdd.dfgcolor",
+          "value": "101"
+        },
+        {
+          "api": "call",
+          "target": "btnAdd.SetRadius",
+          "args": [
+            12,
+            "138",
+            "139",
+            "131",
+            false,
+            "166",
+            "166",
+            "131",
+            1
+          ]
+        },
+        {
+          "api": "call",
+          "target": "Form.GetOpenLinkData",
+          "args": [],
+          "returns": "Now"
+        }
       ],
-      "state": { "lifecycle": "ACTIVE", "globals": { "g_bOnlyClose": true, "g_szReceiveData": "Now" }, "controls": { "btnAdd": { "enabled": false } } },
+      "state": {
+        "lifecycle": "ACTIVE",
+        "globals": {
+          "g_bOnlyClose": true,
+          "g_szReceiveData": "Now"
+        },
+        "controls": {
+          "btnAdd": {
+            "enabled": false
+          }
+        }
+      },
       "blocks": {},
       "commands": [],
       "transportRequests": []
@@ -29,11 +80,43 @@
       "event": "edtGroupNm_OnEditComplete",
       "status": "ok",
       "hostCalls": [
-        { "api": "call", "target": "Trim", "args": ["새그룹"], "returns": "새그룹" },
-        { "api": "call", "target": "Trim", "args": ["새그룹"], "returns": "새그룹" },
-        { "api": "set", "target": "btnAdd.enable", "value": true }
+        {
+          "api": "call",
+          "target": "Trim",
+          "args": [
+            "새그룹"
+          ],
+          "returns": "새그룹"
+        },
+        {
+          "api": "call",
+          "target": "Trim",
+          "args": [
+            "새그룹"
+          ],
+          "returns": "새그룹"
+        },
+        {
+          "api": "set",
+          "target": "btnAdd.enable",
+          "value": true
+        }
       ],
-      "state": { "lifecycle": "ACTIVE", "globals": { "g_bOnlyClose": true, "g_szReceiveData": "Now" }, "controls": { "edtGroupNm": { "caption": "새그룹" }, "btnAdd": { "enabled": true } } },
+      "state": {
+        "lifecycle": "ACTIVE",
+        "globals": {
+          "g_bOnlyClose": true,
+          "g_szReceiveData": "Now"
+        },
+        "controls": {
+          "edtGroupNm": {
+            "caption": "새그룹"
+          },
+          "btnAdd": {
+            "enabled": true
+          }
+        }
+      },
       "blocks": {},
       "commands": [],
       "transportRequests": []
@@ -44,41 +127,177 @@
       "nestedEvent": "DATAMANAGER_OnSendTranBefore",
       "status": "ok",
       "hostCalls": [
-        { "api": "call", "target": "DATAMANAGER.RequestTranData", "args": ["CCS20001"] },
-        { "api": "call", "target": "Form.GetSharedData", "args": ["&USER_ID", false], "returns": "U000000001" },
-        { "api": "call", "target": "DATAMANAGER.SetDataValue", "args": [false, "CCS20001", "InBlock1", "usid", 0, "U000000001"] },
-        { "api": "call", "target": "DATAMANAGER.SetDataValue", "args": [false, "CCS20001", "InBlock1", "wk_tp", 0, "1"] },
-        { "api": "call", "target": "DATAMANAGER.SetDataValue", "args": [false, "CCS20001", "InBlock1", "arr_cnt", 0, "1"] },
-        { "api": "call", "target": "DATAMANAGER.SetDataValue", "args": [false, "CCS20001", "InBlock2", "grpnum", 0, ""] },
-        { "api": "call", "target": "DATAMANAGER.SetDataValue", "args": [false, "CCS20001", "InBlock2", "grpname", 0, "새그룹"] }
+        {
+          "api": "call",
+          "target": "DATAMANAGER.RequestTranData",
+          "args": [
+            "CCS20001"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "Form.GetSharedData",
+          "args": [
+            "&USER_ID",
+            false
+          ],
+          "returns": "U000000001"
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20001",
+            "InBlock1",
+            "usid",
+            0,
+            "U000000001"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20001",
+            "InBlock1",
+            "wk_tp",
+            0,
+            "1"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20001",
+            "InBlock1",
+            "arr_cnt",
+            0,
+            "1"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20001",
+            "InBlock2",
+            "grpnum",
+            0,
+            ""
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20001",
+            "InBlock2",
+            "grpname",
+            0,
+            "새그룹"
+          ]
+        }
       ],
-      "state": { "lifecycle": "ACTIVE", "globals": { "g_bOnlyClose": true, "g_szReceiveData": "Now" }, "controls": { "edtGroupNm": { "caption": "새그룹" }, "btnAdd": { "enabled": true } } },
+      "state": {
+        "lifecycle": "ACTIVE",
+        "globals": {
+          "g_bOnlyClose": true,
+          "g_szReceiveData": "Now"
+        },
+        "controls": {
+          "edtGroupNm": {
+            "caption": "새그룹"
+          },
+          "btnAdd": {
+            "enabled": true
+          }
+        }
+      },
       "blocks": {
         "CCS20001": {
-          "InBlock1": { "usid": "U000000001", "wk_tp": "1", "arr_cnt": "1" },
-          "InBlock2": [{ "grpnum": "", "grpname": "새그룹" }]
+          "InBlock1": {
+            "usid": "U000000001",
+            "wk_tp": "1",
+            "arr_cnt": "1"
+          },
+          "InBlock2": [
+            {
+              "grpnum": "",
+              "grpname": "새그룹"
+            }
+          ]
         }
       },
       "commands": [],
-      "transportRequests": [{ "tranId": "CCS20001" }]
+      "transportRequests": [
+        {
+          "tranId": "CCS20001"
+        }
+      ]
     },
     {
       "revision": 4,
       "event": "DATAMANAGER_OnReceiveTranComplete",
-      "args": ["CCS20001"],
+      "args": [
+        "CCS20001"
+      ],
       "status": "ok",
       "hostCalls": [
-        { "api": "call", "target": "Form.SendReturnToParent", "args": ["AddNewGroup", "", true] }
+        {
+          "api": "call",
+          "target": "Form.SendReturnToParent",
+          "args": [
+            "AddNewGroup",
+            "",
+            true
+          ]
+        }
       ],
-      "state": { "lifecycle": "ACTIVE", "globals": { "g_bOnlyClose": false, "g_szReceiveData": "Now" }, "controls": { "edtGroupNm": { "caption": "새그룹" }, "btnAdd": { "enabled": true } } },
-      "blocks": {
-        "CCS20001": {
-          "OutBlock1": { "arr_cnt": "1" },
-          "OutBlock2": [{ "grpnum": "007", "grpname": "새그룹", "tot_jongcnt": "0" }]
+      "state": {
+        "lifecycle": "ACTIVE",
+        "globals": {
+          "g_bOnlyClose": false,
+          "g_szReceiveData": "Now"
+        },
+        "controls": {
+          "edtGroupNm": {
+            "caption": "새그룹"
+          },
+          "btnAdd": {
+            "enabled": true
+          }
         }
       },
-      "commands": [{ "type": "returnToParent", "name": "AddNewGroup", "payload": "", "close": true }],
+      "blocks": {
+        "CCS20001": {
+          "OutBlock1": {
+            "arr_cnt": "1"
+          },
+          "OutBlock2": [
+            {
+              "grpnum": "007",
+              "grpname": "새그룹",
+              "tot_jongcnt": "0"
+            }
+          ]
+        }
+      },
+      "commands": [
+        {
+          "type": "returnToParent",
+          "name": "AddNewGroup",
+          "payload": "",
+          "close": true
+        }
+      ],
       "transportRequests": []
     }
-  ]
+  ],
+  "stateTiming": "after Lua handler and before queued command application"
 }

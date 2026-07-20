@@ -2012,5 +2012,6 @@
       ],
       "transportRequests": []
     }
-  ]
+  ],
+  "stateTiming": "after Lua handler and before queued command application"
 }
