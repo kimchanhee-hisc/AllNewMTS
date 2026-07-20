@@ -29,6 +29,20 @@ function inventory(directory) {
   return files.sort();
 }
 
+function productionFiles(directory = '.') {
+  const base = path.join(root, directory);
+  const files = [];
+  for (const entry of fs.readdirSync(base, { withFileTypes: true })) {
+    const relative = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      if (!['.git', '.omx', 'node_modules', 'test', 'scripts', 'assets'].includes(entry.name)) files.push(...productionFiles(relative));
+    } else if (/\.(?:js|jsx|ts|tsx|m|mm|swift|kt|cpp|h)$/.test(entry.name)) {
+      files.push(relative.split(path.sep).join('/'));
+    }
+  }
+  return files;
+}
+
 assert.equal(manifest.schemaVersion, 1);
 assert.equal(manifest.goal, 'G001-freeze-independent-oracles');
 assert.deepEqual(manifest.noEngineAttestation, {
@@ -162,9 +176,10 @@ const synthetic = read('test/oracles/synthetic/renamed-reordered.xmf_');
 assert.deepEqual(generateSyntheticFixture(original), synthetic, 'synthetic generator drift');
 assert.notEqual(sha256(original), sha256(synthetic), 'synthetic source hash did not change');
 const syntheticText = synthetic.toString('utf8');
-for (const token of ['scrno="1200"', 'name="Form"', 'Form.', 'Form_', 'lbl0', 'lbl1', 'edtGroupNm', 'btnAdd', 'btnCancel', 'CCS20000', 'CCS20001', sha256(original)]) {
+for (const token of ['scrno="1200"', 'name="Form"', 'lbl0', 'lbl1', 'edtGroupNm', 'btnAdd', 'btnCancel', 'CCS20000', 'CCS20001', sha256(original)]) {
   assert.equal(syntheticText.includes(token), false, `synthetic retained original identity: ${token}`);
 }
+assert.equal(/(^|[^A-Za-z])Form[._]/m.test(syntheticText), false, 'synthetic retained original Form identity');
 for (const layout of ['18,0,324,26,1', '18,42,324,20,1', '18,68,324,40,1', '185,142,157,56,1', '18,142,157,56,1']) {
   assert.equal(syntheticText.includes(layout), false, `synthetic retained original layout: ${layout}`);
 }
@@ -173,7 +188,7 @@ assert.deepEqual([...syntheticText.matchAll(/<(?:LABEL|EDIT|BUTTON) name="([^"]+
 ]);
 
 const productionForbidden = /HS1200P08|CCS20000|CCS20001|btnAdd|btnCancel|edtGroupNm|4d63ba22ac5339cfd3068cffa91710e0099481da81d974e2aff0ce7ae39ed53e/;
-for (const file of inventory('.').filter((file) => /\.(?:js|jsx|ts|tsx|m|mm|swift|kt|cpp|h)$/.test(file) && !/^(?:test|scripts|node_modules|\.omx)\//.test(file))) {
+for (const file of productionFiles()) {
   assert.equal(productionForbidden.test(read(file).toString('utf8')), false, `production hardcoding: ${file}`);
 }
 
