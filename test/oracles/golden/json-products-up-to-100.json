@@ -1,0 +1,739 @@
+{
+  "schemaVersion": 1,
+  "scenario": "json-products-up-to-100",
+  "handAuthored": true,
+  "inputs": {
+    "openLinkData": "[{\"Code\":\"005930\",\"MarketLink\":\"K\"},{\"Code\":\"AAPL\",\"MarketLink\":\"US\"},{\"Code\":\"BTC\",\"MarketLink\":\"UPBIT\"}]",
+    "editedGroupName": "혼합그룹",
+    "sharedData": {
+      "&USER_ID": "U000000001"
+    },
+    "itemCodeInfo": {
+      "005930|markettext|K": "Q",
+      "AAPL|markettext|US": "OY",
+      "AAPL|exchangecode|": "0537",
+      "BTC|markettext|UPBIT": "CR",
+      "BTC|exchangecode|UPBIT": "UP"
+    },
+    "CCS20001": {
+      "OutBlock1": {
+        "arr_cnt": "2"
+      },
+      "OutBlock2": [
+        {
+          "grpnum": "001",
+          "grpname": "기존그룹",
+          "tot_jongcnt": "4"
+        },
+        {
+          "grpnum": "009",
+          "grpname": "혼합그룹",
+          "tot_jongcnt": "0"
+        }
+      ]
+    },
+    "CCS20000": {
+      "OutBlock1": {
+        "grpnum": "009",
+        "grpname": "혼합그룹",
+        "arr_cnt": "3"
+      },
+      "OutBlock2": []
+    }
+  },
+  "events": [
+    {
+      "revision": 1,
+      "event": "Form_OnFormInit",
+      "status": "ok",
+      "hostCalls": [
+        {
+          "api": "set",
+          "target": "btnAdd.border",
+          "value": "1"
+        },
+        {
+          "api": "set",
+          "target": "btnAdd.dfgcolor",
+          "value": "101"
+        },
+        {
+          "api": "call",
+          "target": "btnAdd.SetRadius",
+          "args": [
+            12,
+            "138",
+            "139",
+            "131",
+            false,
+            "166",
+            "166",
+            "131",
+            1
+          ]
+        },
+        {
+          "api": "call",
+          "target": "Form.GetOpenLinkData",
+          "args": [],
+          "returns": "[{\"Code\":\"005930\",\"MarketLink\":\"K\"},{\"Code\":\"AAPL\",\"MarketLink\":\"US\"},{\"Code\":\"BTC\",\"MarketLink\":\"UPBIT\"}]"
+        }
+      ],
+      "state": {
+        "lifecycle": "ACTIVE",
+        "globals": {
+          "g_bOnlyClose": true,
+          "g_szReceiveData": "<input:openLinkData>"
+        },
+        "controls": {
+          "btnAdd": {
+            "enabled": false
+          }
+        }
+      },
+      "blocks": {},
+      "commands": [],
+      "transportRequests": []
+    },
+    {
+      "revision": 2,
+      "event": "edtGroupNm_OnEditComplete",
+      "status": "ok",
+      "hostCalls": [
+        {
+          "api": "call",
+          "target": "Trim",
+          "args": [
+            "혼합그룹"
+          ],
+          "returns": "혼합그룹"
+        },
+        {
+          "api": "call",
+          "target": "Trim",
+          "args": [
+            "혼합그룹"
+          ],
+          "returns": "혼합그룹"
+        },
+        {
+          "api": "set",
+          "target": "btnAdd.enable",
+          "value": true
+        }
+      ],
+      "state": {
+        "lifecycle": "ACTIVE",
+        "globals": {
+          "g_bOnlyClose": true,
+          "g_szReceiveData": "<input:openLinkData>"
+        },
+        "controls": {
+          "edtGroupNm": {
+            "caption": "혼합그룹"
+          },
+          "btnAdd": {
+            "enabled": true
+          }
+        }
+      },
+      "blocks": {},
+      "commands": [],
+      "transportRequests": []
+    },
+    {
+      "revision": 3,
+      "event": "btnAdd_OnClick",
+      "nestedEvent": "DATAMANAGER_OnSendTranBefore",
+      "status": "ok",
+      "hostCalls": [
+        {
+          "api": "call",
+          "target": "DATAMANAGER.RequestTranData",
+          "args": [
+            "CCS20001"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "Form.GetSharedData",
+          "args": [
+            "&USER_ID",
+            false
+          ],
+          "returns": "U000000001"
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20001",
+            "InBlock1",
+            "usid",
+            0,
+            "U000000001"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20001",
+            "InBlock1",
+            "wk_tp",
+            0,
+            "1"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20001",
+            "InBlock1",
+            "arr_cnt",
+            0,
+            "1"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20001",
+            "InBlock2",
+            "grpnum",
+            0,
+            ""
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20001",
+            "InBlock2",
+            "grpname",
+            0,
+            "혼합그룹"
+          ]
+        }
+      ],
+      "state": {
+        "lifecycle": "ACTIVE",
+        "globals": {
+          "g_bOnlyClose": true,
+          "g_szReceiveData": "<input:openLinkData>"
+        },
+        "controls": {
+          "edtGroupNm": {
+            "caption": "혼합그룹"
+          },
+          "btnAdd": {
+            "enabled": true
+          }
+        }
+      },
+      "blocks": {
+        "CCS20001": {
+          "InBlock1": {
+            "usid": "U000000001",
+            "wk_tp": "1",
+            "arr_cnt": "1"
+          },
+          "InBlock2": [
+            {
+              "grpnum": "",
+              "grpname": "혼합그룹"
+            }
+          ]
+        }
+      },
+      "commands": [],
+      "transportRequests": [
+        {
+          "tranId": "CCS20001"
+        }
+      ]
+    },
+    {
+      "revision": 4,
+      "event": "DATAMANAGER_OnReceiveTranComplete",
+      "args": [
+        "CCS20001"
+      ],
+      "nestedEvent": "DATAMANAGER_OnSendTranBefore",
+      "status": "ok",
+      "hostCalls": [
+        {
+          "api": "call",
+          "target": "DATAMANAGER.GetDataCount",
+          "args": [
+            false,
+            "CCS20001",
+            "OutBlock2"
+          ],
+          "returns": 2
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.GetDataValue",
+          "args": [
+            false,
+            "CCS20001",
+            "OutBlock2",
+            "grpnum",
+            1
+          ],
+          "returns": "009"
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.GetDataValue",
+          "args": [
+            false,
+            "CCS20001",
+            "OutBlock2",
+            "grpname",
+            1
+          ],
+          "returns": "혼합그룹"
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock1",
+            "grpnum",
+            0,
+            "009"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock1",
+            "grpname",
+            0,
+            "혼합그룹"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock1",
+            "arr_cnt",
+            0,
+            3
+          ]
+        },
+        {
+          "api": "call",
+          "target": "Form.GetItemCodeInfo",
+          "args": [
+            "005930",
+            "markettext",
+            "K"
+          ],
+          "returns": "Q"
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock2",
+            "shrn_iscd",
+            0,
+            "005930"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock2",
+            "mrkt_div_cls_code",
+            0,
+            "J"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock2",
+            "ldate",
+            0,
+            ""
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock2",
+            "color",
+            0,
+            ""
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock2",
+            "exch_cls_code",
+            0,
+            ""
+          ]
+        },
+        {
+          "api": "call",
+          "target": "Form.GetItemCodeInfo",
+          "args": [
+            "AAPL",
+            "markettext",
+            "US"
+          ],
+          "returns": "OY"
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock2",
+            "shrn_iscd",
+            1,
+            "AAPL"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock2",
+            "mrkt_div_cls_code",
+            1,
+            "OY"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock2",
+            "ldate",
+            1,
+            ""
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock2",
+            "color",
+            1,
+            ""
+          ]
+        },
+        {
+          "api": "call",
+          "target": "Form.GetItemCodeInfo",
+          "args": [
+            "AAPL",
+            "exchangecode"
+          ],
+          "returns": "0537"
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock2",
+            "exch_cls_code",
+            1,
+            "0537"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "Form.GetItemCodeInfo",
+          "args": [
+            "BTC",
+            "markettext",
+            "UPBIT"
+          ],
+          "returns": "CR"
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock2",
+            "shrn_iscd",
+            2,
+            "BTC"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock2",
+            "mrkt_div_cls_code",
+            2,
+            "CR"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock2",
+            "ldate",
+            2,
+            ""
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock2",
+            "color",
+            2,
+            ""
+          ]
+        },
+        {
+          "api": "call",
+          "target": "Form.GetItemCodeInfo",
+          "args": [
+            "BTC",
+            "exchangecode",
+            "UPBIT"
+          ],
+          "returns": "UP"
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock2",
+            "exch_cls_code",
+            2,
+            "UP"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.RequestTranData",
+          "args": [
+            "CCS20000"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "Form.GetSharedData",
+          "args": [
+            "&USER_ID",
+            false
+          ],
+          "returns": "U000000001"
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock1",
+            "usid",
+            0,
+            "U000000001"
+          ]
+        },
+        {
+          "api": "call",
+          "target": "DATAMANAGER.SetDataValue",
+          "args": [
+            false,
+            "CCS20000",
+            "InBlock1",
+            "wk_tp",
+            0,
+            "1"
+          ]
+        }
+      ],
+      "state": {
+        "lifecycle": "ACTIVE",
+        "globals": {
+          "g_bOnlyClose": true,
+          "g_szReceiveData": "<input:openLinkData>"
+        },
+        "controls": {
+          "edtGroupNm": {
+            "caption": "혼합그룹"
+          },
+          "btnAdd": {
+            "enabled": true
+          }
+        }
+      },
+      "blocks": {
+        "CCS20000": {
+          "InBlock1": {
+            "usid": "U000000001",
+            "wk_tp": "1",
+            "grpnum": "009",
+            "grpname": "혼합그룹",
+            "arr_cnt": 3
+          },
+          "InBlock2": [
+            {
+              "shrn_iscd": "005930",
+              "mrkt_div_cls_code": "J",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": ""
+            },
+            {
+              "shrn_iscd": "AAPL",
+              "mrkt_div_cls_code": "OY",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": "0537"
+            },
+            {
+              "shrn_iscd": "BTC",
+              "mrkt_div_cls_code": "CR",
+              "ldate": "",
+              "color": "",
+              "exch_cls_code": "UP"
+            }
+          ]
+        }
+      },
+      "commands": [],
+      "transportRequests": [
+        {
+          "tranId": "CCS20000"
+        }
+      ]
+    },
+    {
+      "revision": 5,
+      "event": "DATAMANAGER_OnReceiveTranComplete",
+      "args": [
+        "CCS20000"
+      ],
+      "status": "ok",
+      "hostCalls": [
+        {
+          "api": "call",
+          "target": "Form.Toast",
+          "args": [
+            0,
+            "[혼합그룹]에 추가했어요.",
+            1
+          ]
+        },
+        {
+          "api": "call",
+          "target": "Form.SendReturnToParent",
+          "args": [
+            "FinishAddProduct",
+            "혼합그룹",
+            true
+          ]
+        }
+      ],
+      "state": {
+        "lifecycle": "ACTIVE",
+        "globals": {
+          "g_bOnlyClose": false,
+          "g_szReceiveData": "<input:openLinkData>"
+        },
+        "controls": {
+          "edtGroupNm": {
+            "caption": "혼합그룹"
+          },
+          "btnAdd": {
+            "enabled": true
+          }
+        }
+      },
+      "blocks": {
+        "CCS20000": {
+          "OutBlock1": {
+            "grpnum": "009",
+            "grpname": "혼합그룹",
+            "arr_cnt": "3"
+          },
+          "OutBlock2": []
+        }
+      },
+      "commands": [
+        {
+          "type": "toast",
+          "kind": 0,
+          "message": "[혼합그룹]에 추가했어요.",
+          "duration": 1
+        },
+        {
+          "type": "returnToParent",
+          "name": "FinishAddProduct",
+          "payload": "혼합그룹",
+          "close": true
+        }
+      ],
+      "transportRequests": []
+    }
+  ],
+  "stateTiming": "after Lua handler and before queued command application"
+}

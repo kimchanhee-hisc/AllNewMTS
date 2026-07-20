@@ -1,0 +1,26 @@
+BEGIN_FUNCTION_MAP
+	.Func,관심그룹_순서변경/그룹명변경/삭제/조회,CCS20001,ENCRYPT,DIGSIGN=0,RECLEN=0,SERVERNO=M,VERSION=10000001,CREATER=조승희,CREDATE=20240924,MODIFYER=안태현,MODDATE=20250116,MEMFIELDLEN=0;
+	BEGIN_DATA_MAP
+	InBlock1, InBlock1, input;
+	begin
+		회원 ID, usid, usid, string, 10, 0, 0, 10, , , ;
+		처리구분, wk_tp, wk_tp, string, 1, 0, 0, 1, , , ;
+		관심그룹갯수, arr_cnt, arr_cnt, string, 4, 0, 0, 4, , , ;
+	end
+	InBlock2, InBlock2, input, occurs;
+	begin
+		그룹번호, grpnum, grpnum, string, 3, 0, 0, 3, , , ;
+		그룹명, grpname, grpname, string, 20, 0, 0, 20, , , ;
+	end
+	OutBlock1, OutBlock1, output;
+	begin
+		관심그룹갯수, arr_cnt, arr_cnt, string, 4, 0, 0, 4, , , ;
+	end
+	OutBlock2, OutBlock2, output, occurs;
+	begin
+		그룹번호, grpnum, grpnum, string, 3, 0, 0, 3, , , ;
+		그룹명, grpname, grpname, string, 20, 0, 0, 20, , , ;
+		해당그룹 종목건수, tot_jongcnt, tot_jongcnt, string, 3, 0, 0, 3, , , ;
+	end
+	END_DATA_MAP
+END_FUNCTION_MAP
