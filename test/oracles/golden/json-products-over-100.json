@@ -2010,8 +2010,25 @@
           "close": true
         }
       ],
-      "transportRequests": []
+      "transportRequests": [],
+      "stateAfterCommands": {
+        "lifecycle": "CLOSING"
+      }
     }
   ],
-  "stateTiming": "after Lua handler and before queued command application"
+  "stateTiming": "after Lua handler and before queued command application",
+  "nonConfirmCase": {
+    "description": "Dismissing the >100 warning does not request CCS20000.",
+    "event": "Form_OnMsgBoxClose",
+    "args": [
+      "OnlyShow",
+      "dismiss"
+    ],
+    "hostCalls": [],
+    "commands": [],
+    "transportRequests": [],
+    "state": {
+      "lifecycle": "ACTIVE"
+    }
+  }
 }

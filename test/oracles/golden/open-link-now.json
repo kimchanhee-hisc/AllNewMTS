@@ -296,7 +296,10 @@
           "close": true
         }
       ],
-      "transportRequests": []
+      "transportRequests": [],
+      "stateAfterCommands": {
+        "lifecycle": "CLOSING"
+      }
     }
   ],
   "stateTiming": "after Lua handler and before queued command application"
