@@ -15,7 +15,16 @@
       "sourceRepository": "/Users/chanheekim/Dev/mts_screen",
       "sourceRepositoryCommit": "7708dd5b089352c7531dbee4334f2a9aa53cde13",
       "classification": "approved-original-xmf",
-      "allowedDerivation": "Byte-for-byte oracle input and deterministic synthetic-fixture source only."
+      "allowedDerivation": "Byte-for-byte oracle input and deterministic synthetic-fixture source only.",
+      "sourceRepositoryPath": "SmartMTS/Resource/Main/scr_xmf/HS1200P08.xmf_",
+      "gitBlobOid": "316b07432787caa3dad6f43bed6bd6b262fe2b04",
+      "rawGitBlob": {
+        "bytes": 9955,
+        "sha256": "24951d6edaee4c4388b29f1747b25e11fa671b86cbe97c2a5127dd586d053f38",
+        "text": "set",
+        "eol": "crlf",
+        "checkoutEncoding": "crlf"
+      }
     },
     {
       "path": "test/oracles/sources/mts_screen/script.lua",
@@ -25,7 +34,9 @@
       "sourceRepository": "/Users/chanheekim/Dev/mts_screen",
       "sourceRepositoryCommit": "7708dd5b089352c7531dbee4334f2a9aa53cde13",
       "classification": "approved-original-common-lua",
-      "allowedDerivation": "Byte-for-byte common Lua semantic evidence only; never executed for G001 verification."
+      "allowedDerivation": "Byte-for-byte common Lua semantic evidence only; never executed for G001 verification.",
+      "sourceRepositoryPath": "SmartMTS/Resource/Main/scr/script.lua",
+      "gitBlobOid": "522bb2c6ea6c906f715551aeef18cf98e1984a7b"
     },
     {
       "path": "test/oracles/sources/mts_screen/json.lua",
@@ -35,7 +46,9 @@
       "sourceRepository": "/Users/chanheekim/Dev/mts_screen",
       "sourceRepositoryCommit": "7708dd5b089352c7531dbee4334f2a9aa53cde13",
       "classification": "approved-original-common-lua",
-      "allowedDerivation": "Byte-for-byte JSON Lua semantic evidence only; never executed for G001 verification."
+      "allowedDerivation": "Byte-for-byte JSON Lua semantic evidence only; never executed for G001 verification.",
+      "sourceRepositoryPath": "SmartMTS/Resource/Main/scr/json.lua",
+      "gitBlobOid": "644752c3027b6ecbe58cddf89dc885f2c27d8cfd"
     },
     {
       "path": "test/oracles/sources/plus/android/CCS20000.qry",
@@ -45,7 +58,9 @@
       "sourceRepository": "/Users/chanheekim/Dev/Plus/android",
       "sourceRepositoryCommit": "164d28c3094bae4e8a0df9b55bde41ba742bbb5e",
       "classification": "engine-independent-qry-contract",
-      "allowedDerivation": "Byte-for-byte CCS20000 block/encryption contract evidence only."
+      "allowedDerivation": "Byte-for-byte CCS20000 block/encryption contract evidence only.",
+      "sourceRepositoryPath": "Main/MTSMain/src/main/assets/qry/CCS20000.qry",
+      "gitBlobOid": "756e28660d3b2b80081c877709049f9f31a08dbc"
     },
     {
       "path": "test/oracles/sources/plus/android/CCS20001.qry",
@@ -55,7 +70,9 @@
       "sourceRepository": "/Users/chanheekim/Dev/Plus/android",
       "sourceRepositoryCommit": "164d28c3094bae4e8a0df9b55bde41ba742bbb5e",
       "classification": "engine-independent-qry-contract",
-      "allowedDerivation": "Byte-for-byte CCS20001 block/encryption contract evidence only."
+      "allowedDerivation": "Byte-for-byte CCS20001 block/encryption contract evidence only.",
+      "sourceRepositoryPath": "Main/MTSMain/src/main/assets/qry/CCS20001.qry",
+      "gitBlobOid": "24ac9871635d0397da53fd6cd8eb2ac0f2e48240"
     },
     {
       "path": "test/oracles/sources/plus/typescript/CCS20000Request.ts.source",
@@ -65,7 +82,9 @@
       "sourceRepository": "/Users/chanheekim/Dev/Plus",
       "sourceRepositoryCommit": "0fb74c33b19b89dec0ee8c6863dce42b5c0f650a",
       "classification": "engine-independent-network-contract",
-      "allowedDerivation": "CCS20000 request/response shape evidence only."
+      "allowedDerivation": "CCS20000 request/response shape evidence only.",
+      "sourceRepositoryPath": "src/infra/networking/models/CCS20000Request.ts",
+      "gitBlobOid": "39eb724128fab6ca657e510590892a4effac5c60"
     },
     {
       "path": "test/oracles/sources/plus/typescript/CCS20001Request.ts.source",
@@ -75,7 +94,9 @@
       "sourceRepository": "/Users/chanheekim/Dev/Plus",
       "sourceRepositoryCommit": "0fb74c33b19b89dec0ee8c6863dce42b5c0f650a",
       "classification": "engine-independent-network-contract",
-      "allowedDerivation": "CCS20001 request/response shape evidence only."
+      "allowedDerivation": "CCS20001 request/response shape evidence only.",
+      "sourceRepositoryPath": "src/infra/networking/models/CCS20001Request.ts",
+      "gitBlobOid": "18bd155f23af26b32bcb700df3dafc278322fa60"
     },
     {
       "path": "test/oracles/sources/plus/typescript/WatchlistTransportRequests.ts.source",
@@ -85,7 +106,9 @@
       "sourceRepository": "/Users/chanheekim/Dev/Plus",
       "sourceRepositoryCommit": "0fb74c33b19b89dec0ee8c6863dce42b5c0f650a",
       "classification": "engine-independent-network-contract",
-      "allowedDerivation": "Watchlist serialization shape evidence only."
+      "allowedDerivation": "Watchlist serialization shape evidence only.",
+      "sourceRepositoryPath": "src/infra/networking/models/watchlist/WatchlistTransportRequests.ts",
+      "gitBlobOid": "6bbc3f9c71f2bd02cad4cb571ce02076c83764a9"
     },
     {
       "path": "test/oracles/sources/plus/typescript/WatchlistTransportRequests.test.ts.source",
@@ -95,7 +118,9 @@
       "sourceRepository": "/Users/chanheekim/Dev/Plus",
       "sourceRepositoryCommit": "0fb74c33b19b89dec0ee8c6863dce42b5c0f650a",
       "classification": "engine-independent-service-test",
-      "allowedDerivation": "Watchlist serialization expectation evidence only."
+      "allowedDerivation": "Watchlist serialization expectation evidence only.",
+      "sourceRepositoryPath": "src/infra/networking/models/watchlist/WatchlistTransportRequests.test.ts",
+      "gitBlobOid": "29956faf85cc109e3d332fb4ab7184342f4e4b52"
     },
     {
       "path": "test/oracles/sources/plus/typescript/WatchlistApiService.test.ts.source",
@@ -105,7 +130,9 @@
       "sourceRepository": "/Users/chanheekim/Dev/Plus",
       "sourceRepositoryCommit": "0fb74c33b19b89dec0ee8c6863dce42b5c0f650a",
       "classification": "engine-independent-service-test",
-      "allowedDerivation": "Watchlist service request-order expectation evidence only."
+      "allowedDerivation": "Watchlist service request-order expectation evidence only.",
+      "sourceRepositoryPath": "src/api/services/WatchlistApiService.test.ts",
+      "gitBlobOid": "57bf83086bc128e9733dc4388b586258001d6605"
     }
   ],
   "artifacts": [
@@ -113,8 +140,8 @@
       "path": "test/oracles/golden/close-cancel-lifecycle.json",
       "classification": "hand-authored-golden-trace",
       "allowedDerivation": "Hand-authored expected control flow derived only from approved frozen inputs; never derived from runtime output.",
-      "bytes": 6505,
-      "sha256": "ed7378dc97c1f358ac99370aa7ce265455ca40717d51f0ca39c83c4ced2016de",
+      "bytes": 6831,
+      "sha256": "dbfcb513cb05d2f2cb50825835b47d7d03f28d48f39915e5f9ca6bf1486f5ac2",
       "sourcePaths": [
         "test/oracles/sources/mts_screen/HS1200P08.xmf_",
         "test/oracles/sources/mts_screen/script.lua",
@@ -137,8 +164,8 @@
       "path": "test/oracles/golden/empty-open-link.json",
       "classification": "hand-authored-golden-trace",
       "allowedDerivation": "Hand-authored expected control flow derived only from approved frozen inputs; never derived from runtime output.",
-      "bytes": 3314,
-      "sha256": "4c21258b730c277b1c0363d99524148db94bb72ed6ade9122271e691d33ef6d4",
+      "bytes": 3384,
+      "sha256": "3b81f20442e85c13dd3e5e22d3d4254a45d106d2fcacc741419904ab8ed6f23f",
       "sourcePaths": [
         "test/oracles/sources/mts_screen/HS1200P08.xmf_",
         "test/oracles/sources/mts_screen/script.lua",
@@ -161,8 +188,8 @@
       "path": "test/oracles/golden/json-products-over-100.json",
       "classification": "hand-authored-golden-trace",
       "allowedDerivation": "Hand-authored expected control flow with repetitive 101/100 fixture ordinals mechanically expanded; never derived from runtime output.",
-      "bytes": 56412,
-      "sha256": "e21c8e883ddffdd2063eb5a17831fe2ab72ad81b9188866e88f5990d8eaa5574",
+      "bytes": 56795,
+      "sha256": "e2ad5d3df978a337fd87fbe851a06e7021a1432fa8482c192cbe6a7ffa708b8b",
       "sourcePaths": [
         "test/oracles/sources/mts_screen/HS1200P08.xmf_",
         "test/oracles/sources/mts_screen/script.lua",
@@ -185,8 +212,8 @@
       "path": "test/oracles/golden/json-products-up-to-100.json",
       "classification": "hand-authored-golden-trace",
       "allowedDerivation": "Hand-authored expected control flow derived only from approved frozen inputs; never derived from runtime output.",
-      "bytes": 16110,
-      "sha256": "d927e2c9353deae0bc3d81e06cd66760103edba10ec5207a2e61fd85cb3606f5",
+      "bytes": 16180,
+      "sha256": "4b4c188e197a8e6d15db2862c79bda9098fe0116f04317d6083a67c9b9d06435",
       "sourcePaths": [
         "test/oracles/sources/mts_screen/HS1200P08.xmf_",
         "test/oracles/sources/mts_screen/script.lua",
@@ -209,8 +236,8 @@
       "path": "test/oracles/golden/open-link-now.json",
       "classification": "hand-authored-golden-trace",
       "allowedDerivation": "Hand-authored expected control flow derived only from approved frozen inputs; never derived from runtime output.",
-      "bytes": 6255,
-      "sha256": "e9e614f80bd86e6cc33cbf5f0765aeb0ca45c651b27803f438752e9935f33ad5",
+      "bytes": 6325,
+      "sha256": "f1bee268ae36f86c9016be0bac2e142e801ef9adaaff4c172a5a9e4dd24e13d3",
       "sourcePaths": [
         "test/oracles/sources/mts_screen/HS1200P08.xmf_",
         "test/oracles/sources/mts_screen/script.lua",
@@ -305,8 +332,8 @@
       "path": "scripts/verify-g001.mjs",
       "classification": "verification-script",
       "allowedDerivation": "Node-standard-library verification of manifest, raw bytes, provenance, traces, and generator invariants.",
-      "bytes": 13162,
-      "sha256": "42ff12ef4ac3e1fb822df3482d4160382141e975854f4f7381fd5746076c8be4",
+      "bytes": 18540,
+      "sha256": "efa9da615e05f672b3b9480004158cc45466b03e5af992c3815511fabd7a073e",
       "sourcePaths": [
         "test/oracles/sources/mts_screen/HS1200P08.xmf_",
         "test/oracles/sources/mts_screen/script.lua",
