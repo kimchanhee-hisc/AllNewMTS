@@ -1,0 +1,329 @@
+{
+  "schemaVersion": 1,
+  "goal": "G001-freeze-independent-oracles",
+  "noEngineAttestation": {
+    "prohibitedEngineMaterialUsed": false,
+    "runtimeOrEngineGeneratedGoldenTraces": false,
+    "statement": "No engine source, headers, binaries, traces, fixtures, output, behavior, or derived evidence was inspected, copied, executed, cited, or used to create these oracles."
+  },
+  "sources": [
+    {
+      "path": "test/oracles/sources/mts_screen/HS1200P08.xmf_",
+      "bytes": 10179,
+      "sha256": "4d63ba22ac5339cfd3068cffa91710e0099481da81d974e2aff0ce7ae39ed53e",
+      "sourcePath": "/Users/chanheekim/Dev/mts_screen/SmartMTS/Resource/Main/scr_xmf/HS1200P08.xmf_",
+      "sourceRepository": "/Users/chanheekim/Dev/mts_screen",
+      "sourceRepositoryCommit": "7708dd5b089352c7531dbee4334f2a9aa53cde13",
+      "classification": "approved-original-xmf",
+      "allowedDerivation": "Byte-for-byte oracle input and deterministic synthetic-fixture source only."
+    },
+    {
+      "path": "test/oracles/sources/mts_screen/script.lua",
+      "bytes": 38172,
+      "sha256": "dfa28a8eecf55b8fbd67322fd101e37a2ef2671cc3ac938e9be0c682bd0fc8d4",
+      "sourcePath": "/Users/chanheekim/Dev/mts_screen/SmartMTS/Resource/Main/scr/script.lua",
+      "sourceRepository": "/Users/chanheekim/Dev/mts_screen",
+      "sourceRepositoryCommit": "7708dd5b089352c7531dbee4334f2a9aa53cde13",
+      "classification": "approved-original-common-lua",
+      "allowedDerivation": "Byte-for-byte common Lua semantic evidence only; never executed for G001 verification."
+    },
+    {
+      "path": "test/oracles/sources/mts_screen/json.lua",
+      "bytes": 11410,
+      "sha256": "426a06909e126f28971771a978af117de8f99f595f12b9839ad2ed0c86f86019",
+      "sourcePath": "/Users/chanheekim/Dev/mts_screen/SmartMTS/Resource/Main/scr/json.lua",
+      "sourceRepository": "/Users/chanheekim/Dev/mts_screen",
+      "sourceRepositoryCommit": "7708dd5b089352c7531dbee4334f2a9aa53cde13",
+      "classification": "approved-original-common-lua",
+      "allowedDerivation": "Byte-for-byte JSON Lua semantic evidence only; never executed for G001 verification."
+    },
+    {
+      "path": "test/oracles/sources/plus/android/CCS20000.qry",
+      "bytes": 1616,
+      "sha256": "b3b54ba6f4967b17c1b7d38a10b239544df278782c22cfc2c98257e715b17e86",
+      "sourcePath": "/Users/chanheekim/Dev/Plus/android/Main/MTSMain/src/main/assets/qry/CCS20000.qry",
+      "sourceRepository": "/Users/chanheekim/Dev/Plus/android",
+      "sourceRepositoryCommit": "164d28c3094bae4e8a0df9b55bde41ba742bbb5e",
+      "classification": "engine-independent-qry-contract",
+      "allowedDerivation": "Byte-for-byte CCS20000 block/encryption contract evidence only."
+    },
+    {
+      "path": "test/oracles/sources/plus/android/CCS20001.qry",
+      "bytes": 1006,
+      "sha256": "cebff1b8c58606b5a1d1ba0ff4f77e47b92f8d09e4e5cb432fc1c43ce9e228d4",
+      "sourcePath": "/Users/chanheekim/Dev/Plus/android/Main/MTSMain/src/main/assets/qry/CCS20001.qry",
+      "sourceRepository": "/Users/chanheekim/Dev/Plus/android",
+      "sourceRepositoryCommit": "164d28c3094bae4e8a0df9b55bde41ba742bbb5e",
+      "classification": "engine-independent-qry-contract",
+      "allowedDerivation": "Byte-for-byte CCS20001 block/encryption contract evidence only."
+    },
+    {
+      "path": "test/oracles/sources/plus/typescript/CCS20000Request.ts",
+      "bytes": 1473,
+      "sha256": "dccd3208b6fca57efdfdfe1b7fa7d377f438229e0f1cb9cf24c30181741d1041",
+      "sourcePath": "/Users/chanheekim/Dev/Plus/src/infra/networking/models/CCS20000Request.ts",
+      "sourceRepository": "/Users/chanheekim/Dev/Plus",
+      "sourceRepositoryCommit": "0fb74c33b19b89dec0ee8c6863dce42b5c0f650a",
+      "classification": "engine-independent-network-contract",
+      "allowedDerivation": "CCS20000 request/response shape evidence only."
+    },
+    {
+      "path": "test/oracles/sources/plus/typescript/CCS20001Request.ts",
+      "bytes": 1077,
+      "sha256": "1e64642cdc43849e2191f22e4f7c73d9ce3cdc4cea2097bb60c350e0122d4335",
+      "sourcePath": "/Users/chanheekim/Dev/Plus/src/infra/networking/models/CCS20001Request.ts",
+      "sourceRepository": "/Users/chanheekim/Dev/Plus",
+      "sourceRepositoryCommit": "0fb74c33b19b89dec0ee8c6863dce42b5c0f650a",
+      "classification": "engine-independent-network-contract",
+      "allowedDerivation": "CCS20001 request/response shape evidence only."
+    },
+    {
+      "path": "test/oracles/sources/plus/typescript/WatchlistTransportRequests.ts",
+      "bytes": 6291,
+      "sha256": "e1ed06ba2d8ecdca843bf5c0bac3fd6f7e930f032112edb9f2c53d326214d0f3",
+      "sourcePath": "/Users/chanheekim/Dev/Plus/src/infra/networking/models/watchlist/WatchlistTransportRequests.ts",
+      "sourceRepository": "/Users/chanheekim/Dev/Plus",
+      "sourceRepositoryCommit": "0fb74c33b19b89dec0ee8c6863dce42b5c0f650a",
+      "classification": "engine-independent-network-contract",
+      "allowedDerivation": "Watchlist serialization shape evidence only."
+    },
+    {
+      "path": "test/oracles/sources/plus/typescript/WatchlistTransportRequests.test.ts",
+      "bytes": 4119,
+      "sha256": "ea2bf9e7607b060f229b8a4a0325b87c1fde8c1d2120be9f6bb9ae3300d4d10e",
+      "sourcePath": "/Users/chanheekim/Dev/Plus/src/infra/networking/models/watchlist/WatchlistTransportRequests.test.ts",
+      "sourceRepository": "/Users/chanheekim/Dev/Plus",
+      "sourceRepositoryCommit": "0fb74c33b19b89dec0ee8c6863dce42b5c0f650a",
+      "classification": "engine-independent-service-test",
+      "allowedDerivation": "Watchlist serialization expectation evidence only."
+    },
+    {
+      "path": "test/oracles/sources/plus/typescript/WatchlistApiService.test.ts",
+      "bytes": 8280,
+      "sha256": "2ce942a2a885af86b9e31d2f6889d3979acee87abc8619e6c038e41c376f5035",
+      "sourcePath": "/Users/chanheekim/Dev/Plus/src/api/services/WatchlistApiService.test.ts",
+      "sourceRepository": "/Users/chanheekim/Dev/Plus",
+      "sourceRepositoryCommit": "0fb74c33b19b89dec0ee8c6863dce42b5c0f650a",
+      "classification": "engine-independent-service-test",
+      "allowedDerivation": "Watchlist service request-order expectation evidence only."
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "test/oracles/golden/close-cancel-lifecycle.json",
+      "classification": "hand-authored-golden-trace",
+      "allowedDerivation": "Hand-authored expected control flow derived only from approved frozen inputs; never derived from runtime output.",
+      "bytes": 6505,
+      "sha256": "ed7378dc97c1f358ac99370aa7ce265455ca40717d51f0ca39c83c4ced2016de",
+      "sourcePaths": [
+        "test/oracles/sources/mts_screen/HS1200P08.xmf_",
+        "test/oracles/sources/mts_screen/script.lua",
+        "test/oracles/sources/mts_screen/json.lua",
+        "test/oracles/sources/plus/android/CCS20000.qry",
+        "test/oracles/sources/plus/android/CCS20001.qry",
+        "test/oracles/sources/plus/typescript/CCS20000Request.ts",
+        "test/oracles/sources/plus/typescript/CCS20001Request.ts",
+        "test/oracles/sources/plus/typescript/WatchlistTransportRequests.ts",
+        "test/oracles/sources/plus/typescript/WatchlistTransportRequests.test.ts",
+        "test/oracles/sources/plus/typescript/WatchlistApiService.test.ts"
+      ],
+      "sourceRepositoryCommits": [
+        "7708dd5b089352c7531dbee4334f2a9aa53cde13",
+        "164d28c3094bae4e8a0df9b55bde41ba742bbb5e",
+        "0fb74c33b19b89dec0ee8c6863dce42b5c0f650a"
+      ]
+    },
+    {
+      "path": "test/oracles/golden/empty-open-link.json",
+      "classification": "hand-authored-golden-trace",
+      "allowedDerivation": "Hand-authored expected control flow derived only from approved frozen inputs; never derived from runtime output.",
+      "bytes": 3314,
+      "sha256": "4c21258b730c277b1c0363d99524148db94bb72ed6ade9122271e691d33ef6d4",
+      "sourcePaths": [
+        "test/oracles/sources/mts_screen/HS1200P08.xmf_",
+        "test/oracles/sources/mts_screen/script.lua",
+        "test/oracles/sources/mts_screen/json.lua",
+        "test/oracles/sources/plus/android/CCS20000.qry",
+        "test/oracles/sources/plus/android/CCS20001.qry",
+        "test/oracles/sources/plus/typescript/CCS20000Request.ts",
+        "test/oracles/sources/plus/typescript/CCS20001Request.ts",
+        "test/oracles/sources/plus/typescript/WatchlistTransportRequests.ts",
+        "test/oracles/sources/plus/typescript/WatchlistTransportRequests.test.ts",
+        "test/oracles/sources/plus/typescript/WatchlistApiService.test.ts"
+      ],
+      "sourceRepositoryCommits": [
+        "7708dd5b089352c7531dbee4334f2a9aa53cde13",
+        "164d28c3094bae4e8a0df9b55bde41ba742bbb5e",
+        "0fb74c33b19b89dec0ee8c6863dce42b5c0f650a"
+      ]
+    },
+    {
+      "path": "test/oracles/golden/json-products-over-100.json",
+      "classification": "hand-authored-golden-trace",
+      "allowedDerivation": "Hand-authored expected control flow with repetitive 101/100 fixture ordinals mechanically expanded; never derived from runtime output.",
+      "bytes": 56412,
+      "sha256": "e21c8e883ddffdd2063eb5a17831fe2ab72ad81b9188866e88f5990d8eaa5574",
+      "sourcePaths": [
+        "test/oracles/sources/mts_screen/HS1200P08.xmf_",
+        "test/oracles/sources/mts_screen/script.lua",
+        "test/oracles/sources/mts_screen/json.lua",
+        "test/oracles/sources/plus/android/CCS20000.qry",
+        "test/oracles/sources/plus/android/CCS20001.qry",
+        "test/oracles/sources/plus/typescript/CCS20000Request.ts",
+        "test/oracles/sources/plus/typescript/CCS20001Request.ts",
+        "test/oracles/sources/plus/typescript/WatchlistTransportRequests.ts",
+        "test/oracles/sources/plus/typescript/WatchlistTransportRequests.test.ts",
+        "test/oracles/sources/plus/typescript/WatchlistApiService.test.ts"
+      ],
+      "sourceRepositoryCommits": [
+        "7708dd5b089352c7531dbee4334f2a9aa53cde13",
+        "164d28c3094bae4e8a0df9b55bde41ba742bbb5e",
+        "0fb74c33b19b89dec0ee8c6863dce42b5c0f650a"
+      ]
+    },
+    {
+      "path": "test/oracles/golden/json-products-up-to-100.json",
+      "classification": "hand-authored-golden-trace",
+      "allowedDerivation": "Hand-authored expected control flow derived only from approved frozen inputs; never derived from runtime output.",
+      "bytes": 16110,
+      "sha256": "d927e2c9353deae0bc3d81e06cd66760103edba10ec5207a2e61fd85cb3606f5",
+      "sourcePaths": [
+        "test/oracles/sources/mts_screen/HS1200P08.xmf_",
+        "test/oracles/sources/mts_screen/script.lua",
+        "test/oracles/sources/mts_screen/json.lua",
+        "test/oracles/sources/plus/android/CCS20000.qry",
+        "test/oracles/sources/plus/android/CCS20001.qry",
+        "test/oracles/sources/plus/typescript/CCS20000Request.ts",
+        "test/oracles/sources/plus/typescript/CCS20001Request.ts",
+        "test/oracles/sources/plus/typescript/WatchlistTransportRequests.ts",
+        "test/oracles/sources/plus/typescript/WatchlistTransportRequests.test.ts",
+        "test/oracles/sources/plus/typescript/WatchlistApiService.test.ts"
+      ],
+      "sourceRepositoryCommits": [
+        "7708dd5b089352c7531dbee4334f2a9aa53cde13",
+        "164d28c3094bae4e8a0df9b55bde41ba742bbb5e",
+        "0fb74c33b19b89dec0ee8c6863dce42b5c0f650a"
+      ]
+    },
+    {
+      "path": "test/oracles/golden/open-link-now.json",
+      "classification": "hand-authored-golden-trace",
+      "allowedDerivation": "Hand-authored expected control flow derived only from approved frozen inputs; never derived from runtime output.",
+      "bytes": 6255,
+      "sha256": "e9e614f80bd86e6cc33cbf5f0765aeb0ca45c651b27803f438752e9935f33ad5",
+      "sourcePaths": [
+        "test/oracles/sources/mts_screen/HS1200P08.xmf_",
+        "test/oracles/sources/mts_screen/script.lua",
+        "test/oracles/sources/mts_screen/json.lua",
+        "test/oracles/sources/plus/android/CCS20000.qry",
+        "test/oracles/sources/plus/android/CCS20001.qry",
+        "test/oracles/sources/plus/typescript/CCS20000Request.ts",
+        "test/oracles/sources/plus/typescript/CCS20001Request.ts",
+        "test/oracles/sources/plus/typescript/WatchlistTransportRequests.ts",
+        "test/oracles/sources/plus/typescript/WatchlistTransportRequests.test.ts",
+        "test/oracles/sources/plus/typescript/WatchlistApiService.test.ts"
+      ],
+      "sourceRepositoryCommits": [
+        "7708dd5b089352c7531dbee4334f2a9aa53cde13",
+        "164d28c3094bae4e8a0df9b55bde41ba742bbb5e",
+        "0fb74c33b19b89dec0ee8c6863dce42b5c0f650a"
+      ]
+    },
+    {
+      "path": "test/oracles/golden/transaction-error.json",
+      "classification": "hand-authored-golden-trace",
+      "allowedDerivation": "Hand-authored expected control flow derived only from approved frozen inputs; never derived from runtime output.",
+      "bytes": 6748,
+      "sha256": "db1b1fec55ab1baa112d26a1b8c1941fdd3762a03e06be735cf8d6a4589f2c08",
+      "sourcePaths": [
+        "test/oracles/sources/mts_screen/HS1200P08.xmf_",
+        "test/oracles/sources/mts_screen/script.lua",
+        "test/oracles/sources/mts_screen/json.lua",
+        "test/oracles/sources/plus/android/CCS20000.qry",
+        "test/oracles/sources/plus/android/CCS20001.qry",
+        "test/oracles/sources/plus/typescript/CCS20000Request.ts",
+        "test/oracles/sources/plus/typescript/CCS20001Request.ts",
+        "test/oracles/sources/plus/typescript/WatchlistTransportRequests.ts",
+        "test/oracles/sources/plus/typescript/WatchlistTransportRequests.test.ts",
+        "test/oracles/sources/plus/typescript/WatchlistApiService.test.ts"
+      ],
+      "sourceRepositoryCommits": [
+        "7708dd5b089352c7531dbee4334f2a9aa53cde13",
+        "164d28c3094bae4e8a0df9b55bde41ba742bbb5e",
+        "0fb74c33b19b89dec0ee8c6863dce42b5c0f650a"
+      ]
+    },
+    {
+      "path": "test/oracles/synthetic/renamed-reordered.xmf_",
+      "classification": "deterministic-synthetic-fixture",
+      "allowedDerivation": "Deterministic rename, transaction substitution, control reorder, and layout change from the frozen XMF only.",
+      "bytes": 10255,
+      "sha256": "d0ff1fb20db6e72e743f95499b5dbe107773f22a40a61de19f68ecd3c2e4ba37",
+      "sourcePaths": [
+        "test/oracles/sources/mts_screen/HS1200P08.xmf_",
+        "test/oracles/sources/mts_screen/script.lua",
+        "test/oracles/sources/mts_screen/json.lua",
+        "test/oracles/sources/plus/android/CCS20000.qry",
+        "test/oracles/sources/plus/android/CCS20001.qry",
+        "test/oracles/sources/plus/typescript/CCS20000Request.ts",
+        "test/oracles/sources/plus/typescript/CCS20001Request.ts",
+        "test/oracles/sources/plus/typescript/WatchlistTransportRequests.ts",
+        "test/oracles/sources/plus/typescript/WatchlistTransportRequests.test.ts",
+        "test/oracles/sources/plus/typescript/WatchlistApiService.test.ts"
+      ],
+      "sourceRepositoryCommits": [
+        "7708dd5b089352c7531dbee4334f2a9aa53cde13",
+        "164d28c3094bae4e8a0df9b55bde41ba742bbb5e",
+        "0fb74c33b19b89dec0ee8c6863dce42b5c0f650a"
+      ]
+    },
+    {
+      "path": "scripts/generate-g001-synthetic.mjs",
+      "classification": "fixture-generator",
+      "allowedDerivation": "Node-standard-library deterministic transformation of the frozen XMF only.",
+      "bytes": 2304,
+      "sha256": "ea7232a13153eabfe25a2b585a2487132361034d07532814b3aa49c905c7543b",
+      "sourcePaths": [
+        "test/oracles/sources/mts_screen/HS1200P08.xmf_",
+        "test/oracles/sources/mts_screen/script.lua",
+        "test/oracles/sources/mts_screen/json.lua",
+        "test/oracles/sources/plus/android/CCS20000.qry",
+        "test/oracles/sources/plus/android/CCS20001.qry",
+        "test/oracles/sources/plus/typescript/CCS20000Request.ts",
+        "test/oracles/sources/plus/typescript/CCS20001Request.ts",
+        "test/oracles/sources/plus/typescript/WatchlistTransportRequests.ts",
+        "test/oracles/sources/plus/typescript/WatchlistTransportRequests.test.ts",
+        "test/oracles/sources/plus/typescript/WatchlistApiService.test.ts"
+      ],
+      "sourceRepositoryCommits": [
+        "7708dd5b089352c7531dbee4334f2a9aa53cde13",
+        "164d28c3094bae4e8a0df9b55bde41ba742bbb5e",
+        "0fb74c33b19b89dec0ee8c6863dce42b5c0f650a"
+      ]
+    },
+    {
+      "path": "scripts/verify-g001.mjs",
+      "classification": "verification-script",
+      "allowedDerivation": "Node-standard-library verification of manifest, raw bytes, provenance, traces, and generator invariants.",
+      "bytes": 9694,
+      "sha256": "de0d3df77283208dcca07d2991abc6f36f0a57507beda7ff04580443a21063da",
+      "sourcePaths": [
+        "test/oracles/sources/mts_screen/HS1200P08.xmf_",
+        "test/oracles/sources/mts_screen/script.lua",
+        "test/oracles/sources/mts_screen/json.lua",
+        "test/oracles/sources/plus/android/CCS20000.qry",
+        "test/oracles/sources/plus/android/CCS20001.qry",
+        "test/oracles/sources/plus/typescript/CCS20000Request.ts",
+        "test/oracles/sources/plus/typescript/CCS20001Request.ts",
+        "test/oracles/sources/plus/typescript/WatchlistTransportRequests.ts",
+        "test/oracles/sources/plus/typescript/WatchlistTransportRequests.test.ts",
+        "test/oracles/sources/plus/typescript/WatchlistApiService.test.ts"
+      ],
+      "sourceRepositoryCommits": [
+        "7708dd5b089352c7531dbee4334f2a9aa53cde13",
+        "164d28c3094bae4e8a0df9b55bde41ba742bbb5e",
+        "0fb74c33b19b89dec0ee8c6863dce42b5c0f650a"
+      ]
+    }
+  ]
+}
