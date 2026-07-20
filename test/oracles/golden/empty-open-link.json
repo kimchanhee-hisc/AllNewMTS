@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "scenario": "empty-open-link",
+  "handAuthored": true,
+  "inputs": {
+    "openLinkData": "",
+    "editedGroupName": "새그룹"
+  },
+  "events": [
+    {
+      "revision": 1,
+      "event": "Form_OnFormInit",
+      "status": "ok",
+      "hostCalls": [
+        { "api": "set", "target": "btnAdd.border", "value": "1" },
+        { "api": "set", "target": "btnAdd.dfgcolor", "value": "101" },
+        {
+          "api": "call",
+          "target": "btnAdd.SetRadius",
+          "args": [12, "138", "139", "131", false, "166", "166", "131", 1]
+        },
+        { "api": "call", "target": "Form.GetOpenLinkData", "args": [], "returns": "" }
+      ],
+      "state": {
+        "lifecycle": "ACTIVE",
+        "globals": { "g_bOnlyClose": true, "g_szReceiveData": "" },
+        "controls": { "btnAdd": { "enabled": false, "border": "1", "dfgcolor": "101" } }
+      },
+      "blocks": {},
+      "commands": [],
+      "transportRequests": []
+    },
+    {
+      "revision": 2,
+      "event": "edtGroupNm_OnEditComplete",
+      "status": "ok",
+      "hostCalls": [
+        { "api": "call", "target": "Trim", "args": ["새그룹"], "returns": "새그룹" },
+        { "api": "call", "target": "Trim", "args": ["새그룹"], "returns": "새그룹" },
+        { "api": "set", "target": "btnAdd.enable", "value": true }
+      ],
+      "state": {
+        "lifecycle": "ACTIVE",
+        "globals": { "g_bOnlyClose": true, "g_szReceiveData": "" },
+        "controls": {
+          "edtGroupNm": { "caption": "새그룹" },
+          "btnAdd": { "enabled": true, "border": "1", "dfgcolor": "101" }
+        }
+      },
+      "blocks": {},
+      "commands": [],
+      "transportRequests": []
+    },
+    {
+      "revision": 3,
+      "event": "btnAdd_OnClick",
+      "status": "ok",
+      "hostCalls": [
+        {
+          "api": "call",
+          "target": "Form.SendReturnToParent",
+          "args": ["AddNewGroup", "새그룹", true]
+        }
+      ],
+      "state": {
+        "lifecycle": "ACTIVE",
+        "globals": { "g_bOnlyClose": false, "g_szReceiveData": "" },
+        "controls": {
+          "edtGroupNm": { "caption": "새그룹" },
+          "btnAdd": { "enabled": true, "border": "1", "dfgcolor": "101" }
+        }
+      },
+      "blocks": {},
+      "commands": [
+        { "type": "returnToParent", "name": "AddNewGroup", "payload": "새그룹", "close": true }
+      ],
+      "transportRequests": []
+    }
+  ]
+}
