@@ -387,79 +387,19 @@
   },
   "authoredInventory": [
     {
-      "path": "modules/allnewmts-lua/package.json",
-      "bytes": 182,
-      "sha256": "4be56448baf21e732cb862dea7ac464b3871c6f80ee14c5b6a5e66a8fc1f0c77"
+      "path": "app.json",
+      "bytes": 737,
+      "sha256": "c9c2af115ee1f982f08ea09b7c11ba983f3140a7e182f9cb878bf23cbddd521a"
     },
     {
-      "path": "modules/allnewmts-lua/expo-module.config.json",
-      "bytes": 172,
-      "sha256": "40698d17a7c1ce880993a827caabce66c7e362a22dbe7d864657fca06d3df279"
+      "path": "index.ts",
+      "bytes": 519,
+      "sha256": "ba1e17ac268528869bc374b5f05dc2c24d3e4bd85d2cb0e92d03de4170539a20"
     },
     {
-      "path": "modules/allnewmts-lua/src/index.ts",
-      "bytes": 222,
-      "sha256": "5a07e658ba7d8e170ba7387bccbec7b7551872c1aff1bebab7c707299d60e5da"
-    },
-    {
-      "path": "modules/allnewmts-lua/shared/allnewmts_lua.h",
-      "bytes": 474,
-      "sha256": "bbe8136ef5d37ddf8bad8cba58f4e2056373e762c6529b7cf9aff11805464302"
-    },
-    {
-      "path": "modules/allnewmts-lua/shared/allnewmts_lua.c",
-      "bytes": 7360,
-      "sha256": "e3aeee0850ec03a0838fc77048197ce16dbec84b773b2fa0e49ff0a021c55383"
-    },
-    {
-      "path": "modules/allnewmts-lua/shared/allnewmts_lua_adapters.h",
-      "bytes": 801,
-      "sha256": "4def2283f4ba3b825265f01b63ff7fb7aded404d25147b9ae8f63b4720ceb434"
-    },
-    {
-      "path": "modules/allnewmts-lua/shared/resource_bundle.h",
-      "bytes": 316,
-      "sha256": "720bf2b96a914556be9225e19d7accde6ddbef2a6d56064da1d2b2ce61fb4092"
-    },
-    {
-      "path": "modules/allnewmts-lua/shared/resource_bundle.c",
-      "bytes": 1200,
-      "sha256": "77d6dc92e6aed91f83f3886a2b5df5c08bc5e184b808e3176d762dac487aa8b1"
-    },
-    {
-      "path": "modules/allnewmts-lua/shared/sha256.h",
-      "bytes": 170,
-      "sha256": "75131c95e4f1dd7f7247e982f8fc5c0e31336330dab150ebb6599192864bf216"
-    },
-    {
-      "path": "modules/allnewmts-lua/shared/sha256.c",
-      "bytes": 3196,
-      "sha256": "ad5b2ca667cce4071a2814490508e11d59ff656de81bf906cabfef4921af6068"
-    },
-    {
-      "path": "modules/allnewmts-lua/ios/allnewmts_lua_ios_adapter.c",
-      "bytes": 509,
-      "sha256": "b460794d23c23dfd987bdd5a62d02d204728af80cc4d215fdc5440869431b4ce"
-    },
-    {
-      "path": "modules/allnewmts-lua/ios/AllNewMTSLuaAdapter.h",
-      "bytes": 241,
-      "sha256": "e117d078ec0ecb9ae234bc5c501a80f46197aca8ee87ddd0305cc531ebf74c70"
-    },
-    {
-      "path": "modules/allnewmts-lua/ios/AllNewMTSLuaAdapter.mm",
-      "bytes": 890,
-      "sha256": "51bec62782906e92f61414c4a12e9bf1773f88d077af1a80c4645a1011106a8e"
-    },
-    {
-      "path": "modules/allnewmts-lua/ios/AllNewMTSLuaModule.swift",
-      "bytes": 590,
-      "sha256": "574a30f169d934946e7d627f504059ac2bca937d45394286325e04d4041f90fa"
-    },
-    {
-      "path": "modules/allnewmts-lua/ios/AllNewMTSLua.podspec",
-      "bytes": 997,
-      "sha256": "ddb27ca54bc1c60e83ef9801cfdfe9315b192089164a40dd0273f2ef8947696a"
+      "path": "modules/allnewmts-lua/AllNewMTSLua.podspec",
+      "bytes": 972,
+      "sha256": "7a6a2bdba1e12788753164a7cae85980d4fc6ee7a367089d46a7fd2b74e16c90"
     },
     {
       "path": "modules/allnewmts-lua/android/CMakeLists.txt",
@@ -467,14 +407,14 @@
       "sha256": "bdb4ba5944941dca95fb747f1d09a195feab5e762ffe9fcc0db0fc21403ec9af"
     },
     {
-      "path": "modules/allnewmts-lua/android/build.gradle",
-      "bytes": 441,
-      "sha256": "9600a733b0802b15f7f325a82b66da1e44c62f1a27b79b26df8c69942c3b8221"
-    },
-    {
       "path": "modules/allnewmts-lua/android/allnewmts_lua_android_adapter.c",
       "bytes": 529,
       "sha256": "aeb3517e58bac3086934f910f66ed24b9ff5e7a430f6d1e363b3b5c50e772351"
+    },
+    {
+      "path": "modules/allnewmts-lua/android/build.gradle",
+      "bytes": 441,
+      "sha256": "9600a733b0802b15f7f325a82b66da1e44c62f1a27b79b26df8c69942c3b8221"
     },
     {
       "path": "modules/allnewmts-lua/android/jni.cpp",
@@ -492,9 +432,84 @@
       "sha256": "77ab2d8866c444830026f8812f3d8e5e83ddb3b564140696e589f23b9035fecb"
     },
     {
-      "path": "native/resources/multi.lua",
-      "bytes": 22,
-      "sha256": "13cdb27d52ce245e9121a7d958c11bc527265303cc852df3aaef499074d10500"
+      "path": "modules/allnewmts-lua/expo-module.config.json",
+      "bytes": 215,
+      "sha256": "cfbe8770d2e0bab091d7bdbe26c2d62aa7bef749af26e5ce06f04a50c5299ae7"
+    },
+    {
+      "path": "modules/allnewmts-lua/ios/AllNewMTSLuaAdapter.h",
+      "bytes": 241,
+      "sha256": "e117d078ec0ecb9ae234bc5c501a80f46197aca8ee87ddd0305cc531ebf74c70"
+    },
+    {
+      "path": "modules/allnewmts-lua/ios/AllNewMTSLuaAdapter.mm",
+      "bytes": 890,
+      "sha256": "51bec62782906e92f61414c4a12e9bf1773f88d077af1a80c4645a1011106a8e"
+    },
+    {
+      "path": "modules/allnewmts-lua/ios/AllNewMTSLuaModule.swift",
+      "bytes": 437,
+      "sha256": "5663162b0cabef1e93b1bc823f04daf49abd2ccd47ce2273d288cfd67959102a"
+    },
+    {
+      "path": "modules/allnewmts-lua/ios/allnewmts_lua_ios_adapter.c",
+      "bytes": 509,
+      "sha256": "b460794d23c23dfd987bdd5a62d02d204728af80cc4d215fdc5440869431b4ce"
+    },
+    {
+      "path": "modules/allnewmts-lua/package.json",
+      "bytes": 182,
+      "sha256": "4be56448baf21e732cb862dea7ac464b3871c6f80ee14c5b6a5e66a8fc1f0c77"
+    },
+    {
+      "path": "modules/allnewmts-lua/shared/allnewmts_lua.c",
+      "bytes": 7360,
+      "sha256": "e3aeee0850ec03a0838fc77048197ce16dbec84b773b2fa0e49ff0a021c55383"
+    },
+    {
+      "path": "modules/allnewmts-lua/shared/allnewmts_lua.h",
+      "bytes": 474,
+      "sha256": "bbe8136ef5d37ddf8bad8cba58f4e2056373e762c6529b7cf9aff11805464302"
+    },
+    {
+      "path": "modules/allnewmts-lua/shared/allnewmts_lua_adapters.h",
+      "bytes": 801,
+      "sha256": "4def2283f4ba3b825265f01b63ff7fb7aded404d25147b9ae8f63b4720ceb434"
+    },
+    {
+      "path": "modules/allnewmts-lua/shared/resource_bundle.c",
+      "bytes": 1659,
+      "sha256": "78355c8bd4ee490a5fee25089989ae19731b188ef2e76565d36b90fffbb6e402"
+    },
+    {
+      "path": "modules/allnewmts-lua/shared/resource_bundle.h",
+      "bytes": 316,
+      "sha256": "720bf2b96a914556be9225e19d7accde6ddbef2a6d56064da1d2b2ce61fb4092"
+    },
+    {
+      "path": "modules/allnewmts-lua/shared/sha256.c",
+      "bytes": 3196,
+      "sha256": "ad5b2ca667cce4071a2814490508e11d59ff656de81bf906cabfef4921af6068"
+    },
+    {
+      "path": "modules/allnewmts-lua/shared/sha256.h",
+      "bytes": 170,
+      "sha256": "75131c95e4f1dd7f7247e982f8fc5c0e31336330dab150ebb6599192864bf216"
+    },
+    {
+      "path": "modules/allnewmts-lua/src/gate0-fixture.generated.ts",
+      "bytes": 1214,
+      "sha256": "d1bcde1acaef0d6c59af967284968cb88f55aea872b7b9831e23a13c168df4b7"
+    },
+    {
+      "path": "modules/allnewmts-lua/src/gate0-runtime.ts",
+      "bytes": 705,
+      "sha256": "bb067fa59d13cf3748e8cf848f279c6ad9fa94d7999eb2410003b2db397c7862"
+    },
+    {
+      "path": "modules/allnewmts-lua/src/index.ts",
+      "bytes": 222,
+      "sha256": "5a07e658ba7d8e170ba7387bccbec7b7551872c1aff1bebab7c707299d60e5da"
     },
     {
       "path": "native/resources/error.lua",
@@ -505,6 +520,11 @@
       "path": "native/resources/hash-mismatch.lua",
       "bytes": 22,
       "sha256": "7e66b2d84fafe59a7c7d1534fff8cccb2f43bd0fa747b965d9ede5f4dffb9bba"
+    },
+    {
+      "path": "native/resources/multi.lua",
+      "bytes": 22,
+      "sha256": "13cdb27d52ce245e9121a7d958c11bc527265303cc852df3aaef499074d10500"
     },
     {
       "path": "native/test/adapter-fixture.lua",

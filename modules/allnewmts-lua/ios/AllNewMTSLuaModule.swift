@@ -11,11 +11,7 @@ public final class AllNewMTSLuaModule: Module {
     }
 
     Function("evaluate") { (source: String) throws -> String in
-      var error: NSError?
-      guard let value = adapter.evaluate(source, error: &error) else {
-        throw error ?? NSError(domain: "AllNewMTSLua", code: 1)
-      }
-      return value
+      try adapter.evaluate(source)
     }
 
     Function("destroy") { () in

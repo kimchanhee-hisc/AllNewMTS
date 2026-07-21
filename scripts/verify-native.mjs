@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { safeRepoFile, validateSchema } from './verify-foundation.mjs';
+import { generateNativeAssets } from './generate-native-assets.mjs';
+import { runGate0DevelopmentBuild, validateDevelopmentBuildResult } from './run-gate0-development-build.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifest = JSON.parse(fs.readFileSync(safeRepoFile('native/lua-source-manifest.json'), 'utf8'));
@@ -57,6 +59,8 @@ function verifyUpstream(temp) {
 function verifyContracts() {
   const moduleRoot = path.join(root, 'modules/allnewmts-lua');
   const authoredPaths = [
+    safeRepoFile('app.json'),
+    safeRepoFile('index.ts'),
     ...walk(moduleRoot).filter((file) => !file.startsWith(path.join(moduleRoot, 'vendor') + path.sep)),
     ...walk(path.join(root, 'native/resources')),
     ...walk(path.join(root, 'native/test'))
@@ -99,6 +103,19 @@ function verifyContracts() {
   const androidFunctions = [...read('modules/allnewmts-lua/android/src/main/java/com/allnewmts/lua/AllNewMTSLuaModule.kt').toString().matchAll(/Function\("([^"]+)"/g)].map((match) => match[1]);
   assert.deepEqual(appleFunctions, ['create', 'evaluate', 'destroy']);
   assert.deepEqual(androidFunctions, appleFunctions);
+  const appEntry = read('index.ts').toString('utf8');
+  assert.doesNotMatch(appEntry, /^import .*gate0-runtime/m, 'ordinary app startup must not load the native harness');
+  assert.match(appEntry, /if \(process\.env\.EXPO_PUBLIC_G002_NATIVE_HARNESS === '1'\)[\s\S]+await import\('\.\/modules\/allnewmts-lua\/src\/gate0-runtime'\)/, 'native harness must load only behind its explicit verification flag');
+  const generated = generateNativeAssets(manifest);
+  for (const [file, expected] of generated) assert.equal(read(file).toString('utf8'), expected, `compiled resource/runtime fixture drift: ${file}`);
+  const logicalDrift = structuredClone(manifest);
+  logicalDrift.resources[0].logicalPath = 'fixtures/drift.lua';
+  assert.notEqual(generateNativeAssets(logicalDrift).get('modules/allnewmts-lua/shared/resource_bundle.c'), generated.get('modules/allnewmts-lua/shared/resource_bundle.c'), 'logical-path drift escaped generated bundle check');
+  const byteDrift = structuredClone(manifest);
+  const mutatedBytes = Buffer.from('return "mutated"\n');
+  byteDrift.resources[0].sha256 = sha256(mutatedBytes);
+  const mutatedGenerated = generateNativeAssets(byteDrift, (file) => file === byteDrift.resources[0].path ? mutatedBytes : read(file));
+  assert.notEqual(mutatedGenerated.get('modules/allnewmts-lua/shared/resource_bundle.c'), generated.get('modules/allnewmts-lua/shared/resource_bundle.c'), 'resource byte/hash drift escaped generated bundle check');
   console.log('PASS native contracts: exact sources, allowlist, resources, limits, and create/evaluate/destroy-only adapters');
 }
 
@@ -142,27 +159,73 @@ function compileHost(temp) {
   console.log(`PASS native host: ${providerSymbols.length} Lua symbols resolve from sole allnewmts_lua51 archive; guarded adapter fixture passed`);
 }
 
+function expandBraces(pattern) {
+  const match = pattern.match(/\{([^{}]+)\}/);
+  return match ? match[1].split(',').flatMap((value) => expandBraces(`${pattern.slice(0, match.index)}${value}${pattern.slice(match.index + match[0].length)}`)) : [pattern];
+}
+
+function expandPodSources(patterns) {
+  const podDirectory = path.join(root, 'modules/allnewmts-lua');
+  return [...new Set(patterns.flatMap(expandBraces).flatMap((pattern) => {
+    assert.doesNotMatch(pattern, /\*\*|\?|\[/, `unsupported Pod source glob: ${pattern}`);
+    const absolute = path.resolve(podDirectory, pattern);
+    assert.ok(absolute.startsWith(`${root}${path.sep}`), `Pod source escapes repository: ${pattern}`);
+    if (!pattern.includes('*')) return [absolute];
+    const directory = path.dirname(absolute);
+    const expression = new RegExp(`^${path.basename(absolute).replace(/[.+^${}()|[\]\\]/g, '\\$&').replaceAll('*', '.*')}$`);
+    return fs.readdirSync(directory).filter((name) => expression.test(name)).map((name) => path.join(directory, name));
+  }).map((file) => {
+    const stat = fs.lstatSync(file);
+    assert.ok(stat.isFile() && !stat.isSymbolicLink(), `Pod source is not a regular file: ${file}`);
+    return path.relative(root, file).split(path.sep).join('/');
+  }))].sort();
+}
+
+function expectedPodSources() {
+  const authored = manifest.authoredInventory.map(({ path: file }) => file).filter((file) =>
+    file.startsWith('modules/allnewmts-lua/shared/') ||
+    (file.startsWith('modules/allnewmts-lua/ios/') && /\.(?:c|h|mm|swift)$/.test(file))
+  );
+  const headers = manifest.inventory.filter(({ path: file }) => file.startsWith('src/') && file.endsWith('.h')).map(({ path: file }) => `${manifest.vendoredRoot}/${file}`);
+  return [...authored, ...headers, ...manifest.compiledSources.map((file) => `${manifest.vendoredRoot}/${file}`)].sort();
+}
+
+function validatePodGraph(sources, dependencies) {
+  assert.deepEqual(sources, expectedPodSources(), 'evaluated Pod source graph drift');
+  assert.deepEqual(dependencies, { ExpoModulesCore: [] }, 'evaluated Pod dependencies must contain only ExpoModulesCore');
+}
+
+function evaluatedPodGraph() {
+  const spec = JSON.parse(command('pod', ['ipc', 'spec', 'modules/allnewmts-lua/AllNewMTSLua.podspec']));
+  const sources = expandPodSources(Array.isArray(spec.source_files) ? spec.source_files : [spec.source_files]);
+  validatePodGraph(sources, spec.dependencies ?? {});
+  const badSources = [...sources, `${manifest.vendoredRoot}/src/lua.c`].sort();
+  assert.throws(() => validatePodGraph(badSources, spec.dependencies ?? {}), 'excluded Lua source mutation must fail');
+  assert.throws(() => validatePodGraph(sources, { ...spec.dependencies, LuaKit: [] }), 'second Lua dependency mutation must fail');
+  return { sources, dependencies: spec.dependencies };
+}
+
 function compileApple(temp) {
+  const graph = evaluatedPodGraph();
   const sdk = command('xcrun', ['--sdk', 'iphonesimulator', '--show-sdk-path']).trim();
   const output = path.join(temp, 'apple');
   fs.mkdirSync(output);
   const include = ['-I', 'modules/allnewmts-lua/vendor/lua-5.1.5/src', '-I', 'modules/allnewmts-lua/shared'];
-  const sources = [
-    ...manifest.compiledSources.map((source) => `${manifest.vendoredRoot}/${source}`),
-    'modules/allnewmts-lua/shared/allnewmts_lua.c', 'modules/allnewmts-lua/shared/resource_bundle.c',
-    'modules/allnewmts-lua/shared/sha256.c', 'modules/allnewmts-lua/ios/allnewmts_lua_ios_adapter.c'
-  ];
+  const sources = graph.sources.filter((file) => /\.(?:c|mm)$/.test(file));
   const objects = sources.map((source, index) => {
     const object = path.join(output, `${index}.o`);
-    command('xcrun', ['--sdk', 'iphonesimulator', 'clang', '-std=c99', '-arch', 'arm64', '-mios-simulator-version-min=16.4', '-isysroot', sdk, ...include, '-c', source, '-o', object]);
+    const compiler = source.endsWith('.mm') ? 'clang++' : 'clang';
+    const language = source.endsWith('.mm') ? ['-fobjc-arc'] : ['-std=c99'];
+    command('xcrun', ['--sdk', 'iphonesimulator', compiler, ...language, '-arch', 'arm64', '-mios-simulator-version-min=16.4', '-isysroot', sdk, ...include, '-c', source, '-o', object]);
     return object;
   });
-  const library = path.join(output, 'liballnewmts_lua.a');
+  const library = path.join(output, 'libAllNewMTSLua.a');
   command('xcrun', ['libtool', '-static', '-o', library, ...objects]);
-  command('xcrun', ['swiftc', '-frontend', '-parse', 'modules/allnewmts-lua/ios/AllNewMTSLuaModule.swift']);
-  command('xcrun', ['--sdk', 'iphonesimulator', 'clang++', '-fobjc-arc', '-arch', 'arm64', '-mios-simulator-version-min=16.4', '-isysroot', sdk, ...include, '-c', 'modules/allnewmts-lua/ios/AllNewMTSLuaAdapter.mm', '-o', path.join(output, 'objc-adapter.o')]);
-  command('pod', ['ipc', 'spec', 'modules/allnewmts-lua/ios/AllNewMTSLua.podspec']);
-  console.log('PASS native Apple compile: arm64 simulator archive, Objective-C++ adapter, Swift parse, and podspec');
+  const symbols = command('nm', ['-g', library]);
+  for (const name of ['create', 'evaluate', 'destroy']) assert.equal(symbols.split('\n').filter((line) => new RegExp(` [Tt] _allnewmts_lua_ios_${name}$`).test(line)).length, 1, `evaluated Pod graph omits iOS ${name} provider`);
+  assert.equal(symbols.split('\n').filter((line) => / [Tt] _lua_newstate$/.test(line)).length, 1, 'evaluated Pod graph has multiple Lua providers');
+  fs.writeFileSync(path.join(output, 'pod-source-inventory.json'), JSON.stringify(graph, null, 2));
+  console.log(`PASS native Apple Pod graph: ${graph.sources.length} exact sources, ExpoModulesCore-only dependency, linked adapter and sole Lua provider`);
 }
 
 function compileAndroid(temp) {
@@ -197,14 +260,6 @@ function verifyAutolinking() {
   console.log('PASS native autolinking: Expo 57 found one local module for iOS and Android');
 }
 
-function runtimeAvailability() {
-  const sdk = process.env.ANDROID_HOME || path.join(os.homedir(), 'Library/Android/sdk');
-  const adb = path.join(sdk, 'platform-tools/adb');
-  const devices = fs.existsSync(adb) ? command(adb, ['devices']).split('\n').filter((line) => /\tdevice$/.test(line)) : [];
-  const bootedApple = command('xcrun', ['simctl', 'list', 'devices', 'booted']);
-  return { androidDevices: devices, appleBooted: /\([0-9A-F-]{36}\) \(Booted\)/.test(bootedApple) };
-}
-
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'allnewmts-g002-'));
 try {
   verifyUpstream(temp);
@@ -213,17 +268,13 @@ try {
   compileApple(temp);
   compileAndroid(temp);
   verifyAutolinking();
-  const availability = runtimeAvailability();
-  const runtimeGaps = [
-    ...(!availability.androidDevices.length ? ['adb reports no Android emulator or device'] : []),
-    ...(!availability.appleBooted ? ['simctl reports no booted iOS simulator'] : []),
-    'no Expo Development Build fixture was installed or executed on either platform'
-  ];
-  if (runtimeGaps.length) {
-    console.error(JSON.stringify({ status: 'BLOCKED', criterion: 'G0.2/G0.10 iOS and Android Expo adapter runtime', reasons: runtimeGaps, validated: ['official-zero-diff-source', 'host-shared-core-and-both-mechanics-adapters', 'ios-offline-compile', 'android-arm64-offline-compile', 'expo-autolinking', 'symbols-and-package-provenance'] }));
+  assert.throws(() => validateDevelopmentBuildResult({ status: 'PASS' }), 'synthetic availability/result must never pass runtime validation');
+  const runtime = await runGate0DevelopmentBuild(temp);
+  if (runtime.status === 'BLOCKED') {
+    console.error(JSON.stringify(runtime));
     process.exitCode = 2;
   } else {
-    console.log(JSON.stringify({ status: 'PASS', tier: 'native', availability }));
+    console.log(JSON.stringify({ status: 'PASS', tier: 'native', runtime }));
   }
 } finally {
   fs.rmSync(temp, { recursive: true, force: true });

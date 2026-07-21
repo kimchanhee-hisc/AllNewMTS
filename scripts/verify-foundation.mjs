@@ -104,6 +104,8 @@ function foundationFiles() {
     'native/lua-source-manifest.schema.json',
     'verification/manifest.json',
     'verification/manifest.schema.json',
+    'scripts/generate-native-assets.mjs',
+    'scripts/run-gate0-development-build.mjs',
     'scripts/verify-foundation.mjs',
     'scripts/verify-native.mjs',
     'test/foundation.test.mjs',
@@ -127,6 +129,8 @@ export const expectedIntegrityPaths = [
   'native/lua-source-manifest.schema.json',
   'verification/manifest.schema.json',
   'package.json',
+  'scripts/generate-native-assets.mjs',
+  'scripts/run-gate0-development-build.mjs',
   'scripts/verify-foundation.mjs',
   'scripts/verify-native.mjs',
   'test/foundation.test.mjs'

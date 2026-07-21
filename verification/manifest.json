@@ -377,15 +377,15 @@
     },
     {
       "path": "docs/specs/runtime-contract.md",
-      "sha256": "3514865aed5b23759d34bfeddf918f6c267ca1ab64332f6e93d4384c37665df0"
+      "sha256": "d40c2cf440303616128cf5110fc5b7d00032d6cbadc642b700e59f4172da09dc"
     },
     {
       "path": "docs/testing.md",
-      "sha256": "64557a85884e0a43731fdda410ac214b60f11eb63a08687250cfb363f8d4d594"
+      "sha256": "fd01e6d061590a19a39707430339072f9ba719533deb04238f5d7ecc7a4759e0"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
-      "sha256": "27526d3b491f680ac97f29f6fc64c1409c1d681858c1263a1c16f1ff6699820e"
+      "sha256": "d96ce1475639c57e4c8f8f4c842f2cb47d6389f46f0e9afb45cc5d28a7f5c76b"
     },
     {
       "path": "contracts/host-api.json",
@@ -405,7 +405,7 @@
     },
     {
       "path": "native/lua-source-manifest.json",
-      "sha256": "6bfef0272902932b97e0f6c342844c58363b8d93f6fec37614d0a4030402c947"
+      "sha256": "0670440e23047bc31e972871d2a4f263f666693cee1b1a3ec68c0ab6589ced01"
     },
     {
       "path": "native/lua-source-manifest.schema.json",
@@ -417,15 +417,23 @@
     },
     {
       "path": "package.json",
-      "sha256": "11e8a7f361c5f1d8ef7d2b67b9c1eded473a90ef9bbdbaf7395fd85fcd1015fb"
+      "sha256": "c39c90c93c227df7d4a9096cb387d2dd6d8b2a386a21a49db979046c01ad6bef"
+    },
+    {
+      "path": "scripts/generate-native-assets.mjs",
+      "sha256": "9a787aa15ed9906680a6d9dafda7096a06c868c2d030df3be8ddea125c450751"
+    },
+    {
+      "path": "scripts/run-gate0-development-build.mjs",
+      "sha256": "ac1252ad8944fa2334a2c19742e6e5d9f73e3d2dcfec6d93246d0f49db2c9e66"
     },
     {
       "path": "scripts/verify-foundation.mjs",
-      "sha256": "1b6ef59e824d439fb453a9b474da9b1f00e56eadb90a700d0b8baa7d683910e9"
+      "sha256": "e14c40c65e0cbf3b5937e09e772de6dd85628c1f67dc62912f7d2d2cd0ab379a"
     },
     {
       "path": "scripts/verify-native.mjs",
-      "sha256": "decfc52952866628c993024fe640fae6445767072bf2a09ac81694fdcd5ac17d"
+      "sha256": "4dd4a77a2bf3bc3d71424a2cd2112dff0de37729df3ee82683243ef8efceecd0"
     },
     {
       "path": "test/foundation.test.mjs",

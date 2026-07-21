@@ -26,6 +26,8 @@ Gate 0 embeds the official unmodified Lua 5.1.5 source behind one shared C `crea
 
 The harness has a 32 MiB allocator ceiling and 50 ms instruction-hook deadline; either guard destroys the state. It intentionally has no worker, revision, snapshot, queue, staging, token, rollback, close choreography, or multi-runtime coordination. Exact source and build truth is [`native/lua-source-manifest.json`](../../native/lua-source-manifest.json).
 
+Repository resources and the JS runtime fixture are generated from that manifest's logical paths, approved bytes, and hashes; drift in any of the three fails verification. The Apple build consumes the evaluated Podspec graph rather than a verifier-selected source list. An explicit local verification flag runs the same generated fixture through the actual Expo module three times and compares every result with the independent golden; it does not select product behavior or vary by operating system.
+
 ## Limits and security
 
 The production runtime must bound allocation, instructions/deadlines, state, queued events, commands, arguments, payloads, diagnostics, and outstanding tokens. It opens only the approved Lua libraries and denies filesystem, process, package, debug, traversal, arbitrary remote/end-user Lua, and unmanifested resources. Diagnostics are bounded and redact values.

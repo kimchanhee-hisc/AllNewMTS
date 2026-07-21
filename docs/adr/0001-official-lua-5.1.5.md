@@ -16,6 +16,8 @@ The immutable archive, extracted-file inventory, compiled-source list, license/h
 
 - General Lua 5.1 source semantics remain compatible without translating Lua into TypeScript.
 - G002 must vendor and verify the archive, license, inventory, compiled sources, source hash, and zero upstream-core diff before runtime work.
+- Manifest-owned resource bytes, logical paths, hashes, and the adapter fixture/golden generate the compiled resource table and JS Development Build fixture; hand-edited drift fails closed.
+- Apple evidence evaluates the local Podspec and compiles its exact graph, including the mechanics adapter, before the actual Expo Development Build is packaged and executed.
 - Builds remain offline after explicit dependency/bootstrap acquisition.
 - MVigsEngine and alternative Lua providers are neither linked nor used as implementation or evidence.
 - Allocation beyond 32 MiB or the 50 ms harness deadline destroys the Lua state. These are Gate-0 safety limits, not the G003 production revision/rollback/lifecycle protocol.

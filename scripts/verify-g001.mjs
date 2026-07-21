@@ -13,6 +13,7 @@ const read = (file) => fs.readFileSync(safePath(file));
 const sha256 = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 const json = (file) => JSON.parse(read(file).toString('utf8'));
 const manifest = json('test/oracles/manifest.json');
+const luaSourceManifest = json('native/lua-source-manifest.json');
 const git = (repository, args, encoding = 'utf8') => {
   const output = execFileSync('git', ['-C', repository, ...args], { encoding });
   return typeof output === 'string' ? output.trim() : output;
@@ -43,16 +44,25 @@ function inventory(directory) {
 
 const productionExtensions = /(?:^|\.)(?:c|cc|cxx|cpp|h|hh|hpp|m|mm|swift|java|kt|kts|js|jsx|ts|tsx|lua|gradle|xml|json|properties|plist|pbxproj|xcconfig|cmake|mk|ya?ml|toml|cfg|conf|ini|txt|xmf_)$/i;
 const productionNames = /(?:^|\/)(?:CMakeLists\.txt|Podfile|Makefile|AndroidManifest\.xml)$/;
+assert.equal(luaSourceManifest.vendoredRoot, 'modules/allnewmts-lua/vendor/lua-5.1.5');
+const pinnedThirdPartyRoot = `${luaSourceManifest.vendoredRoot}/`;
+const integrityMetadataFiles = new Set(['native/lua-source-manifest.json', 'verification/manifest.json']);
+function isProductBehavioralFile(mode, file) {
+  return (mode === '100755' || productionExtensions.test(file) || productionNames.test(file)) &&
+    !file.startsWith('test/oracles/') &&
+    !file.startsWith(pinnedThirdPartyRoot) &&
+    !['scripts/generate-g001-synthetic.mjs', 'scripts/verify-g001.mjs'].includes(file);
+}
+function productBehaviorText(file, source) {
+  if (!integrityMetadataFiles.has(file)) return source;
+  return source.replace(/"(?:sha256|archiveSha256|actualSha256|compiledExpectedSha256)"\s*:\s*"[a-f0-9]{64}"/gi, '');
+}
 function productionFiles(repository = root) {
   return git(repository, ['ls-files', '-s', '-z'], 'buffer').toString().split('\0').filter(Boolean).map((entry) => {
     const match = entry.match(/^(\d+) [a-f0-9]+ \d+\t([\s\S]+)$/);
     assert.ok(match, `unrecognized git index entry: ${entry}`);
     return { mode: match[1], file: match[2] };
-  }).filter(({ mode, file }) =>
-    (mode === '100755' || productionExtensions.test(file) || productionNames.test(file)) &&
-    !file.startsWith('test/oracles/') &&
-    !['scripts/generate-g001-synthetic.mjs', 'scripts/verify-g001.mjs'].includes(file)
-  ).map(({ file }) => file);
+  }).filter(({ mode, file }) => isProductBehavioralFile(mode, file)).map(({ file }) => file);
 }
 
 function verifyProvenance(source) {
@@ -287,9 +297,14 @@ assert.equal(/(^|[^A-Za-z])Form[._]/m.test(syntheticText), false, 'synthetic ret
 assert.deepEqual([...syntheticText.matchAll(/<(?:LABEL|EDIT|BUTTON) name="([^"]+)"/g)].map((match) => match[1]), ['syntheticDismiss', 'syntheticPrompt', 'syntheticAccept', 'syntheticInput', 'syntheticTitle']);
 
 for (const file of productionFiles()) {
-  const hit = hardcodingHit(read(file).toString('utf8'));
+  const hit = hardcodingHit(productBehaviorText(file, read(file).toString('utf8')));
   assert.equal(hit, undefined, `production static anti-hardcoding tripwire (${hit}): ${file}`);
 }
+assert.equal(isProductBehavioralFile('100644', 'modules/allnewmts-lua/vendor/lua-5.1.5/src/lapi.h'), false, 'pinned third-party source entered product behavior scan');
+assert.equal(isProductBehavioralFile('100644', 'src/product-behavior.ts'), true, 'product-authored source escaped behavior scan');
+assert.equal(hardcodingHit('const transaction = "CCS20000";'), 'CCS20000', 'product-authored hardcoding tripwire weakened');
+assert.equal(hardcodingHit(productBehaviorText('native/lua-source-manifest.json', '{"sha256":"9907000000000000000000000000000000000000000000000000000000000000"}')), undefined, 'integrity hash bytes entered product behavior scan');
+assert.equal(hardcodingHit(productBehaviorText('native/lua-source-manifest.json', '{"screen":9907}')), '9907', 'integrity manifest behavior escaped product scan');
 
 // Deterministic negative checks for the independent review's exact bypass classes.
 for (const mutation of ['CCS20000', 'const id = "CCS" + "20000";', 'const screen = 9907;', 'const ordinal = "lbl" + "0";', 'const layout = "18,68," + "324,40,1";']) assert.ok(hardcodingHit(mutation), `tripwire self-test missed: ${mutation}`);

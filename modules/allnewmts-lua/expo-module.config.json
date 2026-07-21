@@ -1,7 +1,8 @@
 {
   "platforms": ["apple", "android"],
   "apple": {
-    "modules": ["AllNewMTSLuaModule"]
+    "modules": ["AllNewMTSLuaModule"],
+    "podspecPath": "AllNewMTSLua.podspec"
   },
   "android": {
     "modules": ["com.allnewmts.lua.AllNewMTSLuaModule"]
