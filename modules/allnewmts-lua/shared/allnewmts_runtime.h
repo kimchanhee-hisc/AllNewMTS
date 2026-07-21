@@ -70,6 +70,9 @@ typedef struct {
 } AllNewMTSRuntimeTestCounters;
 int allnewmts_runtime_test_counters(uint64_t runtime_id,
                                     AllNewMTSRuntimeTestCounters *counters);
+void allnewmts_runtime_test_next_lua_allocator_limit(size_t bytes);
+int allnewmts_runtime_test_lua_allocator_limit(uint64_t runtime_id,
+                                               size_t bytes);
 #endif
 
 #ifdef __cplusplus

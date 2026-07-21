@@ -39,6 +39,7 @@ target_compile_options(allnewmts_lua51 PRIVATE -U_FORTIFY_SOURCE)
 add_library(allnewmts_lua SHARED
   ${SHARED_ROOT}/allnewmts_lua.c
   ${SHARED_ROOT}/allnewmts_runtime.cpp
+  ${SHARED_ROOT}/allnewmts_runtime_lua.c
   ${SHARED_ROOT}/allnewmts_runtime_adapters.c
   ${SHARED_ROOT}/resource_bundle.c
   ${SHARED_ROOT}/sha256.c

@@ -37,8 +37,9 @@ phase('contract-ledger', () => {
 
 phase('limits-security', () => {
   const source = read('modules/allnewmts-lua/shared/allnewmts_runtime.cpp');
+  const luaBoundary = read('modules/allnewmts-lua/shared/allnewmts_runtime_lua.c');
   for (const literal of ['32u * 1024u * 1024u','8u * 1024u * 1024u','4u * 1024u * 1024u','256u * 1024u','1000000','milliseconds(500)','kPendingEvents = 64','kStageCommands = 1024','kTokens = 32']) assert.ok(source.includes(literal), `missing runtime limit ${literal}`);
-  assert.doesNotMatch(source, /luaL_openlibs\s*\(/); assert.match(source, /clearGlobal\(lua_,"(?:loadfile|package|io|os|debug)"\)/);
+  assert.doesNotMatch(source + luaBoundary, /luaL_openlibs\s*\(/); assert.match(luaBoundary, /clear_global\(state, "(?:loadfile|package|io|os|debug)"\)/);
   assert.doesNotMatch(source, /MVigsEngine|ftp|sftp|https?:\/\/|react-native-lua/i);
   const production = [source, read('modules/allnewmts-lua/src/runtime.ts'), read('modules/allnewmts-lua/ios/AllNewMTSRuntimeAdapter.mm'), read('modules/allnewmts-lua/android/runtime_jni.cpp')].join('\n');
   assert.doesNotMatch(production, /Success|Rollback|Timeout|CloseTwice|T_ALPHA/); assert.doesNotMatch(read('modules/allnewmts-lua/src/runtime.ts'), /Platform\.|Platform\.OS|\bios\b|\bandroid\b/);
@@ -53,7 +54,7 @@ const provider = path.join(temp, 'liblua51.a'); run('ar',['rcs',provider,...prov
 const compileC = (source, name, definitions = []) => { const object=path.join(temp,`${name}.o`);run(process.env.CC||'cc',['-std=c99','-Wall','-Wextra','-Werror',...definitions,...include,'-c',source,'-o',object]);return object; };
 const compileCxx = (source, name, definitions = []) => { const object=path.join(temp,`${name}.o`);run(process.env.CXX||'c++',['-std=c++17','-Wall','-Wextra','-Werror',...definitions,...include,'-c',source,'-o',object]);return object; };
 const common = [compileC('modules/allnewmts-lua/shared/resource_bundle.c','resources',['-DALLNEWMTS_LUA_TESTING']),compileC('modules/allnewmts-lua/shared/sha256.c','sha')];
-const runtimeObjects = [compileCxx('modules/allnewmts-lua/shared/allnewmts_runtime.cpp','runtime',['-DALLNEWMTS_RUNTIME_TESTING']),compileC('modules/allnewmts-lua/shared/allnewmts_runtime_adapters.c','runtime-adapter-common'),compileC('modules/allnewmts-lua/ios/allnewmts_runtime_ios_adapter.c','runtime-ios'),compileC('modules/allnewmts-lua/android/allnewmts_runtime_android_adapter.c','runtime-android'),...common];
+const runtimeObjects = [compileCxx('modules/allnewmts-lua/shared/allnewmts_runtime.cpp','runtime',['-DALLNEWMTS_RUNTIME_TESTING']),compileC('modules/allnewmts-lua/shared/allnewmts_runtime_lua.c','runtime-lua',['-DALLNEWMTS_RUNTIME_TESTING']),compileC('modules/allnewmts-lua/shared/allnewmts_runtime_adapters.c','runtime-adapter-common'),compileC('modules/allnewmts-lua/ios/allnewmts_runtime_ios_adapter.c','runtime-ios'),compileC('modules/allnewmts-lua/android/allnewmts_runtime_android_adapter.c','runtime-android'),...common];
 const runtimeTest = compileCxx('native/test/runtime_conformance_test.cpp','runtime-test',['-DALLNEWMTS_RUNTIME_TESTING']);
 const executable = path.join(temp,'runtime-test'); run(process.env.CXX||'c++',[runtimeTest,...runtimeObjects,provider,'-lm','-pthread','-o',executable]);
 const runtimeOutput = run(executable,[]); assert.match(runtimeOutput,/PASS production runtime conformance/);

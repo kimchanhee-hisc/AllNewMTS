@@ -1,0 +1,162 @@
+{
+  "version": 1,
+  "team_name": "run-independent-g001-iteration",
+  "generated_at": "2026-07-21T00:24:03.408Z",
+  "lore_commit_protocol_required": true,
+  "runtime_commits_are_scaffolding": true,
+  "vocabulary": {
+    "operational_commit_kinds": [
+      {
+        "value": "auto_checkpoint",
+        "label": "auto-checkpoint",
+        "description": "A worker-local checkpoint commit created by the team runtime to preserve dirty worktree changes."
+      },
+      {
+        "value": "integration_merge",
+        "label": "integration merge",
+        "description": "A leader-side runtime merge commit that integrates a worker branch or checkpoint into the team branch."
+      },
+      {
+        "value": "integration_cherry_pick",
+        "label": "integration cherry-pick",
+        "description": "A leader-side runtime cherry-pick used when the normal worker merge path cannot be used cleanly."
+      },
+      {
+        "value": "cross_rebase",
+        "label": "cross-rebase",
+        "description": "A runtime rebase operation that moves worker work across the current leader branch baseline."
+      },
+      {
+        "value": "worker_clean_rebase",
+        "label": "worker clean rebase",
+        "description": "A runtime rebase that refreshes a clean worker branch onto the current leader branch baseline."
+      },
+      {
+        "value": "leader_integration_attempt",
+        "label": "leader integration attempt",
+        "description": "A leader-side integration attempt recorded for auditability even when it does not create a final semantic commit."
+      },
+      {
+        "value": "shutdown_checkpoint",
+        "label": "shutdown checkpoint",
+        "description": "A shutdown-time checkpoint commit that preserves remaining worker worktree changes before cleanup."
+      },
+      {
+        "value": "shutdown_merge",
+        "label": "shutdown merge",
+        "description": "A shutdown-time runtime merge that preserves worker changes on the leader branch before teardown."
+      }
+    ],
+    "operational_commit_statuses": [
+      {
+        "value": "applied",
+        "label": "applied",
+        "description": "The runtime operation changed repository history or preserved worker changes as intended."
+      },
+      {
+        "value": "noop",
+        "label": "no-op",
+        "description": "The runtime operation was unnecessary because there was no relevant change to preserve or integrate."
+      },
+      {
+        "value": "conflict",
+        "label": "conflict",
+        "description": "The runtime operation encountered conflicts that require human or leader-side reconciliation."
+      },
+      {
+        "value": "skipped",
+        "label": "skipped",
+        "description": "The runtime intentionally skipped the operation because prerequisites or safety checks were not met."
+      }
+    ]
+  },
+  "task_summary": [
+    {
+      "id": "1",
+      "subject": "Run independent G001 iteration-3 audit exactly from .omx/handoff/g001-independen",
+      "owner": "worker-1",
+      "status": "completed",
+      "description": "Run independent G001 iteration-3 audit exactly from .omx/handoff/g001-independent-verification-iteration-3-task.md. Produce the durable report with APPROVE+CLEAR or REQUEST CHANGES",
+      "result_excerpt": "Verdict: REQUEST CHANGES; architectural status BLOCK; audit invalidated by verifier contamination. Durable report: .omx/handoff/g001-independent-verification-iteration-3.md, repair/report worker tip c0b685e4, integrated leader main 88230a3…"
+    },
+    {
+      "id": "2",
+      "subject": "tracked source read-only, no MVigsEngine, no G002+.",
+      "owner": "worker-1",
+      "status": "completed",
+      "description": "tracked source read-only, no MVigsEngine, no G002+.",
+      "result_excerpt": "Scope verdict: FAIL during execution, restored in final state. The tracked-source read-only boundary was violated by the generator CLI incident; no prohibited material or G002+ implementation was inspected or changed. Final repaired leader…"
+    }
+  ],
+  "operational_entries": [
+    {
+      "recorded_at": "2026-07-21T00:18:46.504Z",
+      "operation": "auto_checkpoint",
+      "worker_name": "worker-1",
+      "task_id": "1",
+      "status": "applied",
+      "operational_commit": "3d5710b93e1f95aeeaa0c6f7c46818421e7a0ccf",
+      "worktree_path": "/Users/chanheekim/Dev/AllNewMTS/.omx/team/run-independent-g001-047751a2/worktrees/worker-1",
+      "detail": "Dirty worker worktree checkpointed before runtime integration."
+    },
+    {
+      "recorded_at": "2026-07-21T00:18:48.927Z",
+      "operation": "integration_merge",
+      "worker_name": "worker-1",
+      "task_id": "1",
+      "status": "applied",
+      "operational_commit": "9107b0c4e0294a0581676d3cc85d5e074c4f7ed9",
+      "source_commit": "3d5710b93e1f95aeeaa0c6f7c46818421e7a0ccf",
+      "leader_head_before": "c723e3117ee1c7da4c2a05bb30e570c089c7c68f",
+      "leader_head_after": "9107b0c4e0294a0581676d3cc85d5e074c4f7ed9",
+      "worktree_path": "/Users/chanheekim/Dev/AllNewMTS/.omx/team/run-independent-g001-047751a2/worktrees/worker-1",
+      "detail": "Leader created a runtime merge commit to integrate worker history."
+    },
+    {
+      "recorded_at": "2026-07-21T00:22:02.405Z",
+      "operation": "integration_merge",
+      "worker_name": "worker-1",
+      "task_id": "1",
+      "status": "applied",
+      "operational_commit": "f5da28f3408f25d4af2a5a698328f524e9aa6d25",
+      "source_commit": "d146cc508987457abc50525b013e90ebd351e275",
+      "leader_head_before": "9107b0c4e0294a0581676d3cc85d5e074c4f7ed9",
+      "leader_head_after": "f5da28f3408f25d4af2a5a698328f524e9aa6d25",
+      "worktree_path": "/Users/chanheekim/Dev/AllNewMTS/.omx/team/run-independent-g001-047751a2/worktrees/worker-1",
+      "detail": "Leader created a runtime merge commit to integrate worker history."
+    },
+    {
+      "recorded_at": "2026-07-21T00:22:45.937Z",
+      "operation": "integration_cherry_pick",
+      "worker_name": "worker-1",
+      "task_id": "1",
+      "status": "applied",
+      "operational_commit": "88230a33f1d68007c897340972a210bfd8dee254",
+      "source_commit": "c0b685e4b39dd3ad649bf818eea81bc8788857cd",
+      "leader_head_before": "f5da28f3408f25d4af2a5a698328f524e9aa6d25",
+      "leader_head_after": "88230a33f1d68007c897340972a210bfd8dee254",
+      "worktree_path": "/Users/chanheekim/Dev/AllNewMTS/.omx/team/run-independent-g001-047751a2/worktrees/worker-1",
+      "detail": "Leader created a runtime cherry-pick commit while integrating diverged worker history."
+    },
+    {
+      "recorded_at": "2026-07-21T00:24:03.407Z",
+      "operation": "shutdown_merge",
+      "worker_name": "worker-1",
+      "task_id": "1",
+      "status": "applied",
+      "operational_commit": "260c28750fbd4c716106f3959e02367f29b71c7a",
+      "source_commit": "c0b685e4b39dd3ad649bf818eea81bc8788857cd",
+      "leader_head_before": "88230a33f1d68007c897340972a210bfd8dee254",
+      "leader_head_after": "260c28750fbd4c716106f3959e02367f29b71c7a",
+      "worktree_path": "/Users/chanheekim/Dev/AllNewMTS/.omx/team/run-independent-g001-047751a2/worktrees/worker-1",
+      "report_path": "/Users/chanheekim/Dev/AllNewMTS/.omx/team/run-independent-g001-047751a2/worktrees/worker-1/.omx/diff.md",
+      "detail": "Merge made by the 'ort' strategy."
+    }
+  ],
+  "recommended_next_steps": [
+    "Inspect the current branch diff/log and identify which runtime-originated commits should be squashed or rewritten.",
+    "Derive semantic commit boundaries from completed task subjects, code diffs, and shutdown reports rather than from omx(team) operational commit subjects.",
+    "Create final commit messages in Lore format with intent-first subjects and only the trailers that add decision context."
+  ],
+  "leader_finalization_prompt": "Team \"run-independent-g001-iteration\" is ready for commit finalization. Treat runtime-originated commits (auto-checkpoints, merge/cherry-picks, cross-rebases, worker clean rebase scaffolds, leader integration signals, shutdown checkpoints) as temporary scaffolding rather than final history. Do not reuse operational commit subjects verbatim. Completed task subjects: Run independent G001 iteration-3 audit exactly from .omx/handoff/g001-independen | tracked source read-only, no MVigsEngine, no G002+.. Rewrite or squash the operational history into clean Lore-format final commit(s) with intent-first subjects and relevant trailers. Use task subjects/results and shutdown diff reports to choose semantic commit boundaries and rationale."
+}

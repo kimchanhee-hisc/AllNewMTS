@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "createdAt": "2026-07-20T09:21:44.122Z",
+  "updatedAt": "2026-07-21T07:40:27.808Z",
+  "briefPath": ".omx/ultragoal/brief.md",
+  "goalsPath": ".omx/ultragoal/goals.json",
+  "ledgerPath": ".omx/ultragoal/ledger.jsonl",
+  "codexGoalMode": "aggregate",
+  "goals": [
+    {
+      "id": "G007-g001a-establish-ai-native-repository",
+      "title": "G001A — Establish AI-native repository foundation",
+      "objective": "Create the minimal tracked AGENTS/contracts/ADR/manifests and deterministic fast/story/milestone verification/evidence protocol; bind one OS-independent RN Host/control contract, evidenced XMF registry, deferred XMS adapter boundary, and semantic-reimplementation ledger; block broad runtime work until independent APPROVE/CLEAR.",
+      "status": "complete",
+      "attempt": 1,
+      "createdAt": "2026-07-21T01:42:57.214Z",
+      "updatedAt": "2026-07-21T02:54:08.219Z",
+      "evidence": "Logical G001A complete at reviewed HEAD 708685ab30586ea9e9d84b137a87bc7f6966bcbc; foundation commits eb9c61e, fc88f2e, 0653aff, 708685a; final independent APPROVE/CLEAR report .omx/handoff/g001a-independent-verification-iteration-4.md SHA256 85c8cdf6d6238b986d73d947486cef849e530fede45496a69c33fe1e2fbf221b. Canonical story ran exactly once in final review and seven checks each ran once; G001/type/unit/diff passed; milestone/CI correctly DEFERRED exit 2; tree clean. Iteration-2/3 BLOCK reports were repaired and preserved.",
+      "startedAt": "2026-07-21T01:53:43.875Z",
+      "completedAt": "2026-07-21T02:54:08.219Z"
+    },
+    {
+      "id": "G002-embed-official-lua-5-1-5",
+      "title": "Embed official Lua 5.1.5",
+      "objective": "Vendor the verified official Lua 5.1.5 archive with license/manifest and build a minimal local Expo native module for iOS and Android with sole-provider binary provenance, sandboxed library registration, and no MVigsEngine.",
+      "status": "complete",
+      "attempt": 7,
+      "createdAt": "2026-07-20T09:21:44.122Z",
+      "updatedAt": "2026-07-21T07:40:05.223Z",
+      "startedAt": "2026-07-21T06:49:52.958Z",
+      "completedAt": "2026-07-21T07:40:05.223Z",
+      "evidence": "G002 complete at HEAD 08ba9c0c720f7e7af8086de61facbb9c2ca0b026. Canonical story final code exactly once PASS: official Lua 57 zero-diff, iOS and Android actual Expo Development Build runtime each 3 cycles with identical golden, sole lua_newstate provider/package count 1, Android Bionic compatibility scoped only to vendored Lua target, cleanup PASS. Implementation .omx/handoff/g002-environment-unblock-attempt-7.md SHA256 089538fd35100d13cdda6dcaecf93500b90b51f10c5565169310d602fde476ed; independent APPROVE/CLEAR report .omx/handoff/g002-independent-verification-iteration-4.md SHA256 4ac693ec1c3363bfd671e8ae0f6ef0b3e311b20a031d319e1526562abf2876c2; tree clean; no deployment/remote mutation/MVigsEngine; G003 untouched."
+    },
+    {
+      "id": "G003-implement-bounded-native-runtime",
+      "title": "Implement bounded native runtime",
+      "objective": "Implement shared native Host state, synchronous C API callbacks, resource dofile, serial off-main events, staged commit/rollback, limits, lifecycle, request tokens, snapshots, and conformance/resource tests.",
+      "status": "in_progress",
+      "attempt": 1,
+      "createdAt": "2026-07-20T09:21:44.122Z",
+      "updatedAt": "2026-07-21T07:40:27.808Z",
+      "startedAt": "2026-07-21T07:40:27.808Z"
+    },
+    {
+      "id": "G004-build-generic-xmf-ui-path",
+      "title": "Build generic XMF UI path",
+      "objective": "Implement the generic XMF parser/model, React Native Label/Edit/Button renderer and generic event client, plus synthetic generated fixture coverage without screen/control/transaction identity branches.",
+      "status": "pending",
+      "attempt": 0,
+      "createdAt": "2026-07-20T09:21:44.122Z",
+      "updatedAt": "2026-07-20T09:21:44.122Z"
+    },
+    {
+      "id": "G005-complete-hs1200p08-fixture-path",
+      "title": "Complete HS1200P08 fixture path",
+      "objective": "Run original HS1200P08 and common Lua unchanged; implement only its transitive Host API ledger and deterministic CCS20000/CCS20001 flows matching frozen golden traces.",
+      "status": "pending",
+      "attempt": 0,
+      "createdAt": "2026-07-20T09:21:44.122Z",
+      "updatedAt": "2026-07-20T09:21:44.122Z"
+    },
+    {
+      "id": "G006-verify-first-milestone",
+      "title": "Verify first milestone",
+      "objective": "Run typecheck, unit/native/runtime/build/package provenance, cross-platform golden trace, screenshots/accessibility, adversarial lifecycle/security tests, cleanup, invariant audit, independent code review, and UltraQA evidence.",
+      "status": "pending",
+      "attempt": 0,
+      "createdAt": "2026-07-20T09:21:44.122Z",
+      "updatedAt": "2026-07-20T09:21:44.122Z"
+    },
+    {
+      "id": "G001-freeze-independent-oracles",
+      "title": "Freeze independent oracles",
+      "objective": "Before runtime implementation, vendor/hash approved original XMF/Lua and engine-independent QRY/service inputs, hand-author and independently verify immutable golden traces, and define the rename/reorder anti-hardcoding fixture generator.",
+      "status": "complete",
+      "attempt": 1,
+      "createdAt": "2026-07-20T09:21:44.122Z",
+      "updatedAt": "2026-07-21T01:53:38.797Z",
+      "startedAt": "2026-07-20T09:21:58.928Z",
+      "completedAt": "2026-07-21T01:53:38.797Z",
+      "evidence": "G001 independently APPROVE/CLEAR at commit 260c28750fbd4c716106f3959e02367f29b71c7a; report .omx/handoff/g001-independent-verification-iteration-4.md SHA256 04aa68d58cac0cd73165c5546881e914414a818fa5c448286cac03aa7686e6ba; fresh iteration-4 reviews reran verify:g001 and TypeScript successfully; aggregate Codex goal is active after explicit user clear/resume."
+    }
+  ],
+  "codexObjective": "Complete the durable ultragoal plan in .omx/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .omx/ultragoal/ledger.jsonl as the audit trail.",
+  "activeGoalId": "G003-implement-bounded-native-runtime"
+}

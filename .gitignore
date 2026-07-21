@@ -25,7 +25,23 @@ expo-env.d.ts
 npm-debug.*
 yarn-debug.*
 yarn-error.*
-.omx/
+# Durable OMX project state; runtime/session state stays local.
+.omx/*
+!.omx/context/
+!.omx/context/**
+!.omx/handoff/
+!.omx/handoff/**
+!.omx/interviews/
+!.omx/interviews/**
+!.omx/notepad.md
+!.omx/plans/
+!.omx/plans/**
+!.omx/reports/
+!.omx/reports/**
+!.omx/specs/
+!.omx/specs/**
+!.omx/ultragoal/
+!.omx/ultragoal/**
 
 # macOS
 .DS_Store
