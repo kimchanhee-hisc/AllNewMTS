@@ -235,6 +235,16 @@
             "globals": {
               "g_bOnlyClose": false,
               "g_szReceiveData": ""
+            },
+            "controls": {
+              "edtGroupNm": {
+                "caption": "새그룹"
+              },
+              "btnAdd": {
+                "enabled": true,
+                "border": "1",
+                "dfgcolor": "101"
+              }
             }
           },
           "blocks": {},
