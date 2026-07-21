@@ -4,7 +4,7 @@ import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
 class AllNewMTSLuaModule : Module() {
-  private var runtime = 0L
+  private var nativeHandle = 0L
 
   init {
     System.loadLibrary("allnewmts_lua")
@@ -14,18 +14,18 @@ class AllNewMTSLuaModule : Module() {
     Name("AllNewMTSLua")
 
     Function("create") {
-      if (runtime != 0L) nativeDestroy(runtime)
-      runtime = nativeCreate()
-      runtime != 0L
+      if (nativeHandle != 0L) nativeDestroy(nativeHandle)
+      nativeHandle = nativeCreate()
+      nativeHandle != 0L
     }
 
     Function("evaluate") { source: String ->
-      nativeEvaluate(runtime, source)
+      nativeEvaluate(nativeHandle, source)
     }
 
     Function("destroy") {
-      if (runtime != 0L) nativeDestroy(runtime)
-      runtime = 0L
+      if (nativeHandle != 0L) nativeDestroy(nativeHandle)
+      nativeHandle = 0L
     }
   }
 

@@ -428,8 +428,8 @@
     },
     {
       "path": "modules/allnewmts-lua/android/src/main/java/com/allnewmts/lua/AllNewMTSLuaModule.kt",
-      "bytes": 817,
-      "sha256": "77ab2d8866c444830026f8812f3d8e5e83ddb3b564140696e589f23b9035fecb"
+      "bytes": 862,
+      "sha256": "dca7b0051fcd7c7bbcc2240b24b061e95962f23394de2e9284c5398fc8e7d7c5"
     },
     {
       "path": "modules/allnewmts-lua/expo-module.config.json",

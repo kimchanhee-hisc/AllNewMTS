@@ -104,9 +104,11 @@ function verifyContracts() {
   safeRepoFile(manifest.adapterFixture.golden);
 
   const appleFunctions = [...read('modules/allnewmts-lua/ios/AllNewMTSLuaModule.swift').toString().matchAll(/Function\("([^"]+)"/g)].map((match) => match[1]);
-  const androidFunctions = [...read('modules/allnewmts-lua/android/src/main/java/com/allnewmts/lua/AllNewMTSLuaModule.kt').toString().matchAll(/Function\("([^"]+)"/g)].map((match) => match[1]);
+  const androidModule = read('modules/allnewmts-lua/android/src/main/java/com/allnewmts/lua/AllNewMTSLuaModule.kt').toString('utf8');
+  const androidFunctions = [...androidModule.matchAll(/Function\("([^"]+)"/g)].map((match) => match[1]);
   assert.deepEqual(appleFunctions, ['create', 'evaluate', 'destroy']);
   assert.deepEqual(androidFunctions, appleFunctions);
+  assert.doesNotMatch(androidModule, /\b(?:val|var)\s+runtime\b/, 'Android module state must not hide Expo Module.runtime');
   const appEntry = read('index.ts').toString('utf8');
   assert.doesNotMatch(appEntry, /^import .*gate0-runtime/m, 'ordinary app startup must not load the native harness');
   assert.match(appEntry, /if \(process\.env\.EXPO_PUBLIC_G002_NATIVE_HARNESS === '1'\)[\s\S]+await import\('\.\/modules\/allnewmts-lua\/src\/gate0-runtime'\)/, 'native harness must load only behind its explicit verification flag');
