@@ -1,0 +1,73 @@
+{
+  "$schema": "./control-registry.schema.json",
+  "schemaVersion": 1,
+  "owningGoal": "G004-build-generic-xmf-ui-path",
+  "inputRoles": [
+    {
+      "name": "XMF",
+      "decision": "include",
+      "role": "screen-form-document",
+      "diagnostic": null
+    },
+    {
+      "name": "XMS",
+      "decision": "defer",
+      "role": "unestablished",
+      "diagnostic": "UNSUPPORTED_INPUT_ROLE"
+    }
+  ],
+  "controls": [
+    {
+      "id": "label",
+      "decision": "include",
+      "sourceTags": ["LABEL"],
+      "semanticFamilies": [],
+      "normalizedType": "Label",
+      "properties": ["name", "caption", "fontsize", "fontstyle", "ly_vert"],
+      "mutableProperties": [],
+      "events": [],
+      "capabilities": ["text", "layout", "accessibility-label"],
+      "fallback": "reject-undeclared",
+      "diagnostic": null
+    },
+    {
+      "id": "edit",
+      "decision": "include",
+      "sourceTags": ["EDIT"],
+      "semanticFamilies": [],
+      "normalizedType": "Edit",
+      "properties": ["name", "caption", "hintcaption", "imetype", "maxlength", "leadheight", "paddinginfo", "ly_vert"],
+      "mutableProperties": ["caption"],
+      "events": ["OnEditComplete"],
+      "capabilities": ["text-input", "layout", "focus", "accessibility-label"],
+      "fallback": "reject-undeclared",
+      "diagnostic": null
+    },
+    {
+      "id": "button",
+      "decision": "include",
+      "sourceTags": ["BUTTON"],
+      "semanticFamilies": ["CtlButton"],
+      "normalizedType": "Button",
+      "properties": ["name", "caption", "enable", "fgcolor", "bgcolor", "fontsize", "bordersize", "ly_vert"],
+      "mutableProperties": ["border", "dfgcolor", "enable"],
+      "events": ["OnClick"],
+      "capabilities": ["press", "enabled-state", "SetRadius", "layout", "accessibility-button"],
+      "fallback": "missing-enable-is-enabled;reject-undeclared",
+      "diagnostic": null
+    },
+    {
+      "id": "image",
+      "decision": "defer",
+      "sourceTags": [],
+      "semanticFamilies": ["CtlImage"],
+      "normalizedType": "unsupported",
+      "properties": [],
+      "mutableProperties": [],
+      "events": [],
+      "capabilities": [],
+      "fallback": "reject",
+      "diagnostic": "UNSUPPORTED_CONTROL_TYPE"
+    }
+  ]
+}

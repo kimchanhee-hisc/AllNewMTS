@@ -1,0 +1,38 @@
+{
+  "$schema": "./host-api.schema.json",
+  "schemaVersion": 1,
+  "contract": "cross-platform-host",
+  "inventoryStatus": "deferred",
+  "owningGoal": "G003-implement-bounded-native-runtime",
+  "publicApis": [],
+  "compatibilityDecisions": [
+    {
+      "id": "shared-platform-result",
+      "decision": "include",
+      "evidence": [
+        "docs/specs/runtime-contract.md#cross-platform-semantics"
+      ],
+      "rationale": "Expose one evidence-backed semantic result above mechanics-only adapters.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "testOrGolden": "DEFERRED(G003-implement-bounded-native-runtime)"
+    },
+    {
+      "id": "history-only-branches",
+      "decision": "exclude",
+      "evidence": [
+        "docs/specs/runtime-contract.md#semantic-reimplementation"
+      ],
+      "rationale": "Bug workarounds, historical forks, dead paths, and accidental behavior are not compatibility requirements.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "reject",
+      "testOrGolden": "DEFERRED(G003-implement-bounded-native-runtime)"
+    }
+  ]
+}
