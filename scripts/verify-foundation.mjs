@@ -12,6 +12,7 @@ const contained = (base, candidate) => candidate === base || candidate.startsWit
 export function safeRepoFile(file, label = 'repository path', base = root) {
   assert.equal(typeof file, 'string', `${label}: path must be a string`);
   assert.ok(file && !file.includes('\0') && !file.includes('\\'), `${label}: invalid path`);
+  assert.doesNotMatch(file, /^[A-Za-z]:/, `${label}: drive-relative path is forbidden`);
   assert.equal(path.posix.isAbsolute(file) || path.win32.isAbsolute(file), false, `${label}: path must be relative`);
   const segments = file.split('/');
   assert.ok(segments.every((segment) => segment && segment !== '.' && segment !== '..'), `${label}: path must be normalized`);
@@ -179,6 +180,7 @@ export function verifyContractInventories(host, controls) {
   unique(host.compatibilityDecisions.map(({ id }) => id), 'Host decision id');
   unique(controls.inputRoles.map(({ name }) => name), 'input role');
   unique(controls.controls.map(({ id }) => id), 'control id');
+  unique(controls.controls.map(({ normalizedType }) => normalizedType), 'normalized control type');
   unique(controls.controls.flatMap(({ sourceTags }) => sourceTags), 'source tag');
   unique(controls.controls.flatMap(({ semanticFamilies }) => semanticFamilies), 'semantic family');
 
@@ -294,6 +296,28 @@ function containsIdentity(node) {
   return found;
 }
 
+function hasCdnIdentity(node) {
+  let found = false;
+  const visit = (child) => {
+    if ((ts.isIdentifier(child) || ts.isStringLiteralLike(child)) && /cdn/i.test(child.text)) found = true;
+    if (!found) ts.forEachChild(child, visit);
+  };
+  visit(node);
+  return found;
+}
+
+const mutationMethod = /^(?:POST|PUT|PATCH|DELETE|purge|remove|invalidate|upload)$/i;
+function hasMutationMethod(node) {
+  let found = false;
+  const visit = (child) => {
+    const property = ts.isPropertyAssignment(child) && (ts.isIdentifier(child.name) || ts.isStringLiteralLike(child.name)) ? child.name.text : null;
+    if (ts.isPropertyAssignment(child) && /^(?:method|httpMethod)$/i.test(property ?? child.name.getText()) && ts.isStringLiteralLike(child.initializer) && mutationMethod.test(child.initializer.text)) found = true;
+    if (!found) ts.forEachChild(child, visit);
+  };
+  visit(node);
+  return found;
+}
+
 function astViolations(file, text, host, controls, behavioral) {
   const violations = [];
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, scriptKind(file));
@@ -323,7 +347,9 @@ function astViolations(file, text, host, controls, behavioral) {
         if (/^(?:selectNativeModule)$/i.test(calleeName ?? '')) add('OS-selected native module');
         if (/^(?:(?:register|add|define).*Screen|Screen.*(?:register|add|define))$/i.test(calleeName ?? '') ||
             (calleeBase && /screen/i.test(calleeBase.getText(source)) && /^(?:register|add|set)$/.test(calleeName ?? ''))) add('build-time screen registration');
-        if (cdnMutationName.test(calleeText) || (/cdn/i.test(calleeBase?.getText(source) ?? '') && /^(?:post|put|patch|purge|delete|remove|invalidate|upload)$/i.test(calleeName ?? ''))) add('CDN mutation');
+        const fetchMutation = calleeName === 'fetch' && node.arguments[0] && hasCdnIdentity(node.arguments[0]) && node.arguments.slice(1).some(hasMutationMethod);
+        const clientMutation = (hasCdnIdentity(node.expression) || node.arguments.some(hasCdnIdentity)) && (mutationMethod.test(calleeName ?? '') || node.arguments.some(hasMutationMethod));
+        if (cdnMutationName.test(calleeText) || fetchMutation || clientMutation) add('CDN mutation');
         if (ts.isIdentifier(node.expression) && node.expression.text === 'registerControl' && node.arguments[0] && ts.isStringLiteralLike(node.arguments[0]) && !controlNames.has(node.arguments[0].text)) {
           add(`public control omitted from registry: ${node.arguments[0].text}`);
         }
@@ -344,6 +370,60 @@ function astViolations(file, text, host, controls, behavioral) {
   return violations;
 }
 
+function stripComments(text, lineMarkers, blockPairs) {
+  let output = '';
+  let quote = null;
+  let blockEnd = null;
+  for (let index = 0; index < text.length; index += 1) {
+    if (blockEnd) {
+      if (text.startsWith(blockEnd, index)) {
+        index += blockEnd.length - 1;
+        blockEnd = null;
+      } else output += text[index] === '\n' ? '\n' : ' ';
+      continue;
+    }
+    const char = text[index];
+    if (quote) {
+      output += char;
+      if (char === '\\' && index + 1 < text.length) output += text[index += 1];
+      else if (char === quote) quote = null;
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      quote = char;
+      output += char;
+      continue;
+    }
+    const block = blockPairs.find(([start]) => text.startsWith(start, index));
+    if (block) {
+      blockEnd = block[1];
+      index += block[0].length - 1;
+      continue;
+    }
+    const line = lineMarkers.find((marker) => text.startsWith(marker, index));
+    if (line) {
+      while (index < text.length && text[index] !== '\n') index += 1;
+      output += '\n';
+      continue;
+    }
+    output += char;
+  }
+  return output;
+}
+
+function configBehaviorText(file, text) {
+  const lineMarkers = [];
+  const blockPairs = [];
+  if (/\.(?:gradle|kts|pbxproj|xcconfig)$/i.test(file)) {
+    lineMarkers.push('//');
+    blockPairs.push(['/*', '*/']);
+  }
+  if (/\.(?:xml|plist)$/i.test(file)) blockPairs.push(['<!--', '-->']);
+  if (/\.cmake$/i.test(file) || /(?:^|\/)CMakeLists\.txt$/.test(file)) blockPairs.push(['#[[', ']]']);
+  if (/\.(?:cmake|podspec|properties|mk)$/i.test(file) || /(?:^|\/)(?:CMakeLists\.txt|Makefile|Podfile)$/.test(file)) lineMarkers.push('#');
+  return stripComments(text, lineMarkers, blockPairs);
+}
+
 export function policyViolations(files, packageJson, host, controls) {
   const violations = [];
   for (const { file, text = '' } of files) {
@@ -353,9 +433,10 @@ export function policyViolations(files, packageJson, host, controls) {
     if (jsTsFile(file)) violations.push(...astViolations(file, text, host, controls, behavioral));
     else if (text) {
       if (forbiddenProtocol.test(text)) violations.push(`${file}: FTP/SFTP access`);
-      if (remoteCommand.test(text)) violations.push(`${file}: remote publication/mutation command`);
       if ((buildConfigFile(file) || /^(?:test|evidence)\//.test(file)) && forbiddenReference.test(text)) violations.push(`${file}: forbidden artifact/reference`);
-      if (buildConfigFile(file) && (cdnMutationName.test(text) || cdnMutationText.test(text))) violations.push(`${file}: CDN mutation`);
+      const behaviorText = buildConfigFile(file) ? configBehaviorText(file, text) : text;
+      if (remoteCommand.test(behaviorText)) violations.push(`${file}: remote publication/mutation command`);
+      if (buildConfigFile(file) && (cdnMutationName.test(behaviorText) || cdnMutationText.test(behaviorText))) violations.push(`${file}: CDN mutation`);
     }
   }
 

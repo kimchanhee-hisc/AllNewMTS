@@ -90,11 +90,11 @@
     },
     {
       "path": "scripts/verify-foundation.mjs",
-      "sha256": "fc22d0a50e064e67fabc2fcfb625cce120cbd802a5c0738835325aa1e3e7a5ff"
+      "sha256": "a406e188f1d2d9724a23baa8caaa1438c3c5feab5ce94b049c599b9afb9e0a13"
     },
     {
       "path": "test/foundation.test.mjs",
-      "sha256": "0258b4ecd24633fb1e08ce12c2b314e7c865609cdf9b2c1fdca0f2489ef6f0f5"
+      "sha256": "5e8a2d78669c594ce621330c7aaea4d74879da543f46f662ba8221c8b9b106e1"
     }
   ]
 }
