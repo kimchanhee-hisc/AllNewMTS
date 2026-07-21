@@ -64,20 +64,65 @@ async function reserveMetroPort() {
   return { port: address.port, release: () => new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve())) };
 }
 
-async function stopProcessGroup(child) {
+const childIsLive = (child) => child.exitCode === null && child.signalCode === null;
+
+async function waitForChildExit(child, timeoutMilliseconds = 3000) {
+  if (!childIsLive(child)) return;
+  await new Promise((resolve) => {
+    let timer;
+    const done = () => {
+      if (timer) clearTimeout(timer);
+      child.removeListener('exit', done);
+      resolve();
+    };
+    child.once('exit', done);
+    timer = setTimeout(done, timeoutMilliseconds);
+    if (!childIsLive(child)) done();
+  });
+}
+
+function signalOwnedMetro(child, signal) {
+  if (!childIsLive(child)) return;
+  try {
+    process.kill(-child.pid, signal);
+  } catch (error) {
+    if (error.code !== 'EPERM' && error.code !== 'ESRCH') throw error;
+    if (childIsLive(child)) child.kill(signal);
+  }
+}
+
+async function verifyMetroPortReleased(port) {
+  let lastError;
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const probe = http.createServer();
+    try {
+      await new Promise((resolve, reject) => {
+        probe.once('error', reject);
+        probe.listen(port, '127.0.0.1', resolve);
+      });
+      await new Promise((resolve, reject) => probe.close((error) => error ? reject(error) : resolve()));
+      return;
+    } catch (error) {
+      if (error.code !== 'EADDRINUSE') throw error;
+      lastError = error;
+      await delay(100);
+    }
+  }
+  throw lastError;
+}
+
+async function stopProcessGroup(child, port) {
   if (!child) return;
-  const exists = () => {
-    try { process.kill(-child.pid, 0); return true; } catch (error) { if (error.code === 'ESRCH') return false; throw error; }
-  };
-  if (!exists()) return;
-  const signal = (name) => {
-    try { process.kill(-child.pid, name); } catch (error) { if (error.code !== 'ESRCH') throw error; }
-  };
-  signal('SIGTERM');
-  for (let attempt = 0; attempt < 30 && exists(); attempt += 1) await delay(100);
-  if (exists()) signal('SIGKILL');
-  for (let attempt = 0; attempt < 30 && exists(); attempt += 1) await delay(100);
-  assert.equal(exists(), false, 'Metro process group did not terminate');
+  if (childIsLive(child)) {
+    signalOwnedMetro(child, 'SIGTERM');
+    await waitForChildExit(child);
+    if (childIsLive(child)) {
+      signalOwnedMetro(child, 'SIGKILL');
+      await waitForChildExit(child);
+    }
+    assert.equal(childIsLive(child), false, 'Metro direct child did not terminate');
+  }
+  await verifyMetroPortReleased(port);
 }
 
 async function waitForMarker(files, timeoutMilliseconds = 90000) {
@@ -245,6 +290,7 @@ export async function runGate0DevelopmentBuild(temp) {
   let androidPackageId;
   let androidReverse = false;
   let androidSerial;
+  let primaryError;
   try {
     metroReservation = await reserveMetroPort();
     metroPort = metroReservation.port;
@@ -331,13 +377,15 @@ export async function runGate0DevelopmentBuild(temp) {
       }
     }
     throw new Error('Android Development Build emitted no runtime marker');
+  } catch (error) {
+    primaryError = error;
   } finally {
     const cleanupErrors = [];
     const cleanup = async (label, action) => {
-      try { await action(); } catch (error) { cleanupErrors.push(`${label}: ${error.message}`); }
+      try { await action(); } catch (error) { cleanupErrors.push(new Error(`${label}: ${error.message}`, { cause: error })); }
     };
     await cleanup('Metro port reservation', () => metroReservation?.release());
-    await cleanup('Metro process group', () => stopProcessGroup(metro));
+    await cleanup('Metro process group', () => stopProcessGroup(metro, metroPort));
     await cleanup('Metro log', () => metroLog ? new Promise((resolve) => metroLog.end(resolve)) : undefined);
     if (iosBundleId) spawnSync('xcrun', ['simctl', 'terminate', apple.udid, iosBundleId]);
     await cleanup('iOS app', async () => {
@@ -374,8 +422,14 @@ export async function runGate0DevelopmentBuild(temp) {
       fs.rmSync(path.join(root, 'android'), { recursive: true, force: true });
       assert.equal(fs.existsSync(path.join(root, 'ios')) || fs.existsSync(path.join(root, 'android')), false, 'generated native directories remain after cleanup');
     });
-    assert.deepEqual(cleanupErrors, [], `Development Build cleanup failed:\n${cleanupErrors.join('\n')}`);
+    if (primaryError && cleanupErrors.length) {
+      primaryError.cleanupErrors = cleanupErrors;
+      primaryError.message += `\nSecondary cleanup failures:\n${cleanupErrors.map(({ message }) => message).join('\n')}`;
+    } else if (cleanupErrors.length) {
+      throw new AggregateError(cleanupErrors, 'Development Build cleanup failed');
+    }
   }
+  throw primaryError;
 }
 
 function validateDevelopmentBuildResult(result) {

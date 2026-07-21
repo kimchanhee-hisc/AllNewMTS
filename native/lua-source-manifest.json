@@ -403,8 +403,8 @@
     },
     {
       "path": "modules/allnewmts-lua/android/CMakeLists.txt",
-      "bytes": 1255,
-      "sha256": "bdb4ba5944941dca95fb747f1d09a195feab5e762ffe9fcc0db0fc21403ec9af"
+      "bytes": 1437,
+      "sha256": "21d7e54e26a165d32c9bd00bdd9aa232fad8a1e3fa679227bfedae5afb0a504f"
     },
     {
       "path": "modules/allnewmts-lua/android/allnewmts_lua_android_adapter.c",

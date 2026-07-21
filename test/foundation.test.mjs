@@ -83,6 +83,16 @@ test('story, command, inventory, and path contracts fail closed', () => {
   assert.throws(() => storyChecks('G999-unknown', manifest));
 });
 
+test('native runner preserves primary failures and releases only owned Metro state', () => {
+  const source = fs.readFileSync(new URL('../scripts/run-gate0-development-build.mjs', import.meta.url), 'utf8');
+  assert.match(source, /const childIsLive = \(child\) => child\.exitCode === null && child\.signalCode === null/);
+  assert.doesNotMatch(source, /process\.kill\(-child\.pid, 0\)/, 'ended or reused Metro process groups must not be probed');
+  assert.match(source, /error\.code !== 'EPERM'.+childIsLive\(child\)\) child\.kill\(signal\)/s, 'group EPERM must fall back to the live direct child');
+  assert.match(source, /probe\.listen\(port, '127\.0\.0\.1', resolve\)[\s\S]+probe\.close/, 'Metro cleanup must prove its dynamic port can be rebound and closed');
+  assert.match(source, /catch \(error\) \{\s+primaryError = error;[\s\S]+primaryError\.cleanupErrors = cleanupErrors[\s\S]+throw primaryError;/, 'cleanup must attach secondary errors and rethrow the original primary object');
+  assert.match(source, /else if \(cleanupErrors\.length\) \{\s+throw new AggregateError/, 'only cleanup-only failure may replace control flow with an aggregate');
+});
+
 test('policy rejects syntax, artifacts, native config, protocols, and remote mutation', () => {
   const host = json('contracts/host-api.json');
   const controls = json('contracts/control-registry.json');

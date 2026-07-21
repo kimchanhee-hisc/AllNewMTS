@@ -33,6 +33,8 @@ set(LUA_SOURCES
 add_library(allnewmts_lua51 STATIC ${LUA_SOURCES})
 set_target_properties(allnewmts_lua51 PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(allnewmts_lua51 PUBLIC ${LUA_ROOT})
+# Lua 5.1 trailing TString storage conflicts with Bionic BOS=0 checks; keep this compatibility opt-out vendor-only.
+target_compile_options(allnewmts_lua51 PRIVATE -U_FORTIFY_SOURCE)
 
 add_library(allnewmts_lua SHARED
   ${SHARED_ROOT}/allnewmts_lua.c

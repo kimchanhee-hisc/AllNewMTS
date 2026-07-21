@@ -243,8 +243,21 @@ function compileAndroid(temp) {
   assert.ok(fs.existsSync(cmake) && fs.existsSync(ninja) && fs.existsSync(ndk), 'declared Android SDK/NDK toolchain is unavailable');
   command(cmake, ['-S', 'modules/allnewmts-lua/android', '-B', output, '-G', 'Ninja',
     `-DCMAKE_MAKE_PROGRAM=${ninja}`, `-DCMAKE_TOOLCHAIN_FILE=${ndk}/build/cmake/android.toolchain.cmake`,
-    '-DANDROID_ABI=arm64-v8a', '-DANDROID_PLATFORM=android-24', '-DCMAKE_BUILD_TYPE=Release']);
+    '-DANDROID_ABI=arm64-v8a', '-DANDROID_PLATFORM=android-24', '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON']);
   command(cmake, ['--build', output]);
+  const compileCommands = JSON.parse(fs.readFileSync(path.join(output, 'compile_commands.json'), 'utf8'));
+  const commandText = (entry) => entry.command ?? entry.arguments.join(' ');
+  const luaCommands = compileCommands.filter(({ file }) => file.replaceAll('\\', '/').includes('/vendor/lua-5.1.5/src/'));
+  assert.ok(luaCommands.length, 'Android compile database omits vendored Lua sources');
+  for (const entry of luaCommands) {
+    const fortifyFlags = commandText(entry).match(/(?:^|\s)-(?:D_FORTIFY_SOURCE(?:=\S+)?|U_FORTIFY_SOURCE)(?=\s|$)/g)?.map((flag) => flag.trim()) ?? [];
+    assert.equal(fortifyFlags.at(-1), '-U_FORTIFY_SOURCE', `vendored Lua compile does not end with active FORTIFY undef: ${entry.file}`);
+  }
+  const sharedCommands = compileCommands.filter(({ file }) => file.replaceAll('\\', '/').endsWith('/shared/allnewmts_lua.c'));
+  assert.equal(sharedCommands.length, 1, 'Android compile database must contain one shared host command');
+  assert.doesNotMatch(commandText(sharedCommands[0]), /(?:^|\s)-U_FORTIFY_SOURCE(?=\s|$)/, 'Android shared host must retain normal FORTIFY settings');
+  const sharedFortifyFlags = commandText(sharedCommands[0]).match(/(?:^|\s)-(?:D_FORTIFY_SOURCE(?:=\S+)?|U_FORTIFY_SOURCE)(?=\s|$)/g)?.map((flag) => flag.trim()) ?? [];
+  assert.equal(sharedFortifyFlags.at(-1), '-D_FORTIFY_SOURCE=2', 'Android shared host must retain active Bionic FORTIFY');
   const library = path.join(output, 'liballnewmts_lua.so');
   assert.ok(fs.existsSync(library), 'Android shared library missing');
   const tools = path.join(ndk, 'toolchains/llvm/prebuilt/darwin-x86_64/bin');
