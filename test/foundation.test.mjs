@@ -135,14 +135,18 @@ test('policy rejects syntax, artifacts, native config, protocols, and remote mut
     { file: 'modules/comments/CMakeLists.txt', text: '# cdnClient.purge()\n#[[\ncdnClient.purge()\n]]\nset(SAFE ON)' },
     { file: 'modules/comments/build.gradle', text: `// cdnClient.purge()\n/* ${remoteSync} */\ntask safe` },
     { file: 'modules/comments/a.podspec', text: '# cdnClient.purge()\nname = "safe"' },
+    { file: 'modules/comments/ruby-block.podspec', text: '  =begin\ncdnClient.purge()\n  =end\nname = "safe"' },
     { file: 'modules/comments/project.pbxproj', text: '/* cdnClient.purge() */\nSAFE = YES;' },
-    { file: 'modules/comments/runtime.xcconfig', text: `// ${remoteSync}\nSAFE = YES` }
+    { file: 'modules/comments/runtime.xcconfig', text: `// ${remoteSync}\nSAFE = YES` },
+    { file: 'modules/comments/runtime.properties', text: '  ! cdnClient.purge()\n  # purgeCdn()\nsafe=true' }
   ];
   assert.deepEqual(policyViolations(commentOnly, emptyPackage, host, controls), []);
   const executableConfig = [
     { file: 'modules/live/CMakeLists.txt', text: 'set(COMMAND "cdnClient.purge()")' },
     { file: 'modules/live/build.gradle', text: 'task mutate { cdnClient.purge() }' },
-    { file: 'modules/live/runtime.xcconfig', text: `COMMAND = ${remoteSync}` }
+    { file: 'modules/live/runtime.xcconfig', text: `COMMAND = ${remoteSync}` },
+    { file: 'modules/live/a.podspec', text: 'cdnClient.purge()' },
+    { file: 'modules/live/runtime.properties', text: 'command=cdnClient.purge()' }
   ];
   const executableViolations = policyViolations(executableConfig, emptyPackage, host, controls);
   for (const { file } of executableConfig) assert.ok(executableViolations.some((violation) => violation.startsWith(`${file}:`)), `missed ${file}`);

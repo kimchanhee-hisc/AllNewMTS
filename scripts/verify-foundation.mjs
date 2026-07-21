@@ -411,7 +411,20 @@ function stripComments(text, lineMarkers, blockPairs) {
   return output;
 }
 
+function stripRubyBlockComments(text) {
+  let comment = false;
+  return text.split('\n').map((line) => {
+    if (!comment && /^\s*=begin(?:\s|$)/.test(line)) comment = true;
+    const stripped = comment ? '' : line;
+    if (comment && /^\s*=end(?:\s|$)/.test(line)) comment = false;
+    return stripped;
+  }).join('\n');
+}
+
 function configBehaviorText(file, text) {
+  let normalized = text;
+  if (/\.podspec$/i.test(file)) normalized = stripRubyBlockComments(normalized);
+  if (/\.properties$/i.test(file)) normalized = normalized.split('\n').map((line) => /^\s*[#!]/.test(line) ? '' : line).join('\n');
   const lineMarkers = [];
   const blockPairs = [];
   if (/\.(?:gradle|kts|pbxproj|xcconfig)$/i.test(file)) {
@@ -420,8 +433,8 @@ function configBehaviorText(file, text) {
   }
   if (/\.(?:xml|plist)$/i.test(file)) blockPairs.push(['<!--', '-->']);
   if (/\.cmake$/i.test(file) || /(?:^|\/)CMakeLists\.txt$/.test(file)) blockPairs.push(['#[[', ']]']);
-  if (/\.(?:cmake|podspec|properties|mk)$/i.test(file) || /(?:^|\/)(?:CMakeLists\.txt|Makefile|Podfile)$/.test(file)) lineMarkers.push('#');
-  return stripComments(text, lineMarkers, blockPairs);
+  if (/\.(?:cmake|podspec|mk)$/i.test(file) || /(?:^|\/)(?:CMakeLists\.txt|Makefile|Podfile)$/.test(file)) lineMarkers.push('#');
+  return stripComments(normalized, lineMarkers, blockPairs);
 }
 
 export function policyViolations(files, packageJson, host, controls) {
