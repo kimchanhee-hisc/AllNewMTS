@@ -314,7 +314,7 @@ export async function runGate0DevelopmentBuild(temp) {
     command(android.adb, ['-s', androidSerial, 'install', apk]);
     androidInstalled = true;
     command(android.adb, ['-s', androidSerial, 'logcat', '-c']);
-    command(android.adb, ['-s', androidSerial, 'shell', 'monkey', '-p', androidPackageId, '1']);
+    command(android.adb, ['-s', androidSerial, 'shell', 'am', 'start', '-W', '-a', 'android.intent.action.MAIN', '-c', 'android.intent.category.LAUNCHER', '-p', androidPackageId]);
     const androidLog = path.join(temp, 'android-runtime.log');
     const deadline = Date.now() + 90000;
     while (Date.now() < deadline) {
