@@ -274,7 +274,9 @@ try {
   assert.match(developmentBuildSource, /androidInstallPreflight\.status === 0 \|\| androidInstallPreflight\.status === 1/, 'Android absence preflight must accept only documented absent-package statuses');
   assert.match(developmentBuildSource, /assert\.equal\(androidInstallPreflight\.stdout\.trim\(\), '', `refusing to replace pre-existing Android app \$\{androidPackageId\}`\)/, 'Android absence preflight must reject installed packages for either status');
   assert.doesNotMatch(developmentBuildSource, /command\(android\.adb, \['-s', androidSerial, 'shell', 'monkey'/, 'Android runtime launch must not depend on Monkey event generation');
-  assert.match(developmentBuildSource, /command\(android\.adb, \['-s', androidSerial, 'shell', 'am', 'start', '-W', '-a', 'android\.intent\.action\.MAIN', '-c', 'android\.intent\.category\.LAUNCHER', '-p', androidPackageId\]\)/, 'Android runtime launch must use the package-derived MAIN/LAUNCHER intent');
+  assert.match(developmentBuildSource, /launchableActivityMatch = badging\.match\(\/\^launchable-activity: name='\(\[\^'\]\+\)'\/m\)/, 'Android launchable activity must come from the existing APK badging inspection');
+  assert.doesNotMatch(developmentBuildSource, /'android\.intent\.action\.MAIN'.+'android\.intent\.category\.LAUNCHER'/, 'Android runtime launch must not use an unresolved implicit intent');
+  assert.match(developmentBuildSource, /command\(android\.adb, \['-s', androidSerial, 'shell', 'am', 'start', '-W', '-n', `\$\{androidPackageId\}\/\$\{androidLaunchableActivity\}`\]\)/, 'Android runtime launch must use the exact package and launchable activity derived from the APK');
   const forgedRuntime = { status: 'PASS', cycles: 3, golden: read(manifest.adapterFixture.golden).toString('utf8').trim() };
   const forgedPass = {
     status: 'PASS',

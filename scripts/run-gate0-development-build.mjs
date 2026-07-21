@@ -219,12 +219,14 @@ function inspectAndroidPackage(apk, temp) {
   return { apk: path.basename(apk), luaProviderCount: 1 };
 }
 
-function packageIdFromApk(apk) {
+function androidIdentityFromApk(apk) {
   const aapt = path.join(runEnv.ANDROID_HOME, 'build-tools/36.0.0/aapt');
   const badging = command(aapt, ['dump', 'badging', apk]);
-  const match = badging.match(/^package: name='([^']+)'/m);
-  assert.ok(match, 'Android package id missing');
-  return match[1];
+  const packageMatch = badging.match(/^package: name='([^']+)'/m);
+  const launchableActivityMatch = badging.match(/^launchable-activity: name='([^']+)'/m);
+  assert.ok(packageMatch, 'Android package id missing');
+  assert.ok(launchableActivityMatch, 'Android launchable activity missing');
+  return { packageId: packageMatch[1], launchableActivity: launchableActivityMatch[1] };
 }
 
 export async function runGate0DevelopmentBuild(temp) {
@@ -301,7 +303,9 @@ export async function runGate0DevelopmentBuild(temp) {
 
     if (!android.serials.length) return validateDevelopmentBuildResult({ status: 'BLOCKED', criterion: 'G0.2/G0.10 Android Expo adapter runtime', reason: 'adb reports zero emulator/device targets after the real Android Development Build compiled and was package-inspected', ios: { runtime: iosResult, package: { bundleId: iosPackage.bundleId, luaProviderCount: 1 } }, android: { build: 'PASS', package: androidPackage } });
     androidSerial = android.serials[0];
-    androidPackageId = packageIdFromApk(apk);
+    const androidIdentity = androidIdentityFromApk(apk);
+    androidPackageId = androidIdentity.packageId;
+    const androidLaunchableActivity = androidIdentity.launchableActivity;
     const androidInstallPreflight = spawnSync(android.adb, ['-s', androidSerial, 'shell', 'pm', 'path', androidPackageId], { encoding: 'utf8', env: runEnv });
     assert.equal(androidInstallPreflight.error, undefined, `adb package preflight could not start: ${androidInstallPreflight.error?.message}`);
     const androidInstallDiagnostic = `${androidInstallPreflight.stdout ?? ''}${androidInstallPreflight.stderr ?? ''}`;
@@ -314,7 +318,7 @@ export async function runGate0DevelopmentBuild(temp) {
     command(android.adb, ['-s', androidSerial, 'install', apk]);
     androidInstalled = true;
     command(android.adb, ['-s', androidSerial, 'logcat', '-c']);
-    command(android.adb, ['-s', androidSerial, 'shell', 'am', 'start', '-W', '-a', 'android.intent.action.MAIN', '-c', 'android.intent.category.LAUNCHER', '-p', androidPackageId]);
+    command(android.adb, ['-s', androidSerial, 'shell', 'am', 'start', '-W', '-n', `${androidPackageId}/${androidLaunchableActivity}`]);
     const androidLog = path.join(temp, 'android-runtime.log');
     const deadline = Date.now() + 90000;
     while (Date.now() < deadline) {
