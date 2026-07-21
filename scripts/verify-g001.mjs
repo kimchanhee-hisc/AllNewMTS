@@ -43,12 +43,16 @@ function inventory(directory) {
 
 const productionExtensions = /(?:^|\.)(?:c|cc|cxx|cpp|h|hh|hpp|m|mm|swift|java|kt|kts|js|jsx|ts|tsx|lua|gradle|xml|json|properties|plist|pbxproj|xcconfig|cmake|mk|ya?ml|toml|cfg|conf|ini|txt|xmf_)$/i;
 const productionNames = /(?:^|\/)(?:CMakeLists\.txt|Podfile|Makefile|AndroidManifest\.xml)$/;
-function productionFiles() {
-  return git(root, ['ls-files', '-z'], 'buffer').toString().split('\0').filter(Boolean).filter((file) =>
-    (productionExtensions.test(file) || productionNames.test(file)) &&
+function productionFiles(repository = root) {
+  return git(repository, ['ls-files', '-s', '-z'], 'buffer').toString().split('\0').filter(Boolean).map((entry) => {
+    const match = entry.match(/^(\d+) [a-f0-9]+ \d+\t([\s\S]+)$/);
+    assert.ok(match, `unrecognized git index entry: ${entry}`);
+    return { mode: match[1], file: match[2] };
+  }).filter(({ mode, file }) =>
+    (mode === '100755' || productionExtensions.test(file) || productionNames.test(file)) &&
     !file.startsWith('test/oracles/') &&
     !['scripts/generate-g001-synthetic.mjs', 'scripts/verify-g001.mjs'].includes(file)
-  );
+  ).map(({ file }) => file);
 }
 
 function verifyProvenance(source) {
@@ -116,6 +120,17 @@ function verifyLifecycle(traces) {
           assert.equal(event.stateAfterCommands.lifecycle, 'CLOSED');
         }
       }
+    }
+  }
+}
+
+function verifyEquivalentCloseReturns(traces) {
+  const snapshots = new Map();
+  for (const trace of Object.values(traces)) for (const events of eventGroups(trace)) for (const event of events) {
+    for (const call of event.hostCalls.filter((item) => item.target === 'Form.SendReturnToParent' && item.args.at(-1) === true)) {
+      const key = JSON.stringify([event.event, call.args]);
+      if (snapshots.has(key)) assert.deepEqual(event.state, snapshots.get(key), `${trace.scenario}: equivalent close-return state mismatch`);
+      else snapshots.set(key, event.state);
     }
   }
 }
@@ -235,6 +250,7 @@ for (const trace of Object.values(traces)) {
   }
 }
 verifyLifecycle(traces);
+verifyEquivalentCloseReturns(traces);
 
 const requests = (trace) => eventGroups(trace).flat(2).flatMap((event) => event.transportRequests.map((request) => request.tranId));
 const empty = traces['empty-open-link'];
@@ -289,6 +305,9 @@ assert.throws(() => verifyError(wrongError));
 const noChangeLeak = structuredClone(close);
 noChangeLeak.cases.find((item) => item.name === 'successful-return-suppresses-no-change').events[0].commands.push({ type: 'returnToParent', payload: 'NoChange' });
 assert.throws(() => verifyClose(noChangeLeak));
+const snapshotMismatch = structuredClone(traces);
+delete snapshotMismatch['close-cancel-lifecycle'].cases.find((item) => item.name === 'successful-return-suppresses-no-change').events[0].state.controls.btnAdd.border;
+assert.throws(() => verifyEquivalentCloseReturns(snapshotMismatch));
 assert.throws(() => assertMaterializedMatches(Buffer.from('mutated frozen source'), Buffer.from('approved materialized source'), 'self-test source'));
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'g001-path-'));
 const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'g001-outside-'));
@@ -297,7 +316,15 @@ fs.symlinkSync(path.join(outside, 'escape.txt'), path.join(temp, 'escape.txt'));
 assert.throws(() => assertContained(temp, path.join(temp, 'escape.txt'), 'self-test symlink'));
 fs.rmSync(temp, { recursive: true, force: true });
 fs.rmSync(outside, { recursive: true, force: true });
+const executableRepo = fs.mkdtempSync(path.join(os.tmpdir(), 'g001-executable-'));
+git(executableRepo, ['init']);
+fs.writeFileSync(path.join(executableRepo, 'probe'), '#!/bin/sh\n# CCS20000\n', { mode: 0o755 });
+git(executableRepo, ['add', 'probe']);
+assert.throws(() => {
+  for (const file of productionFiles(executableRepo)) assert.equal(hardcodingHit(fs.readFileSync(path.join(executableRepo, file), 'utf8')), undefined);
+});
+fs.rmSync(executableRepo, { recursive: true, force: true });
 
-console.log('PASS G001 negative checks: provenance mutation, trace mutations, composed identities, and symlink escape are rejected');
+console.log('PASS G001 negative checks: provenance mutation, trace mutations, composed identities, equivalent snapshot drift, executable hardcoding, and symlink escape are rejected');
 console.log('PASS G001 static anti-hardcoding tripwires; original-plus-synthetic dynamic proof remains a later gate');
 console.log(`PASS G001: ${manifest.sources.length} immutable sources, 6 golden traces, provenance, generator, and anti-hardcoding tripwires`);
