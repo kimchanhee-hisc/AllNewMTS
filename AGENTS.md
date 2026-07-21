@@ -6,6 +6,7 @@ Read the canonical owner before changing its contract:
 - Host/runtime semantics: [`docs/specs/runtime-contract.md`](docs/specs/runtime-contract.md)
 - Tests, evidence, and remote boundaries: [`docs/testing.md`](docs/testing.md)
 - Interpreter decision: [`docs/adr/0001-official-lua-5.1.5.md`](docs/adr/0001-official-lua-5.1.5.md)
+- Gate-0 source/build truth: [`native/lua-source-manifest.json`](native/lua-source-manifest.json)
 - Machine contracts: [`contracts/host-api.json`](contracts/host-api.json), [`contracts/control-registry.json`](contracts/control-registry.json), and [`verification/manifest.json`](verification/manifest.json)
 - Immutable oracle provenance: [`test/oracles/manifest.json`](test/oracles/manifest.json)
 
@@ -16,4 +17,4 @@ Read the canonical owner before changing its contract:
 3. Record scope, tier, commands/results, deterministic diffs, risks, cleanup, and rollback. A separate non-implementing reviewer owns `APPROVE`/`CLEAR`.
 4. Do not inspect or use MVigsEngine material; copy legacy implementations; author a Lua interpreter; add identity- or OS-selected behavior; deploy or mutate remote state; or use FTP/SFTP.
 
-XMF is the only active external input role. XMS, CtlImage, product CDN reads, live services, native runtime, UI conformance, and packaging remain deferred to their manifest owners.
+XMF is the only active external input role. XMS, CtlImage, product CDN reads, live services, the production runtime, UI conformance, and packaging remain deferred to their manifest owners. G002 is only the guarded create/evaluate/destroy native harness.

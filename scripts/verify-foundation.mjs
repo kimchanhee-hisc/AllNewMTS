@@ -89,6 +89,7 @@ function allCandidateFiles() {
 
 function foundationFiles() {
   return [
+    '.gitattributes',
     'AGENTS.md',
     'README.md',
     'docs/specs/xmf-lua-runtime.md',
@@ -99,15 +100,19 @@ function foundationFiles() {
     'contracts/host-api.schema.json',
     'contracts/control-registry.json',
     'contracts/control-registry.schema.json',
+    'native/lua-source-manifest.json',
+    'native/lua-source-manifest.schema.json',
     'verification/manifest.json',
     'verification/manifest.schema.json',
     'scripts/verify-foundation.mjs',
+    'scripts/verify-native.mjs',
     'test/foundation.test.mjs',
     'package.json'
   ];
 }
 
 export const expectedIntegrityPaths = [
+  '.gitattributes',
   'AGENTS.md',
   'README.md',
   'docs/specs/xmf-lua-runtime.md',
@@ -118,9 +123,12 @@ export const expectedIntegrityPaths = [
   'contracts/host-api.schema.json',
   'contracts/control-registry.json',
   'contracts/control-registry.schema.json',
+  'native/lua-source-manifest.json',
+  'native/lua-source-manifest.schema.json',
   'verification/manifest.schema.json',
   'package.json',
   'scripts/verify-foundation.mjs',
+  'scripts/verify-native.mjs',
   'test/foundation.test.mjs'
 ];
 
@@ -214,6 +222,7 @@ function verifyDocs() {
   validateSchema(json('verification/manifest.schema.json'), manifest, 'verification manifest');
   validateSchema(json('contracts/host-api.schema.json'), host, 'Host manifest');
   validateSchema(json('contracts/control-registry.schema.json'), controls, 'control registry');
+  validateSchema(json('native/lua-source-manifest.schema.json'), json('native/lua-source-manifest.json'), 'Lua source manifest');
 
   const docs = ['AGENTS.md', 'README.md', ...manifest.canonicalOwners.map(({ path: file }) => file)];
   unique(docs, 'canonical owner path');

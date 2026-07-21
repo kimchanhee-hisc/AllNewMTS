@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for G002; implementation is not active in G001A.
+Accepted and implemented for the G002 local native harness. Production runtime behavior remains deferred to G003.
 
 ## Decision
 
@@ -10,10 +10,13 @@ Embed the official, unmodified Lua 5.1.5 source archive from `https://www.lua.or
 
 Do not implement or patch the parser, compiler, VM, GC, bytecode, standard-library internals, or `luaconf.h`. Exclude standalone CLI/compiler sources from the library target and prove one Lua symbol provider. Open only the explicit sandbox allowlist; do not call `luaL_openlibs`.
 
+The immutable archive, extracted-file inventory, compiled-source list, license/hash evidence, allowlist, limits, resources, and shared adapter golden are owned by [`native/lua-source-manifest.json`](../../native/lua-source-manifest.json). G002 exports only synchronous `create`, `evaluate`, and `destroy`. Its direct C callback probes are test-harness boundaries, not public G003 Host APIs.
+
 ## Consequences
 
 - General Lua 5.1 source semantics remain compatible without translating Lua into TypeScript.
 - G002 must vendor and verify the archive, license, inventory, compiled sources, source hash, and zero upstream-core diff before runtime work.
 - Builds remain offline after explicit dependency/bootstrap acquisition.
 - MVigsEngine and alternative Lua providers are neither linked nor used as implementation or evidence.
+- Allocation beyond 32 MiB or the 50 ms harness deadline destroys the Lua state. These are Gate-0 safety limits, not the G003 production revision/rollback/lifecycle protocol.
 - Interpreter selection reopens only if the pinned core cannot compile or fails Lua 5.1 conformance after wrapper/build defects are ruled out.

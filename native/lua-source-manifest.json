@@ -1,0 +1,525 @@
+{
+  "$schema": "./lua-source-manifest.schema.json",
+  "schemaVersion": 1,
+  "upstream": {
+    "version": "5.1.5",
+    "versionResult": "Lua 5.1",
+    "url": "https://www.lua.org/ftp/lua-5.1.5.tar.gz",
+    "archivePath": "modules/allnewmts-lua/vendor/lua-5.1.5.tar.gz",
+    "archiveBytes": 221213,
+    "archiveSha256": "2640fc56a795f29d28ef15e13c34a47e223960b0240e8cb0a82d9b0738695333"
+  },
+  "vendoredRoot": "modules/allnewmts-lua/vendor/lua-5.1.5",
+  "license": {
+    "path": "modules/allnewmts-lua/vendor/lua-5.1.5/COPYRIGHT",
+    "sha256": "ee5e3e82af1e1b543c4f216e399d7c8cfee797711913f349e385101c4ae60a79"
+  },
+  "inventory": [
+    {
+      "path": "COPYRIGHT",
+      "bytes": 1528,
+      "sha256": "ee5e3e82af1e1b543c4f216e399d7c8cfee797711913f349e385101c4ae60a79"
+    },
+    {
+      "path": "src/Makefile",
+      "bytes": 6133,
+      "sha256": "425b5e5db3467533d470d058f79a3c6e8e5e942fb3eb2a6a39f2507989a049c1"
+    },
+    {
+      "path": "src/lapi.c",
+      "bytes": 22708,
+      "sha256": "6aa0d9fdd88b13fe46568ad6722ecf44164fb84476cfdf6480cf05b5704935f8"
+    },
+    {
+      "path": "src/lapi.h",
+      "bytes": 262,
+      "sha256": "4aea4c1b975d43184f4f1fd1a42c79cf11d74d2801315740cec07fe9abebb56d"
+    },
+    {
+      "path": "src/lauxlib.c",
+      "bytes": 17417,
+      "sha256": "b564650bf4aca2757b9966311d32c8d5fea8803f6f33d72a856448d3b5d6d992"
+    },
+    {
+      "path": "src/lauxlib.h",
+      "bytes": 5777,
+      "sha256": "c741f9c1587f29fd08a79acbe0c46884768a47f89bee4147669f774c5cf50fc0"
+    },
+    {
+      "path": "src/lbaselib.c",
+      "bytes": 17045,
+      "sha256": "b14c49fae6fa4690662185bf842cb05d87756585d2f5bdd8495251fde83ef331"
+    },
+    {
+      "path": "src/lcode.c",
+      "bytes": 21170,
+      "sha256": "027030bbef34115588bd4a64cf4c8c18236a56936835475a154277478767bac5"
+    },
+    {
+      "path": "src/lcode.h",
+      "bytes": 2750,
+      "sha256": "97d5a37f3b1b19eda1ef39607b3358aa0f7e917568ccd27ed0f14bc6a70d4b17"
+    },
+    {
+      "path": "src/ldblib.c",
+      "bytes": 10092,
+      "sha256": "eb8b056711f037e764f746d989f4e40621d8f9ff45add3336790c389849ed0ab"
+    },
+    {
+      "path": "src/ldebug.c",
+      "bytes": 16840,
+      "sha256": "afa5840195befaec55177273c8168748026b38df3243767fc740cc7ced0c4c8f"
+    },
+    {
+      "path": "src/ldebug.h",
+      "bytes": 1061,
+      "sha256": "d036f0dbb996bdecd48d505746f72c31b82fb2fc38f111b780568338d4ed9e9c"
+    },
+    {
+      "path": "src/ldo.c",
+      "bytes": 14892,
+      "sha256": "d5942081ba661286327e30e22af5d11a1f4308d1f029a203c342b5f541cfa9b6"
+    },
+    {
+      "path": "src/ldo.h",
+      "bytes": 1897,
+      "sha256": "591ad9a90098d3fbf06839da3de752d2c2585cbf5801dde4cdaffe12b23a182e"
+    },
+    {
+      "path": "src/ldump.c",
+      "bytes": 3114,
+      "sha256": "30d83d766351bb053b3d20793a6bcd2ef0210e8fad76a7032abbe574bafa0ca3"
+    },
+    {
+      "path": "src/lfunc.c",
+      "bytes": 4618,
+      "sha256": "525681d79098958530e5c937f7cbe94a4dafa679746ffdb16258f82b7ece29ce"
+    },
+    {
+      "path": "src/lfunc.h",
+      "bytes": 1125,
+      "sha256": "3cea0071ffda94eac378adb5f1ecb467ef2ffafff4315459e4ccdf05b5119da4"
+    },
+    {
+      "path": "src/lgc.c",
+      "bytes": 20053,
+      "sha256": "35be212ad0e4d89336f50f11cd0e991c04fe59b023ec03a626bf3f98e69fd1dc"
+    },
+    {
+      "path": "src/lgc.h",
+      "bytes": 3159,
+      "sha256": "fbab2b989515377729d4c029dd58b3b6242877a88a7c4cfa703ea0deeb069a1e"
+    },
+    {
+      "path": "src/linit.c",
+      "bytes": 765,
+      "sha256": "c0c97c45862f6c978620a9682cd2201f0fc29c2afbcab824ba20d26cc1745e56"
+    },
+    {
+      "path": "src/liolib.c",
+      "bytes": 13466,
+      "sha256": "a40f1d2c4aed9835885264cc6caf81c3bd2d5db93af3d313cc0478db37d93169"
+    },
+    {
+      "path": "src/llex.c",
+      "bytes": 12501,
+      "sha256": "f1ade23f957e69f164ff28e133b201dff5d81726c390b060110b60907831e79b"
+    },
+    {
+      "path": "src/llex.h",
+      "bytes": 2177,
+      "sha256": "0f3715d22b025727ef11debd641600a123b81718d195cd8445ac6378814458e6"
+    },
+    {
+      "path": "src/llimits.h",
+      "bytes": 2349,
+      "sha256": "1910669296681d9d2814ca46c325063724bb634c0428dae4e5ff59be54e0b758"
+    },
+    {
+      "path": "src/lmathlib.c",
+      "bytes": 5831,
+      "sha256": "e2933a56332d567cdd69f0fe514d638a8f82da6878754ff259e77cf2157263c3"
+    },
+    {
+      "path": "src/lmem.c",
+      "bytes": 2172,
+      "sha256": "e63c50cb1c75356bd4123c9ca05f77bd0cd99e05c099cf6d1bf472086761e9c5"
+    },
+    {
+      "path": "src/lmem.h",
+      "bytes": 1494,
+      "sha256": "abd1258418486c69bf5a93ceea3a1b9f8af2c7497a4fa6c27b442ffec2c5bbb1"
+    },
+    {
+      "path": "src/loadlib.c",
+      "bytes": 19216,
+      "sha256": "b01bc465bb2e280fb45d24aea98d5ddd9dfd0999f44422e1151aafa1d7f5385c"
+    },
+    {
+      "path": "src/lobject.c",
+      "bytes": 5498,
+      "sha256": "d704915c79c721556cc5850d741ed3bef1611221356f0e3a2f0ee5cfd5fd3632"
+    },
+    {
+      "path": "src/lobject.h",
+      "bytes": 8502,
+      "sha256": "274c18373fbbad71bfebd534cae4b2d2e49934abf6672f44735edc6646fb6a8b"
+    },
+    {
+      "path": "src/lopcodes.c",
+      "bytes": 2884,
+      "sha256": "63cd74edc75970092a8ce078c4ab970efa1ee18de960d00eb826d49fe98d8a76"
+    },
+    {
+      "path": "src/lopcodes.h",
+      "bytes": 8086,
+      "sha256": "a15fe349da7c1e73b563e8c3249fe7d535eccc844cb30ec80b4e335b0699279b"
+    },
+    {
+      "path": "src/loslib.c",
+      "bytes": 5992,
+      "sha256": "f0d5892f152cf7e1001b086e48774ccb6e567d11f1bf521f27050c15d9a0f040"
+    },
+    {
+      "path": "src/lparser.c",
+      "bytes": 36696,
+      "sha256": "3590f24bab5763af673182e40d33194a7de6f5eabe5432c02a548d44225d2b63"
+    },
+    {
+      "path": "src/lparser.h",
+      "bytes": 2261,
+      "sha256": "84512d6540b83ab599cd8de5a1c8c4deaf71ff353f8e4fbc2e4ca135ba4e9ef0"
+    },
+    {
+      "path": "src/lstate.c",
+      "bytes": 5674,
+      "sha256": "c36d6b9354aaa30b5323b4984f3172783f69e0deb3186c2ef6f16a8281c59c29"
+    },
+    {
+      "path": "src/lstate.h",
+      "bytes": 5011,
+      "sha256": "dc64ea7ec74d7c1efaeaf6a9e2257f0b7856a5c988747948af2e76cf079d20fe"
+    },
+    {
+      "path": "src/lstring.c",
+      "bytes": 3110,
+      "sha256": "aa7e934c435d870b9d937ac2fb03dbfa15d367012d46e7e995a2ad8d440f2f6d"
+    },
+    {
+      "path": "src/lstring.h",
+      "bytes": 814,
+      "sha256": "c0e8af4eb33e3357be79f906e7e1191ba53a3a790d36ca15b50471d3a339e1f0"
+    },
+    {
+      "path": "src/lstrlib.c",
+      "bytes": 23561,
+      "sha256": "e8048c79ae34be0fd29aa8db1a341cd600f5e09b9133b5810910e07b855a32d5"
+    },
+    {
+      "path": "src/ltable.c",
+      "bytes": 16263,
+      "sha256": "3a853ce89bf5e834ec53f2a0dd2386eb8b84accbe5fdc18dabd7515b819f0f7c"
+    },
+    {
+      "path": "src/ltable.h",
+      "bytes": 1184,
+      "sha256": "219e6ac2bf43aaa93093c6bcd571c012660325e6b87ea3d6c1b40679a0acfd64"
+    },
+    {
+      "path": "src/ltablib.c",
+      "bytes": 7343,
+      "sha256": "e934dc4b2fc117a501c717302a00147f7b44eea978ef87a58a3e40e9bfe45d20"
+    },
+    {
+      "path": "src/ltm.c",
+      "bytes": 1650,
+      "sha256": "9759ae5d1aa3b11e1c7faa6c0f65e05c7126417f7f8f3f989d82fc170b07f891"
+    },
+    {
+      "path": "src/ltm.h",
+      "bytes": 1018,
+      "sha256": "54f4c2fa76b8ed8d48163e31807a19999f5d65b009ae862cb757e0773f2aa485"
+    },
+    {
+      "path": "src/lua.c",
+      "bytes": 10163,
+      "sha256": "eb9ad1894926f0f807934ae52147cf9767ede0fbd01e9a1044dc4847caa9b73d"
+    },
+    {
+      "path": "src/lua.h",
+      "bytes": 11688,
+      "sha256": "470551c185f058360f8d0f9e5c54a29a3950f78af6a93f3fe9e4039a380c7b87"
+    },
+    {
+      "path": "src/luac.c",
+      "bytes": 4661,
+      "sha256": "b22ad97edb37c2a4b117ef81489bfc6eee15d58d4476ea149abbef7aabf8773d"
+    },
+    {
+      "path": "src/luaconf.h",
+      "bytes": 22299,
+      "sha256": "0410ff22f66c275ba8fcee1fa87a0749d26d7952ed30d3bc9161688b39775464"
+    },
+    {
+      "path": "src/lualib.h",
+      "bytes": 1026,
+      "sha256": "13f880e9dd997a0f7fd0b17ccd949c98f33e95bd120f084de66084e888217413"
+    },
+    {
+      "path": "src/lundump.c",
+      "bytes": 4629,
+      "sha256": "55ccb55abde44e94e6c4d0bafc94f5870d2674d1944e9a81f6537d9ac92e8ebc"
+    },
+    {
+      "path": "src/lundump.h",
+      "bytes": 890,
+      "sha256": "9f3a2924d1585620993a70eea6cf3def34acb8322b2d9c3629bcdacc037edc64"
+    },
+    {
+      "path": "src/lvm.c",
+      "bytes": 23242,
+      "sha256": "b560aad0a1b8bfc4e4b732b2393e8f8ecc68b6c772e6d25763d6ef71c38ab709"
+    },
+    {
+      "path": "src/lvm.h",
+      "bytes": 1159,
+      "sha256": "db4b79dc7f4e7656078aa527350fbf14b2fde5d136ccf1cb4f3dc397def5fb67"
+    },
+    {
+      "path": "src/lzio.c",
+      "bytes": 1628,
+      "sha256": "892bc24d898c19cbedceba419c68f910b99321c0b462be2c2c00b9d763563173"
+    },
+    {
+      "path": "src/lzio.h",
+      "bytes": 1556,
+      "sha256": "0ec77d0179bf29c1ccab97028fed761944d5c21c02808e10cd7b5883b58b2ca6"
+    },
+    {
+      "path": "src/print.c",
+      "bytes": 4944,
+      "sha256": "3c3b1c1dd17896e428b9742614c90ec10776ced65813eb648f02dee649892f2f"
+    }
+  ],
+  "compiledSources": [
+    "src/lapi.c",
+    "src/lauxlib.c",
+    "src/lbaselib.c",
+    "src/lcode.c",
+    "src/ldebug.c",
+    "src/ldo.c",
+    "src/ldump.c",
+    "src/lfunc.c",
+    "src/lgc.c",
+    "src/llex.c",
+    "src/lmathlib.c",
+    "src/lmem.c",
+    "src/lobject.c",
+    "src/lopcodes.c",
+    "src/lparser.c",
+    "src/lstate.c",
+    "src/lstring.c",
+    "src/lstrlib.c",
+    "src/ltable.c",
+    "src/ltablib.c",
+    "src/ltm.c",
+    "src/lundump.c",
+    "src/lvm.c",
+    "src/lzio.c"
+  ],
+  "excludedProviderEntrypoints": [
+    "src/lua.c",
+    "src/luac.c",
+    "src/print.c"
+  ],
+  "intentionallyUncompiledLibraries": [
+    "src/linit.c",
+    "src/loadlib.c",
+    "src/liolib.c",
+    "src/loslib.c",
+    "src/ldblib.c"
+  ],
+  "luaProviderTarget": "allnewmts_lua51",
+  "sandboxLibraries": [
+    "base",
+    "coroutine",
+    "table",
+    "string",
+    "math"
+  ],
+  "absentGlobals": [
+    "loadfile",
+    "package",
+    "io",
+    "os",
+    "debug"
+  ],
+  "limits": {
+    "allocatorBytes": 33554432,
+    "deadlineMilliseconds": 50,
+    "instructionHookCount": 10000
+  },
+  "resources": [
+    {
+      "logicalPath": "fixtures/multi.lua",
+      "path": "native/resources/multi.lua",
+      "sha256": "13cdb27d52ce245e9121a7d958c11bc527265303cc852df3aaef499074d10500"
+    },
+    {
+      "logicalPath": "fixtures/error.lua",
+      "path": "native/resources/error.lua",
+      "sha256": "7478e42425746bd4131d72bda6ee60f8f42ef9edeaff28f41c25a11c248609b5"
+    }
+  ],
+  "testOnlyHashMismatch": {
+    "logicalPath": "fixtures/hash-mismatch.lua",
+    "path": "native/resources/hash-mismatch.lua",
+    "actualSha256": "7e66b2d84fafe59a7c7d1534fff8cccb2f43bd0fa747b965d9ede5f4dffb9bba",
+    "compiledExpectedSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "adapterFixture": {
+    "source": "native/test/adapter-fixture.lua",
+    "golden": "native/test/adapter-golden.txt",
+    "adapters": [
+      "ios",
+      "android"
+    ]
+  },
+  "authoredInventory": [
+    {
+      "path": "modules/allnewmts-lua/package.json",
+      "bytes": 182,
+      "sha256": "4be56448baf21e732cb862dea7ac464b3871c6f80ee14c5b6a5e66a8fc1f0c77"
+    },
+    {
+      "path": "modules/allnewmts-lua/expo-module.config.json",
+      "bytes": 172,
+      "sha256": "40698d17a7c1ce880993a827caabce66c7e362a22dbe7d864657fca06d3df279"
+    },
+    {
+      "path": "modules/allnewmts-lua/src/index.ts",
+      "bytes": 222,
+      "sha256": "5a07e658ba7d8e170ba7387bccbec7b7551872c1aff1bebab7c707299d60e5da"
+    },
+    {
+      "path": "modules/allnewmts-lua/shared/allnewmts_lua.h",
+      "bytes": 474,
+      "sha256": "bbe8136ef5d37ddf8bad8cba58f4e2056373e762c6529b7cf9aff11805464302"
+    },
+    {
+      "path": "modules/allnewmts-lua/shared/allnewmts_lua.c",
+      "bytes": 7360,
+      "sha256": "e3aeee0850ec03a0838fc77048197ce16dbec84b773b2fa0e49ff0a021c55383"
+    },
+    {
+      "path": "modules/allnewmts-lua/shared/allnewmts_lua_adapters.h",
+      "bytes": 801,
+      "sha256": "4def2283f4ba3b825265f01b63ff7fb7aded404d25147b9ae8f63b4720ceb434"
+    },
+    {
+      "path": "modules/allnewmts-lua/shared/resource_bundle.h",
+      "bytes": 316,
+      "sha256": "720bf2b96a914556be9225e19d7accde6ddbef2a6d56064da1d2b2ce61fb4092"
+    },
+    {
+      "path": "modules/allnewmts-lua/shared/resource_bundle.c",
+      "bytes": 1200,
+      "sha256": "77d6dc92e6aed91f83f3886a2b5df5c08bc5e184b808e3176d762dac487aa8b1"
+    },
+    {
+      "path": "modules/allnewmts-lua/shared/sha256.h",
+      "bytes": 170,
+      "sha256": "75131c95e4f1dd7f7247e982f8fc5c0e31336330dab150ebb6599192864bf216"
+    },
+    {
+      "path": "modules/allnewmts-lua/shared/sha256.c",
+      "bytes": 3196,
+      "sha256": "ad5b2ca667cce4071a2814490508e11d59ff656de81bf906cabfef4921af6068"
+    },
+    {
+      "path": "modules/allnewmts-lua/ios/allnewmts_lua_ios_adapter.c",
+      "bytes": 509,
+      "sha256": "b460794d23c23dfd987bdd5a62d02d204728af80cc4d215fdc5440869431b4ce"
+    },
+    {
+      "path": "modules/allnewmts-lua/ios/AllNewMTSLuaAdapter.h",
+      "bytes": 241,
+      "sha256": "e117d078ec0ecb9ae234bc5c501a80f46197aca8ee87ddd0305cc531ebf74c70"
+    },
+    {
+      "path": "modules/allnewmts-lua/ios/AllNewMTSLuaAdapter.mm",
+      "bytes": 890,
+      "sha256": "51bec62782906e92f61414c4a12e9bf1773f88d077af1a80c4645a1011106a8e"
+    },
+    {
+      "path": "modules/allnewmts-lua/ios/AllNewMTSLuaModule.swift",
+      "bytes": 590,
+      "sha256": "574a30f169d934946e7d627f504059ac2bca937d45394286325e04d4041f90fa"
+    },
+    {
+      "path": "modules/allnewmts-lua/ios/AllNewMTSLua.podspec",
+      "bytes": 997,
+      "sha256": "ddb27ca54bc1c60e83ef9801cfdfe9315b192089164a40dd0273f2ef8947696a"
+    },
+    {
+      "path": "modules/allnewmts-lua/android/CMakeLists.txt",
+      "bytes": 1255,
+      "sha256": "bdb4ba5944941dca95fb747f1d09a195feab5e762ffe9fcc0db0fc21403ec9af"
+    },
+    {
+      "path": "modules/allnewmts-lua/android/build.gradle",
+      "bytes": 441,
+      "sha256": "9600a733b0802b15f7f325a82b66da1e44c62f1a27b79b26df8c69942c3b8221"
+    },
+    {
+      "path": "modules/allnewmts-lua/android/allnewmts_lua_android_adapter.c",
+      "bytes": 529,
+      "sha256": "aeb3517e58bac3086934f910f66ed24b9ff5e7a430f6d1e363b3b5c50e772351"
+    },
+    {
+      "path": "modules/allnewmts-lua/android/jni.cpp",
+      "bytes": 1161,
+      "sha256": "b8ff1c2756abb0dc1d4dadff8908a4c0db74fae7a7873ef64689783d50bb6221"
+    },
+    {
+      "path": "modules/allnewmts-lua/android/src/main/AndroidManifest.xml",
+      "bytes": 72,
+      "sha256": "343d5be1ac17cdd45d1a2f2ddc616c509290e655869125a9422a96d88aa66066"
+    },
+    {
+      "path": "modules/allnewmts-lua/android/src/main/java/com/allnewmts/lua/AllNewMTSLuaModule.kt",
+      "bytes": 817,
+      "sha256": "77ab2d8866c444830026f8812f3d8e5e83ddb3b564140696e589f23b9035fecb"
+    },
+    {
+      "path": "native/resources/multi.lua",
+      "bytes": 22,
+      "sha256": "13cdb27d52ce245e9121a7d958c11bc527265303cc852df3aaef499074d10500"
+    },
+    {
+      "path": "native/resources/error.lua",
+      "bytes": 24,
+      "sha256": "7478e42425746bd4131d72bda6ee60f8f42ef9edeaff28f41c25a11c248609b5"
+    },
+    {
+      "path": "native/resources/hash-mismatch.lua",
+      "bytes": 22,
+      "sha256": "7e66b2d84fafe59a7c7d1534fff8cccb2f43bd0fa747b965d9ede5f4dffb9bba"
+    },
+    {
+      "path": "native/test/adapter-fixture.lua",
+      "bytes": 934,
+      "sha256": "cbe33d7cee815c2598a03598b6019f9e7eab65548e6933655ff43c494809828b"
+    },
+    {
+      "path": "native/test/adapter-golden.txt",
+      "bytes": 101,
+      "sha256": "88f13bee87fa95422082a5fe60e17c6da0cb878f0f3d3f597dd001f4f9b46573"
+    },
+    {
+      "path": "native/test/native_harness_test.c",
+      "bytes": 5699,
+      "sha256": "3cee3098f1adf1a1bf5115d272fb4cbf8bd5e40d1cacfd9d39fc9a5a8e60d22f"
+    }
+  ]
+}

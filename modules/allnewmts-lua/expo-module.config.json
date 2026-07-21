@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["AllNewMTSLuaModule"]
+  },
+  "android": {
+    "modules": ["com.allnewmts.lua.AllNewMTSLuaModule"]
+  }
+}

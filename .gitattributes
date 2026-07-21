@@ -1,3 +1,4 @@
 test/oracles/sources/** -text
 test/oracles/golden/** -text
 test/oracles/synthetic/** -text
+modules/allnewmts-lua/vendor/** -text -diff

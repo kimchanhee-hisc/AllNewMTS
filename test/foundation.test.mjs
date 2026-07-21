@@ -26,7 +26,8 @@ test('story, command, inventory, and path contracts fail closed', () => {
   assert.deepEqual(storyChecks('G001A-establish-ai-native-foundation', manifest).checks, [
     'format', 'docs', 'policy', 'type', 'unit', 'fixtures', 'provenance'
   ]);
-  assert.deepEqual(deferredMilestoneLayers(manifest).map(({ id }) => id), ['native', 'runtime', 'ui', 'package']);
+  assert.deepEqual(storyChecks('G002-embed-official-lua-5-1-5', manifest).checks, ['native']);
+  assert.deepEqual(deferredMilestoneLayers(manifest).map(({ id }) => id), ['runtime', 'ui', 'package']);
   assert.deepEqual(manifest.integrity.map(({ path: file }) => file).sort(), [...expectedIntegrityPaths].sort());
 
   const activeEmpty = structuredClone(manifest);

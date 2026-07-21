@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:allnewmts:schema:lua-source-manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schemaVersion", "upstream", "vendoredRoot", "license", "inventory", "compiledSources", "excludedProviderEntrypoints", "intentionallyUncompiledLibraries", "luaProviderTarget", "sandboxLibraries", "absentGlobals", "limits", "resources", "testOnlyHashMismatch", "adapterFixture", "authoredInventory"],
+  "properties": {
+    "$schema": { "const": "./lua-source-manifest.schema.json" },
+    "schemaVersion": { "const": 1 },
+    "upstream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "versionResult", "url", "archivePath", "archiveBytes", "archiveSha256"],
+      "properties": {
+        "version": { "const": "5.1.5" },
+        "versionResult": { "const": "Lua 5.1" },
+        "url": { "const": "https://www.lua.org/ftp/lua-5.1.5.tar.gz" },
+        "archivePath": { "$ref": "#/$defs/path" },
+        "archiveBytes": { "const": 221213 },
+        "archiveSha256": { "const": "2640fc56a795f29d28ef15e13c34a47e223960b0240e8cb0a82d9b0738695333" }
+      }
+    },
+    "vendoredRoot": { "$ref": "#/$defs/path" },
+    "license": { "$ref": "#/$defs/hashedPath" },
+    "inventory": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "bytes", "sha256"],
+        "properties": {
+          "path": { "$ref": "#/$defs/path" },
+          "bytes": { "type": "number", "minimum": 1 },
+          "sha256": { "$ref": "#/$defs/sha256" }
+        }
+      }
+    },
+    "compiledSources": { "$ref": "#/$defs/paths" },
+    "excludedProviderEntrypoints": { "$ref": "#/$defs/paths" },
+    "intentionallyUncompiledLibraries": { "$ref": "#/$defs/paths" },
+    "luaProviderTarget": { "const": "allnewmts_lua51" },
+    "sandboxLibraries": { "type": "array", "minItems": 1, "items": { "enum": ["base", "coroutine", "table", "string", "math"] } },
+    "absentGlobals": { "type": "array", "minItems": 1, "items": { "enum": ["loadfile", "package", "io", "os", "debug"] } },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allocatorBytes", "deadlineMilliseconds", "instructionHookCount"],
+      "properties": {
+        "allocatorBytes": { "const": 33554432 },
+        "deadlineMilliseconds": { "type": "number", "minimum": 1 },
+        "instructionHookCount": { "type": "number", "minimum": 1 }
+      }
+    },
+    "resources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["logicalPath", "path", "sha256"],
+        "properties": {
+          "logicalPath": { "$ref": "#/$defs/path" },
+          "path": { "$ref": "#/$defs/path" },
+          "sha256": { "$ref": "#/$defs/sha256" }
+        }
+      }
+    },
+    "testOnlyHashMismatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["logicalPath", "path", "actualSha256", "compiledExpectedSha256"],
+      "properties": {
+        "logicalPath": { "$ref": "#/$defs/path" },
+        "path": { "$ref": "#/$defs/path" },
+        "actualSha256": { "$ref": "#/$defs/sha256" },
+        "compiledExpectedSha256": { "const": "0000000000000000000000000000000000000000000000000000000000000000" }
+      }
+    },
+    "adapterFixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "golden", "adapters"],
+      "properties": {
+        "source": { "$ref": "#/$defs/path" },
+        "golden": { "$ref": "#/$defs/path" },
+        "adapters": { "const": ["ios", "android"] }
+      }
+    },
+    "authoredInventory": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "bytes", "sha256"],
+        "properties": {
+          "path": { "$ref": "#/$defs/path" },
+          "bytes": { "type": "number", "minimum": 1 },
+          "sha256": { "$ref": "#/$defs/sha256" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "path": { "type": "string", "minLength": 1, "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*//)(?!.*(?:^|/)\\.\\.?($|/))[^/]+(?:/[^/]+)*$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "paths": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/path" } },
+    "hashedPath": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": { "path": { "$ref": "#/$defs/path" }, "sha256": { "$ref": "#/$defs/sha256" } }
+    }
+  }
+}

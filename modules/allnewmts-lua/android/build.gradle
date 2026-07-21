@@ -1,0 +1,31 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.allnewmts'
+version = '0.0.1'
+
+expoModule {
+  canBePublished false
+}
+
+android {
+  namespace 'com.allnewmts.lua'
+
+  defaultConfig {
+    versionCode 1
+    versionName '0.0.1'
+    externalNativeBuild {
+      cmake {
+        abiFilters(*reactNativeArchitectures())
+      }
+    }
+  }
+
+  externalNativeBuild {
+    cmake {
+      path 'CMakeLists.txt'
+    }
+  }
+}

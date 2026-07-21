@@ -20,6 +20,12 @@ The Host manifest is deny-by-default. An API absent from the public inventory is
 
 The production runtime goal will define the serial off-main executor, monotonic revisions, immutable snapshots, ordered commands, staging/commit/rollback, invalidation, close choreography, request tokens, nested send-before behavior, and isolation. Until that goal activates, the public Host inventory remains empty and no production runtime readiness is claimed.
 
+## G002 native harness
+
+Gate 0 embeds the official unmodified Lua 5.1.5 source behind one shared C `create`/`evaluate`/`destroy` core. iOS and Android adapters only translate ABI/module mechanics. The harness opens base/coroutine, table, string, and math explicitly, removes `loadfile`, `package`, `io`, `os`, and `debug`, and replaces `dofile` with an integrity-checked manifest resource loader. Minimal direct C probes for a global helper, `Form`, `DATAMANAGER`, and a control property/method prove the boundary without activating a production Host API.
+
+The harness has a 32 MiB allocator ceiling and 50 ms instruction-hook deadline; either guard destroys the state. It intentionally has no worker, revision, snapshot, queue, staging, token, rollback, close choreography, or multi-runtime coordination. Exact source and build truth is [`native/lua-source-manifest.json`](../../native/lua-source-manifest.json).
+
 ## Limits and security
 
 The production runtime must bound allocation, instructions/deadlines, state, queued events, commands, arguments, payloads, diagnostics, and outstanding tokens. It opens only the approved Lua libraries and denies filesystem, process, package, debug, traversal, arbitrary remote/end-user Lua, and unmanifested resources. Diagnostics are bounded and redact values.

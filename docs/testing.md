@@ -15,6 +15,8 @@ Dependency bootstrap alone may use lockfile-pinned, credential-free, read-only H
 
 Focused `verify:format`, `verify:docs`, `verify:policy`, `verify:type`, `verify:unit`, `verify:fixtures`, `verify:native`, and `verify:provenance` commands are diagnostic reruns, not a second acceptance sequence. UI/package diagnostics report their manifest deferment until activated. [`verification/manifest.json`](../verification/manifest.json) owns activation, command, inputs, outputs, risk, budgets, and story composition.
 
+The active G002 native check is networkless. It proves the pinned archive and zero-diff source inventory, shared host harness, iOS simulator compilation, Android NDK compilation, autolinking, resources, sandbox, limits, symbols, and one adapter golden. It must report `BLOCKED` rather than infer device success when `adb` has no runtime target; offline compilation is not Android Expo adapter execution.
+
 ## Change protocol
 
 Every change must record:

@@ -2,51 +2,374 @@
   "$schema": "./manifest.schema.json",
   "schemaVersion": 1,
   "canonicalOwners": [
-    { "topic": "product-and-input-scope", "path": "docs/specs/xmf-lua-runtime.md", "heading": "# XMF/Lua runtime product contract" },
-    { "topic": "host-and-runtime-semantics", "path": "docs/specs/runtime-contract.md", "heading": "# Shared runtime contract" },
-    { "topic": "verification-and-evidence", "path": "docs/testing.md", "heading": "# Verification and evidence contract" },
-    { "topic": "interpreter-decision", "path": "docs/adr/0001-official-lua-5.1.5.md", "heading": "# ADR 0001: Embed official Lua 5.1.5" }
+    {
+      "topic": "product-and-input-scope",
+      "path": "docs/specs/xmf-lua-runtime.md",
+      "heading": "# XMF/Lua runtime product contract"
+    },
+    {
+      "topic": "host-and-runtime-semantics",
+      "path": "docs/specs/runtime-contract.md",
+      "heading": "# Shared runtime contract"
+    },
+    {
+      "topic": "verification-and-evidence",
+      "path": "docs/testing.md",
+      "heading": "# Verification and evidence contract"
+    },
+    {
+      "topic": "interpreter-decision",
+      "path": "docs/adr/0001-official-lua-5.1.5.md",
+      "heading": "# ADR 0001: Embed official Lua 5.1.5"
+    }
   ],
   "focusedChecks": [
-    { "id": "format", "packageScript": "verify:format", "command": "npm run verify:format", "argv": ["node", "scripts/verify-foundation.mjs", "format"], "owner": "G001A-establish-ai-native-foundation", "activation": "active", "risk": "static", "inputs": ["tracked text and JSON"], "outputs": ["format diagnostics"], "budgetSeconds": 30 },
-    { "id": "docs", "packageScript": "verify:docs", "command": "npm run verify:docs", "argv": ["node", "scripts/verify-foundation.mjs", "docs"], "owner": "G001A-establish-ai-native-foundation", "activation": "active", "risk": "contract", "inputs": ["AGENTS.md", "docs", "contracts", "verification/manifest.json"], "outputs": ["schema, link, command, and drift diagnostics"], "budgetSeconds": 30 },
-    { "id": "policy", "packageScript": "verify:policy", "command": "npm run verify:policy", "argv": ["node", "scripts/verify-foundation.mjs", "policy"], "owner": "G001A-establish-ai-native-foundation", "activation": "active", "risk": "static", "inputs": ["tracked production sources", "package.json", "machine contracts"], "outputs": ["objective policy diagnostics"], "budgetSeconds": 30 },
-    { "id": "type", "packageScript": "verify:type", "command": "npm run verify:type", "argv": ["tsc", "--noEmit"], "owner": "G001A-establish-ai-native-foundation", "activation": "active", "risk": "type", "inputs": ["TypeScript sources", "tsconfig.json"], "outputs": ["TypeScript diagnostics"], "budgetSeconds": 60 },
-    { "id": "unit", "packageScript": "verify:unit", "command": "npm run verify:unit", "argv": ["node", "--test", "test/foundation.test.mjs"], "owner": "G001A-establish-ai-native-foundation", "activation": "active", "risk": "unit", "inputs": ["scripts/verify-foundation.mjs", "verification/manifest.json"], "outputs": ["TAP"], "budgetSeconds": 30 },
-    { "id": "fixtures", "packageScript": "verify:fixtures", "command": "npm run verify:fixtures", "argv": ["node", "scripts/verify-g001.mjs"], "owner": "G001A-establish-ai-native-foundation", "activation": "active", "risk": "fixture", "inputs": ["test/oracles/manifest.json", "frozen sources and goldens"], "outputs": ["oracle and generator diagnostics"], "budgetSeconds": 300 },
-    { "id": "native", "packageScript": "verify:native", "command": "npm run verify:native", "argv": ["node", "scripts/verify-foundation.mjs", "deferred", "native"], "owner": "G002-embed-official-lua-5-1-5", "activation": "deferred", "risk": "native", "inputs": ["future native targets"], "outputs": ["DEFERRED(G002-embed-official-lua-5-1-5)"], "budgetSeconds": 30 },
-    { "id": "provenance", "packageScript": "verify:provenance", "command": "npm run verify:provenance", "argv": ["node", "scripts/verify-foundation.mjs", "provenance"], "owner": "G001A-establish-ai-native-foundation", "activation": "active", "risk": "provenance", "inputs": ["test/oracles/manifest.json", "frozen sources and goldens"], "outputs": ["local inventory and hash diagnostics"], "budgetSeconds": 30 },
-    { "id": "ui", "packageScript": "verify:ui", "command": "npm run verify:ui", "argv": ["node", "scripts/verify-foundation.mjs", "deferred", "ui"], "owner": "G004-build-generic-xmf-ui-path", "activation": "deferred", "risk": "ui", "inputs": ["future shared renderer"], "outputs": ["DEFERRED(G004-build-generic-xmf-ui-path)"], "budgetSeconds": 30 },
-    { "id": "package", "packageScript": "verify:package", "command": "npm run verify:package", "argv": ["node", "scripts/verify-foundation.mjs", "deferred", "package"], "owner": "G006-verify-first-milestone", "activation": "deferred", "risk": "package", "inputs": ["future local package artifacts"], "outputs": ["DEFERRED(G006-verify-first-milestone)"], "budgetSeconds": 30 }
+    {
+      "id": "format",
+      "packageScript": "verify:format",
+      "command": "npm run verify:format",
+      "argv": [
+        "node",
+        "scripts/verify-foundation.mjs",
+        "format"
+      ],
+      "owner": "G001A-establish-ai-native-foundation",
+      "activation": "active",
+      "risk": "static",
+      "inputs": [
+        "tracked text and JSON"
+      ],
+      "outputs": [
+        "format diagnostics"
+      ],
+      "budgetSeconds": 30
+    },
+    {
+      "id": "docs",
+      "packageScript": "verify:docs",
+      "command": "npm run verify:docs",
+      "argv": [
+        "node",
+        "scripts/verify-foundation.mjs",
+        "docs"
+      ],
+      "owner": "G001A-establish-ai-native-foundation",
+      "activation": "active",
+      "risk": "contract",
+      "inputs": [
+        "AGENTS.md",
+        "docs",
+        "contracts",
+        "verification/manifest.json"
+      ],
+      "outputs": [
+        "schema, link, command, and drift diagnostics"
+      ],
+      "budgetSeconds": 30
+    },
+    {
+      "id": "policy",
+      "packageScript": "verify:policy",
+      "command": "npm run verify:policy",
+      "argv": [
+        "node",
+        "scripts/verify-foundation.mjs",
+        "policy"
+      ],
+      "owner": "G001A-establish-ai-native-foundation",
+      "activation": "active",
+      "risk": "static",
+      "inputs": [
+        "tracked production sources",
+        "package.json",
+        "machine contracts"
+      ],
+      "outputs": [
+        "objective policy diagnostics"
+      ],
+      "budgetSeconds": 30
+    },
+    {
+      "id": "type",
+      "packageScript": "verify:type",
+      "command": "npm run verify:type",
+      "argv": [
+        "tsc",
+        "--noEmit"
+      ],
+      "owner": "G001A-establish-ai-native-foundation",
+      "activation": "active",
+      "risk": "type",
+      "inputs": [
+        "TypeScript sources",
+        "tsconfig.json"
+      ],
+      "outputs": [
+        "TypeScript diagnostics"
+      ],
+      "budgetSeconds": 60
+    },
+    {
+      "id": "unit",
+      "packageScript": "verify:unit",
+      "command": "npm run verify:unit",
+      "argv": [
+        "node",
+        "--test",
+        "test/foundation.test.mjs"
+      ],
+      "owner": "G001A-establish-ai-native-foundation",
+      "activation": "active",
+      "risk": "unit",
+      "inputs": [
+        "scripts/verify-foundation.mjs",
+        "verification/manifest.json"
+      ],
+      "outputs": [
+        "TAP"
+      ],
+      "budgetSeconds": 30
+    },
+    {
+      "id": "fixtures",
+      "packageScript": "verify:fixtures",
+      "command": "npm run verify:fixtures",
+      "argv": [
+        "node",
+        "scripts/verify-g001.mjs"
+      ],
+      "owner": "G001A-establish-ai-native-foundation",
+      "activation": "active",
+      "risk": "fixture",
+      "inputs": [
+        "test/oracles/manifest.json",
+        "frozen sources and goldens"
+      ],
+      "outputs": [
+        "oracle and generator diagnostics"
+      ],
+      "budgetSeconds": 300
+    },
+    {
+      "id": "native",
+      "packageScript": "verify:native",
+      "command": "npm run verify:native",
+      "argv": [
+        "node",
+        "scripts/verify-native.mjs"
+      ],
+      "owner": "G002-embed-official-lua-5-1-5",
+      "activation": "active",
+      "risk": "native",
+      "inputs": [
+        "official Lua archive and zero-diff source inventory",
+        "shared native harness",
+        "iOS and Android mechanics adapters",
+        "one shared adapter fixture/golden"
+      ],
+      "outputs": [
+        "source/build/sandbox/resource/symbol evidence",
+        "PASS or explicit unavailable-runtime BLOCKED evidence"
+      ],
+      "budgetSeconds": 1.2e3
+    },
+    {
+      "id": "provenance",
+      "packageScript": "verify:provenance",
+      "command": "npm run verify:provenance",
+      "argv": [
+        "node",
+        "scripts/verify-foundation.mjs",
+        "provenance"
+      ],
+      "owner": "G001A-establish-ai-native-foundation",
+      "activation": "active",
+      "risk": "provenance",
+      "inputs": [
+        "test/oracles/manifest.json",
+        "frozen sources and goldens"
+      ],
+      "outputs": [
+        "local inventory and hash diagnostics"
+      ],
+      "budgetSeconds": 30
+    },
+    {
+      "id": "ui",
+      "packageScript": "verify:ui",
+      "command": "npm run verify:ui",
+      "argv": [
+        "node",
+        "scripts/verify-foundation.mjs",
+        "deferred",
+        "ui"
+      ],
+      "owner": "G004-build-generic-xmf-ui-path",
+      "activation": "deferred",
+      "risk": "ui",
+      "inputs": [
+        "future shared renderer"
+      ],
+      "outputs": [
+        "DEFERRED(G004-build-generic-xmf-ui-path)"
+      ],
+      "budgetSeconds": 30
+    },
+    {
+      "id": "package",
+      "packageScript": "verify:package",
+      "command": "npm run verify:package",
+      "argv": [
+        "node",
+        "scripts/verify-foundation.mjs",
+        "deferred",
+        "package"
+      ],
+      "owner": "G006-verify-first-milestone",
+      "activation": "deferred",
+      "risk": "package",
+      "inputs": [
+        "future local package artifacts"
+      ],
+      "outputs": [
+        "DEFERRED(G006-verify-first-milestone)"
+      ],
+      "budgetSeconds": 30
+    }
   ],
   "stories": [
-    { "id": "G001A-establish-ai-native-foundation", "activation": "active", "checks": ["format", "docs", "policy", "type", "unit", "fixtures", "provenance"], "budgetSeconds": 600 },
-    { "id": "G002-embed-official-lua-5-1-5", "activation": "deferred", "checks": ["native"], "budgetSeconds": 1.2e3 },
-    { "id": "G003-implement-bounded-native-runtime", "activation": "deferred", "checks": [], "budgetSeconds": 1.2e3 },
-    { "id": "G004-build-generic-xmf-ui-path", "activation": "deferred", "checks": ["ui"], "budgetSeconds": 1.2e3 },
-    { "id": "G005-complete-hs\u0031\u0032\u0030\u0030p08-fixture-path", "activation": "deferred", "checks": [], "budgetSeconds": 600 },
-    { "id": "G006-verify-first-milestone", "activation": "deferred", "checks": ["package"], "budgetSeconds": 2700 }
+    {
+      "id": "G001A-establish-ai-native-foundation",
+      "activation": "active",
+      "checks": [
+        "format",
+        "docs",
+        "policy",
+        "type",
+        "unit",
+        "fixtures",
+        "provenance"
+      ],
+      "budgetSeconds": 600
+    },
+    {
+      "id": "G002-embed-official-lua-5-1-5",
+      "activation": "active",
+      "checks": [
+        "native"
+      ],
+      "budgetSeconds": 1.2e3
+    },
+    {
+      "id": "G003-implement-bounded-native-runtime",
+      "activation": "deferred",
+      "checks": [],
+      "budgetSeconds": 1.2e3
+    },
+    {
+      "id": "G004-build-generic-xmf-ui-path",
+      "activation": "deferred",
+      "checks": [
+        "ui"
+      ],
+      "budgetSeconds": 1.2e3
+    },
+    {
+      "id": "G005-complete-hs\u0031\u0032\u0030\u0030p08-fixture-path",
+      "activation": "deferred",
+      "checks": [],
+      "budgetSeconds": 600
+    },
+    {
+      "id": "G006-verify-first-milestone",
+      "activation": "deferred",
+      "checks": [
+        "package"
+      ],
+      "budgetSeconds": 2700
+    }
   ],
   "tiers": {
-    "fast": { "command": "npm run verify:fast", "checks": ["format", "docs", "policy", "type", "unit"], "budgetSeconds": 120, "readinessClaim": "diagnostic-only" },
-    "story": { "command": "npm run verify:story -- <goal-id>", "checks": [], "budgetSeconds": 600, "readinessClaim": "story" },
-    "milestone": { "command": "npm run verify:milestone", "checks": ["format", "docs", "policy", "type", "unit", "fixtures", "provenance"], "budgetSeconds": 2700, "readinessClaim": "milestone" },
-    "ci": { "command": "npm run verify:ci", "checks": ["milestone-once"], "budgetSeconds": 2700, "readinessClaim": "milestone" }
+    "fast": {
+      "command": "npm run verify:fast",
+      "checks": [
+        "format",
+        "docs",
+        "policy",
+        "type",
+        "unit"
+      ],
+      "budgetSeconds": 120,
+      "readinessClaim": "diagnostic-only"
+    },
+    "story": {
+      "command": "npm run verify:story -- <goal-id>",
+      "checks": [],
+      "budgetSeconds": 600,
+      "readinessClaim": "story"
+    },
+    "milestone": {
+      "command": "npm run verify:milestone",
+      "checks": [
+        "format",
+        "docs",
+        "policy",
+        "type",
+        "unit",
+        "fixtures",
+        "provenance",
+        "native"
+      ],
+      "budgetSeconds": 2700,
+      "readinessClaim": "milestone"
+    },
+    "ci": {
+      "command": "npm run verify:ci",
+      "checks": [
+        "milestone-once"
+      ],
+      "budgetSeconds": 2700,
+      "readinessClaim": "milestone"
+    }
   },
   "layers": [
-    { "id": "native", "status": "deferred", "owner": "G002-embed-official-lua-5-1-5", "requiredForMilestone": true },
-    { "id": "runtime", "status": "deferred", "owner": "G003-implement-bounded-native-runtime", "requiredForMilestone": true },
-    { "id": "ui", "status": "deferred", "owner": "G004-build-generic-xmf-ui-path", "requiredForMilestone": true },
-    { "id": "package", "status": "deferred", "owner": "G006-verify-first-milestone", "requiredForMilestone": true }
+    {
+      "id": "native",
+      "status": "active",
+      "owner": "G002-embed-official-lua-5-1-5",
+      "requiredForMilestone": true
+    },
+    {
+      "id": "runtime",
+      "status": "deferred",
+      "owner": "G003-implement-bounded-native-runtime",
+      "requiredForMilestone": true
+    },
+    {
+      "id": "ui",
+      "status": "deferred",
+      "owner": "G004-build-generic-xmf-ui-path",
+      "requiredForMilestone": true
+    },
+    {
+      "id": "package",
+      "status": "deferred",
+      "owner": "G006-verify-first-milestone",
+      "requiredForMilestone": true
+    }
   ],
   "integrity": [
     {
+      "path": ".gitattributes",
+      "sha256": "1f4619fca33b9632a8b226707fa19c6365c5d0e287f9df5fb5010c2500f8d26f"
+    },
+    {
       "path": "AGENTS.md",
-      "sha256": "92312dc8813739f8da300f7690ba7ff94f70838b6dcfff37809f1c5c8bfbf494"
+      "sha256": "e9498b0b04d7a55f1e465b88890c24d19b178aad245a6bd8f23c72c67cb1f6bd"
     },
     {
       "path": "README.md",
-      "sha256": "b595c86be427ee2dfa2ee54cb1e9fe223bbb3a1128ce06584cedde556dcc50f9"
+      "sha256": "65cd1d5306f742bc51fb1298c5fb07fcb76163119ab8723fbc41ec9b2d06c21d"
     },
     {
       "path": "docs/specs/xmf-lua-runtime.md",
@@ -54,15 +377,15 @@
     },
     {
       "path": "docs/specs/runtime-contract.md",
-      "sha256": "b436e8eab809f1f41559aca98cbd1c15f92b2ad34b062e71e50cb1088e381e8d"
+      "sha256": "3514865aed5b23759d34bfeddf918f6c267ca1ab64332f6e93d4384c37665df0"
     },
     {
       "path": "docs/testing.md",
-      "sha256": "b10274b72f0bf6568b0c0502cdc71774031a13959ca1aa45971fbd90bef9c890"
+      "sha256": "64557a85884e0a43731fdda410ac214b60f11eb63a08687250cfb363f8d4d594"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
-      "sha256": "31f3152029b8921516c666ddbe7fef5d6710878986ee1e26b52f9ff24a13ff14"
+      "sha256": "27526d3b491f680ac97f29f6fc64c1409c1d681858c1263a1c16f1ff6699820e"
     },
     {
       "path": "contracts/host-api.json",
@@ -81,20 +404,32 @@
       "sha256": "9b9315bb7c657727144a8f147f1479f19b28ec093e4794d51a2980951dd35157"
     },
     {
+      "path": "native/lua-source-manifest.json",
+      "sha256": "6bfef0272902932b97e0f6c342844c58363b8d93f6fec37614d0a4030402c947"
+    },
+    {
+      "path": "native/lua-source-manifest.schema.json",
+      "sha256": "d9e6a925a3c4e4de575f85ea47a67413479aa864e5da935b51d6623b5d28728c"
+    },
+    {
       "path": "verification/manifest.schema.json",
       "sha256": "c48458146ad1633de7284682cfdc632e9395e73ab2454338a637ab8f45671922"
     },
     {
       "path": "package.json",
-      "sha256": "fd6ddd03a693e6bf4325fe1470ced36bc5929c5bf367cf0b8bced28f8da93dff"
+      "sha256": "11e8a7f361c5f1d8ef7d2b67b9c1eded473a90ef9bbdbaf7395fd85fcd1015fb"
     },
     {
       "path": "scripts/verify-foundation.mjs",
-      "sha256": "6c2709f933f54a1e3a06dec43b655647237a73fb5d76c35a5feda8e24fed65fb"
+      "sha256": "1b6ef59e824d439fb453a9b474da9b1f00e56eadb90a700d0b8baa7d683910e9"
+    },
+    {
+      "path": "scripts/verify-native.mjs",
+      "sha256": "decfc52952866628c993024fe640fae6445767072bf2a09ac81694fdcd5ac17d"
     },
     {
       "path": "test/foundation.test.mjs",
-      "sha256": "bef1dabde8e12cb6be9435cf03b27350e24d8fb783d7c494c9be914efe52dd72"
+      "sha256": "4cb869fb77fa925efe87a109bbf71b5b951bbde6e4b93c4698e1af70a2777e78"
     }
   ]
 }
