@@ -306,7 +306,7 @@ const noChangeLeak = structuredClone(close);
 noChangeLeak.cases.find((item) => item.name === 'successful-return-suppresses-no-change').events[0].commands.push({ type: 'returnToParent', payload: 'NoChange' });
 assert.throws(() => verifyClose(noChangeLeak));
 const snapshotMismatch = structuredClone(traces);
-delete snapshotMismatch['close-cancel-lifecycle'].cases.find((item) => item.name === 'successful-return-suppresses-no-change').events[0].state.controls.btnAdd.border;
+delete snapshotMismatch['close-cancel-lifecycle'].cases.find((item) => item.name === 'successful-return-suppresses-no-change').events.find((event) => event.event === 'btnAdd_OnClick').state.controls.btnAdd.border;
 assert.throws(() => verifyEquivalentCloseReturns(snapshotMismatch));
 assert.throws(() => assertMaterializedMatches(Buffer.from('mutated frozen source'), Buffer.from('approved materialized source'), 'self-test source'));
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'g001-path-'));
