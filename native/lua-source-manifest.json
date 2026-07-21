@@ -413,8 +413,8 @@
     },
     {
       "path": "modules/allnewmts-lua/android/build.gradle",
-      "bytes": 441,
-      "sha256": "9600a733b0802b15f7f325a82b66da1e44c62f1a27b79b26df8c69942c3b8221"
+      "bytes": 629,
+      "sha256": "885cec6d55f32b0d8b94107c63a16e6da16f46f89fd81971fd11606a06734fce"
     },
     {
       "path": "modules/allnewmts-lua/android/jni.cpp",

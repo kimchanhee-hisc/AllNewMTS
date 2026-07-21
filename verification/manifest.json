@@ -405,7 +405,7 @@
     },
     {
       "path": "native/lua-source-manifest.json",
-      "sha256": "0670440e23047bc31e972871d2a4f263f666693cee1b1a3ec68c0ab6589ced01"
+      "sha256": "36f4b3d5eb502d506160799a6d61e086cb721678bc36ba0234d5d3924ff80934"
     },
     {
       "path": "native/lua-source-manifest.schema.json",
@@ -433,7 +433,7 @@
     },
     {
       "path": "scripts/verify-native.mjs",
-      "sha256": "df6ab8b80541c11efbb459e0a49670f1cba1d27750545a508a37a91a37046fc5"
+      "sha256": "0b9dc5c56cbdf3474482b35e5f2ee342022b7b4d71501455d7c375e4e5fc9bee"
     },
     {
       "path": "test/foundation.test.mjs",

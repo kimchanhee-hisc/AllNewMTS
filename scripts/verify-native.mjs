@@ -92,6 +92,10 @@ function verifyContracts() {
   const cmake = read('modules/allnewmts-lua/android/CMakeLists.txt').toString('utf8');
   const cmakeSources = [...cmake.matchAll(/\$\{LUA_ROOT\}\/(l[^\s)]+\.c)/g)].map((match) => `src/${match[1]}`);
   assert.deepEqual(cmakeSources, manifest.compiledSources, 'Android compiled Lua source list drift');
+  const androidGradle = read('modules/allnewmts-lua/android/build.gradle').toString('utf8');
+  assert.match(androidGradle, /project\.getProperties\(\)\.get\('reactNativeArchitectures'\)/, 'Android module must read the React Native ABI property');
+  assert.match(androidGradle, /value \? value\.split\(','\) : \['armeabi-v7a', 'x86', 'x86_64', 'arm64-v8a'\]/, 'Android module must retain the standard four-ABI fallback');
+  assert.match(androidGradle, /abiFilters\(\*reactNativeArchitectures\(\)\)/, 'Android module must apply the shared React Native ABI selection');
 
   for (const resource of manifest.resources) assert.equal(sha256(read(resource.path)), resource.sha256, `resource hash drift: ${resource.path}`);
   assert.equal(sha256(read(manifest.testOnlyHashMismatch.path)), manifest.testOnlyHashMismatch.actualSha256, 'hostile resource drift');

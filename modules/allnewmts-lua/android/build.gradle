@@ -6,6 +6,11 @@ plugins {
 group = 'com.allnewmts'
 version = '0.0.1'
 
+def reactNativeArchitectures() {
+  def value = project.getProperties().get('reactNativeArchitectures')
+  return value ? value.split(',') : ['armeabi-v7a', 'x86', 'x86_64', 'arm64-v8a']
+}
+
 expoModule {
   canBePublished false
 }
