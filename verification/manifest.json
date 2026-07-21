@@ -11,7 +11,7 @@
     { "id": "format", "packageScript": "verify:format", "command": "npm run verify:format", "argv": ["node", "scripts/verify-foundation.mjs", "format"], "owner": "G001A-establish-ai-native-foundation", "activation": "active", "risk": "static", "inputs": ["tracked text and JSON"], "outputs": ["format diagnostics"], "budgetSeconds": 30 },
     { "id": "docs", "packageScript": "verify:docs", "command": "npm run verify:docs", "argv": ["node", "scripts/verify-foundation.mjs", "docs"], "owner": "G001A-establish-ai-native-foundation", "activation": "active", "risk": "contract", "inputs": ["AGENTS.md", "docs", "contracts", "verification/manifest.json"], "outputs": ["schema, link, command, and drift diagnostics"], "budgetSeconds": 30 },
     { "id": "policy", "packageScript": "verify:policy", "command": "npm run verify:policy", "argv": ["node", "scripts/verify-foundation.mjs", "policy"], "owner": "G001A-establish-ai-native-foundation", "activation": "active", "risk": "static", "inputs": ["tracked production sources", "package.json", "machine contracts"], "outputs": ["objective policy diagnostics"], "budgetSeconds": 30 },
-    { "id": "type", "packageScript": "verify:type", "command": "npm run verify:type", "argv": ["node_modules/.bin/tsc", "--noEmit"], "owner": "G001A-establish-ai-native-foundation", "activation": "active", "risk": "type", "inputs": ["TypeScript sources", "tsconfig.json"], "outputs": ["TypeScript diagnostics"], "budgetSeconds": 60 },
+    { "id": "type", "packageScript": "verify:type", "command": "npm run verify:type", "argv": ["tsc", "--noEmit"], "owner": "G001A-establish-ai-native-foundation", "activation": "active", "risk": "type", "inputs": ["TypeScript sources", "tsconfig.json"], "outputs": ["TypeScript diagnostics"], "budgetSeconds": 60 },
     { "id": "unit", "packageScript": "verify:unit", "command": "npm run verify:unit", "argv": ["node", "--test", "test/foundation.test.mjs"], "owner": "G001A-establish-ai-native-foundation", "activation": "active", "risk": "unit", "inputs": ["scripts/verify-foundation.mjs", "verification/manifest.json"], "outputs": ["TAP"], "budgetSeconds": 30 },
     { "id": "fixtures", "packageScript": "verify:fixtures", "command": "npm run verify:fixtures", "argv": ["node", "scripts/verify-g001.mjs"], "owner": "G001A-establish-ai-native-foundation", "activation": "active", "risk": "fixture", "inputs": ["test/oracles/manifest.json", "frozen sources and goldens"], "outputs": ["oracle and generator diagnostics"], "budgetSeconds": 300 },
     { "id": "native", "packageScript": "verify:native", "command": "npm run verify:native", "argv": ["node", "scripts/verify-foundation.mjs", "deferred", "native"], "owner": "G002-embed-official-lua-5-1-5", "activation": "deferred", "risk": "native", "inputs": ["future native targets"], "outputs": ["DEFERRED(G002-embed-official-lua-5-1-5)"], "budgetSeconds": 30 },
@@ -82,7 +82,19 @@
     },
     {
       "path": "verification/manifest.schema.json",
-      "sha256": "4d8fe967e8e2feca4e1f838391851eb664fca12a89e1148edd5db2102ebd2aa1"
+      "sha256": "c48458146ad1633de7284682cfdc632e9395e73ab2454338a637ab8f45671922"
+    },
+    {
+      "path": "package.json",
+      "sha256": "fd6ddd03a693e6bf4325fe1470ced36bc5929c5bf367cf0b8bced28f8da93dff"
+    },
+    {
+      "path": "scripts/verify-foundation.mjs",
+      "sha256": "fc22d0a50e064e67fabc2fcfb625cce120cbd802a5c0738835325aa1e3e7a5ff"
+    },
+    {
+      "path": "test/foundation.test.mjs",
+      "sha256": "0258b4ecd24633fb1e08ce12c2b314e7c865609cdf9b2c1fdca0f2489ef6f0f5"
     }
   ]
 }

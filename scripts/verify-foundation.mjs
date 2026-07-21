@@ -3,10 +3,30 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import ts from 'typescript';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
+const contained = (base, candidate) => candidate === base || candidate.startsWith(`${base}${path.sep}`);
+
+export function safeRepoFile(file, label = 'repository path', base = root) {
+  assert.equal(typeof file, 'string', `${label}: path must be a string`);
+  assert.ok(file && !file.includes('\0') && !file.includes('\\'), `${label}: invalid path`);
+  assert.equal(path.posix.isAbsolute(file) || path.win32.isAbsolute(file), false, `${label}: path must be relative`);
+  const segments = file.split('/');
+  assert.ok(segments.every((segment) => segment && segment !== '.' && segment !== '..'), `${label}: path must be normalized`);
+  assert.equal(path.posix.normalize(file), file, `${label}: path must be normalized`);
+  const realBase = fs.realpathSync.native(base);
+  const candidate = path.resolve(realBase, file);
+  assert.ok(contained(realBase, candidate), `${label}: path escapes repository`);
+  const stat = fs.lstatSync(candidate);
+  assert.ok(stat.isFile() && !stat.isSymbolicLink(), `${label}: path must be a regular file`);
+  const realCandidate = fs.realpathSync.native(candidate);
+  assert.ok(contained(realBase, realCandidate), `${label}: real path escapes repository`);
+  return realCandidate;
+}
+
+const read = (file) => fs.readFileSync(safeRepoFile(file, file), 'utf8');
 const json = (file) => JSON.parse(read(file));
 const sha256 = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 
@@ -24,6 +44,17 @@ export function validateSchema(schema, value, label = '$', document = schema) {
   if (schema.$ref) {
     assert.ok(schema.$ref.startsWith('#/$defs/'), `${label}: unsupported schema reference`);
     return validateSchema(document.$defs[schema.$ref.slice('#/$defs/'.length)], value, label, document);
+  }
+  for (const child of schema.allOf ?? []) validateSchema(child, value, label, document);
+  if (schema.if) {
+    let matches = true;
+    try {
+      validateSchema(schema.if, value, label, document);
+    } catch {
+      matches = false;
+    }
+    if (matches && schema.then) validateSchema(schema.then, value, label, document);
+    if (!matches && schema.else) validateSchema(schema.else, value, label, document);
   }
   if (schema.type) {
     const expected = Array.isArray(schema.type) ? schema.type : [schema.type];
@@ -75,9 +106,26 @@ function foundationFiles() {
   ];
 }
 
+export const expectedIntegrityPaths = [
+  'AGENTS.md',
+  'README.md',
+  'docs/specs/xmf-lua-runtime.md',
+  'docs/specs/runtime-contract.md',
+  'docs/testing.md',
+  'docs/adr/0001-official-lua-5.1.5.md',
+  'contracts/host-api.json',
+  'contracts/host-api.schema.json',
+  'contracts/control-registry.json',
+  'contracts/control-registry.schema.json',
+  'verification/manifest.schema.json',
+  'package.json',
+  'scripts/verify-foundation.mjs',
+  'test/foundation.test.mjs'
+];
+
 function verifyFormat() {
   for (const file of foundationFiles()) {
-    assert.ok(fs.existsSync(path.join(root, file)), `format contract: missing ${file}; rerun npm run verify:format`);
+    safeRepoFile(file, `foundation input ${file}`);
     const text = read(file);
     assert.ok(text.endsWith('\n'), `format contract: missing final newline in ${file}; rerun npm run verify:format`);
     assert.equal(text.includes('\r'), false, `format contract: CR byte in ${file}; rerun npm run verify:format`);
@@ -93,12 +141,68 @@ function markdownLinks(file) {
     if (/^(?:https?:|mailto:)/.test(link)) continue;
     const target = link.split('#')[0];
     if (!target) continue;
-    assert.ok(fs.existsSync(path.resolve(root, path.dirname(file), target)), `docs contract: broken link ${link} in ${file}; rerun npm run verify:docs`);
+    const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(file), target));
+    safeRepoFile(resolved, `docs link ${link} in ${file}`);
   }
 }
 
 function unique(items, label) {
   assert.equal(new Set(items).size, items.length, `docs contract: duplicate ${label}; rerun npm run verify:docs`);
+}
+
+export function verifyStoryDefinitions(manifest) {
+  unique(manifest.stories.map(({ id }) => id), 'story id');
+  for (const story of manifest.stories.filter(({ activation }) => activation === 'active')) {
+    assert.ok(story.checks.length > 0, `story contract: active ${story.id} has no checks`);
+    unique(story.checks, `${story.id} check`);
+    for (const id of story.checks) {
+      const check = manifest.focusedChecks.find((item) => item.id === id);
+      assert.ok(check, `story contract: ${story.id} references missing ${id}`);
+      assert.equal(check.activation, 'active', `story contract: ${story.id} references non-active ${id}`);
+      assert.equal(check.owner, story.id, `story contract: ${story.id} does not own ${id}`);
+    }
+  }
+}
+
+export function verifyFocusedCommands(manifest, packageJson) {
+  unique(manifest.focusedChecks.map(({ id }) => id), 'focused check id');
+  unique(manifest.focusedChecks.map(({ packageScript }) => packageScript), 'focused package script');
+  for (const check of manifest.focusedChecks) {
+    assert.ok(packageJson.scripts[check.packageScript], `docs contract: missing package script ${check.packageScript}`);
+    assert.equal(check.command, `npm run ${check.packageScript}`, `docs contract: command drift for ${check.id}`);
+    assert.equal(packageJson.scripts[check.packageScript], check.argv.join(' '), `docs contract: executable drift for ${check.id}`);
+  }
+}
+
+export function verifyContractInventories(host, controls) {
+  unique(host.publicApis.map(({ name }) => name), 'Host API name');
+  unique(host.compatibilityDecisions.map(({ id }) => id), 'Host decision id');
+  unique(controls.inputRoles.map(({ name }) => name), 'input role');
+  unique(controls.controls.map(({ id }) => id), 'control id');
+  unique(controls.controls.flatMap(({ sourceTags }) => sourceTags), 'source tag');
+  unique(controls.controls.flatMap(({ semanticFamilies }) => semanticFamilies), 'semantic family');
+
+  const included = controls.controls.filter(({ decision }) => decision === 'include');
+  unique(included.map(({ normalizedType }) => normalizedType), 'included normalized control type');
+  const tags = included.flatMap(({ sourceTags }) => sourceTags);
+  const families = included.flatMap(({ semanticFamilies }) => semanticFamilies);
+  unique(tags, 'included source tag');
+  unique(families, 'included semantic family');
+  assert.deepEqual(included.map(({ normalizedType }) => normalizedType).sort(), ['Button', 'Edit', 'Label']);
+  assert.deepEqual(tags.sort(), ['BUTTON', 'EDIT', 'LABEL']);
+  assert.deepEqual(families, ['CtlButton']);
+  for (const control of controls.controls.filter(({ decision }) => decision !== 'include')) {
+    assert.ok(control.diagnostic, `control contract: ${control.id} must have an unsupported diagnostic`);
+  }
+}
+
+export function verifyIntegrityInventory(manifest) {
+  unique(manifest.integrity.map(({ path: file }) => file), 'integrity path');
+  assert.deepEqual(manifest.integrity.map(({ path: file }) => file).sort(), [...expectedIntegrityPaths].sort(), 'docs contract: integrity inventory drift');
+  for (const entry of manifest.integrity) {
+    const bytes = fs.readFileSync(safeRepoFile(entry.path, `integrity ${entry.path}`));
+    assert.equal(sha256(bytes), entry.sha256, `docs contract: integrity drift in ${entry.path}; rerun npm run verify:docs after updating the manifest with reviewed bytes`);
+  }
 }
 
 function verifyDocs() {
@@ -111,6 +215,7 @@ function verifyDocs() {
 
   const docs = ['AGENTS.md', 'README.md', ...manifest.canonicalOwners.map(({ path: file }) => file)];
   unique(docs, 'canonical owner path');
+  docs.forEach((file) => safeRepoFile(file, `canonical owner ${file}`));
   docs.forEach(markdownLinks);
   for (const owner of manifest.canonicalOwners) {
     assert.ok(read(owner.path).includes(owner.heading), `docs contract: missing canonical heading in ${owner.path}; rerun npm run verify:docs`);
@@ -118,27 +223,21 @@ function verifyDocs() {
   }
 
   const packageJson = json('package.json');
-  unique(manifest.focusedChecks.map(({ id }) => id), 'focused check id');
-  unique(manifest.focusedChecks.map(({ packageScript }) => packageScript), 'focused package script');
-  for (const check of manifest.focusedChecks) {
-    assert.ok(packageJson.scripts[check.packageScript], `docs contract: missing package script ${check.packageScript}; rerun npm run verify:docs`);
-    assert.equal(check.command, `npm run ${check.packageScript}`, `docs contract: command drift for ${check.id}; rerun npm run verify:docs`);
-  }
+  verifyFocusedCommands(manifest, packageJson);
   assert.equal(packageJson.scripts['verify:ci'], 'npm run verify:milestone', 'docs contract: verify:ci must delegate to milestone once; rerun npm run verify:docs');
   for (const name of ['verify:fast', 'verify:story', 'verify:milestone', 'verify:ci']) {
     assert.ok(read('docs/testing.md').includes(`npm run ${name}`), `docs contract: docs/testing.md omits ${name}; rerun npm run verify:docs`);
   }
 
+  verifyStoryDefinitions(manifest);
   const g001a = manifest.stories.find(({ id }) => id === 'G001A-establish-ai-native-foundation');
   assert.equal(g001a.activation, 'active');
-  unique(g001a.checks, 'G001A check');
-  for (const id of g001a.checks) assert.equal(manifest.focusedChecks.find((check) => check.id === id)?.activation, 'active', `docs contract: G001A invokes non-active ${id}`);
   assert.equal(manifest.tiers.fast.readinessClaim, 'diagnostic-only');
   assert.deepEqual(manifest.tiers.ci.checks, ['milestone-once']);
 
   assert.deepEqual(host.publicApis, [], 'Host contract: G001A public API inventory must remain empty');
   assert.equal(host.inventoryStatus, 'deferred');
-  unique(host.compatibilityDecisions.map(({ id }) => id), 'Host decision id');
+  verifyContractInventories(host, controls);
   const roles = Object.fromEntries(controls.inputRoles.map((role) => [role.name, role]));
   assert.equal(roles.XMF.decision, 'include');
   assert.deepEqual({ decision: roles.XMS.decision, diagnostic: roles.XMS.diagnostic }, { decision: 'defer', diagnostic: 'UNSUPPORTED_INPUT_ROLE' });
@@ -150,65 +249,132 @@ function verifyDocs() {
   assert.deepEqual(registry.unsupported.semanticFamilies, ['CtlImage']);
   assert.equal(registry.unsupported.decision, 'defer');
 
-  unique(manifest.integrity.map(({ path: file }) => file), 'integrity path');
-  for (const entry of manifest.integrity) {
-    const bytes = fs.readFileSync(path.join(root, entry.path));
-    assert.equal(sha256(bytes), entry.sha256, `docs contract: integrity drift in ${entry.path}; rerun npm run verify:docs after updating the manifest with reviewed bytes`);
-  }
+  verifyIntegrityInventory(manifest);
   console.log('PASS docs: owners, links, schemas, commands, contracts, and hashes agree');
 }
 
-function productionFile(file) {
-  return /\.(?:[cm]m?|c(?:c|pp|xx)?|h(?:h|pp)?|swift|java|kt|kts|js|jsx|ts|tsx)$/i.test(file) &&
-    !/^(?:scripts|test|contracts|verification)\//.test(file) &&
-    !file.startsWith('.omx/');
+const jsTsFile = (file) => /\.(?:js|jsx|mjs|cjs|ts|tsx)$/i.test(file);
+const behaviorFile = (file) => jsTsFile(file) && !/^(?:scripts|test|contracts|verification)\//.test(file) && !file.startsWith('.omx/');
+const buildConfigFile = (file) => /(?:^|\/)(?:CMakeLists\.txt|Makefile|Podfile)$|\.(?:cmake|podspec|gradle|kts|pbxproj|xcconfig|xml|json|plist|properties|entitlements|mk)$/i.test(file);
+const textPolicyFile = (file) => jsTsFile(file) || buildConfigFile(file) || /\.(?:c|cc|cpp|cxx|h|hpp|m|mm|swift|java|kt|lua|sh|bash|zsh|ya?ml|toml|txt|source|qry|xmf_)$/i.test(file);
+const forbiddenArtifact = /(?:^|[/'"_-])(?:mvigsengine|legacy-engine)(?:[/'"_.-]|$)/i;
+const forbiddenReference = /\b(?:mvigsengine|legacy-engine)\b/i;
+const forbiddenProtocol = /\b(?:s?ftp):\/\//i;
+const remoteCommand = /\b(?:npm\s+publish|expo\s+publish|eas\s+(?:build|submit|update)|fastlane\b|rsync\b|scp\b|aws\s+s3\b|git\s+push|gh\s+release|vercel\b|netlify\s+deploy|firebase\s+deploy|kubectl\s+apply|curl\b[^\n]*(?:(?:--request|-X)\s*(?:POST|PUT|PATCH|DELETE)|(?:--upload-file|-T|--data(?:-raw|-binary|-urlencode)?|-d|--form|-F)\b))/i;
+const cdnMutationName = /(?:cdn[A-Za-z0-9_]*(?:post|put|patch|purge|delete|remove|invalidate|upload)|(?:post|put|patch|purge|delete|remove|invalidate|upload)[A-Za-z0-9_]*cdn)/i;
+const cdnMutationText = /(?:cdn[\s\S]{0,160}(?:POST|PUT|PATCH|DELETE|remove|purge|invalidate|upload)|(?:POST|PUT|PATCH|DELETE|remove|purge|invalidate|upload)[\s\S]{0,160}cdn)/i;
+const ftpDependencies = /(?:^|[-/])s?ftp(?:$|-)|^ssh2$/i;
+
+function scriptKind(file) {
+  if (/\.tsx$/i.test(file)) return ts.ScriptKind.TSX;
+  if (/\.jsx$/i.test(file)) return ts.ScriptKind.JSX;
+  if (/\.(?:js|mjs|cjs)$/i.test(file)) return ts.ScriptKind.JS;
+  return ts.ScriptKind.TS;
+}
+
+function memberName(node) {
+  if (ts.isPropertyAccessExpression(node)) return node.name.text;
+  if (ts.isElementAccessExpression(node) && node.argumentExpression && (ts.isStringLiteral(node.argumentExpression) || ts.isNoSubstitutionTemplateLiteral(node.argumentExpression))) {
+    return node.argumentExpression.text;
+  }
+  return null;
+}
+
+function receiver(node) {
+  return ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node) ? node.expression : null;
+}
+
+function containsIdentity(node) {
+  let found = false;
+  const visit = (child) => {
+    if (ts.isIdentifier(child) && /^(?:screen|control|transaction|asset|layout)(?:Id|Hash|Signature)$/i.test(child.text)) found = true;
+    if (!found) ts.forEachChild(child, visit);
+  };
+  visit(node);
+  return found;
+}
+
+function astViolations(file, text, host, controls, behavioral) {
+  const violations = [];
+  const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, scriptKind(file));
+  const apiNames = new Set(host.publicApis.map(({ name }) => name));
+  const controlNames = new Set(controls.controls.filter(({ decision }) => decision === 'include').map(({ normalizedType }) => normalizedType));
+  const add = (message) => violations.push(`${file}: ${message}`);
+
+  const visit = (node) => {
+    if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
+      const specifier = node.moduleSpecifier.text;
+      if (forbiddenReference.test(specifier)) add('forbidden direct import');
+      if (behavioral && /\.(?:ios|android)(?:\.[cm]?[jt]sx?)?$/i.test(specifier)) add('platform-suffixed RN/product import');
+    }
+    if (ts.isStringLiteralLike(node)) {
+      if (forbiddenProtocol.test(node.text)) add('FTP/SFTP access');
+      if (remoteCommand.test(node.text)) add('remote publication/mutation command');
+    }
+    if (behavioral) {
+      const name = memberName(node);
+      const base = receiver(node);
+      if (base && ts.isIdentifier(base) && base.text === 'Platform' && /^(?:OS|select)$/.test(name ?? '')) add('OS-selected Host/control behavior');
+      if (base && /^(?:process\.env|NativeModules)$/i.test(base.getText(source)) && /^(?:IOS|ANDROID|EXPO_OS|PLATFORM|IOSHost|AndroidHost)$/i.test(name ?? '')) add('OS-selected Host/control behavior');
+      if (ts.isCallExpression(node)) {
+        const calleeName = ts.isIdentifier(node.expression) ? node.expression.text : memberName(node.expression);
+        const calleeBase = receiver(node.expression);
+        const calleeText = node.expression.getText(source);
+        if (/^(?:selectNativeModule)$/i.test(calleeName ?? '')) add('OS-selected native module');
+        if (/^(?:(?:register|add|define).*Screen|Screen.*(?:register|add|define))$/i.test(calleeName ?? '') ||
+            (calleeBase && /screen/i.test(calleeBase.getText(source)) && /^(?:register|add|set)$/.test(calleeName ?? ''))) add('build-time screen registration');
+        if (cdnMutationName.test(calleeText) || (/cdn/i.test(calleeBase?.getText(source) ?? '') && /^(?:post|put|patch|purge|delete|remove|invalidate|upload)$/i.test(calleeName ?? ''))) add('CDN mutation');
+        if (ts.isIdentifier(node.expression) && node.expression.text === 'registerControl' && node.arguments[0] && ts.isStringLiteralLike(node.arguments[0]) && !controlNames.has(node.arguments[0].text)) {
+          add(`public control omitted from registry: ${node.arguments[0].text}`);
+        }
+      }
+      if ((ts.isIfStatement(node) || ts.isSwitchStatement(node) || ts.isConditionalExpression(node)) && containsIdentity(ts.isIfStatement(node) ? node.expression : node.expression ?? node.condition)) {
+        add('identity-selected behavior');
+      }
+      if (ts.isElementAccessExpression(node) && node.argumentExpression && containsIdentity(node.argumentExpression) && /(?:handler|behavior|screen|control|transaction|asset|layout)/i.test(node.expression.getText(source))) {
+        add('computed identity-selected behavior');
+      }
+      if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'Host' && !apiNames.has(node.name.text)) {
+        add(`public Host API omitted from manifest: ${node.name.text}`);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return violations;
 }
 
 export function policyViolations(files, packageJson, host, controls) {
   const violations = [];
-  const apiNames = new Set(host.publicApis.map(({ name }) => name));
-  const controlNames = new Set(controls.controls.filter(({ decision }) => decision === 'include').map(({ normalizedType }) => normalizedType));
-  const bannedPathOrImport = /(?:^|[/'"_-])(?:mvigsengine|legacy-engine)(?:[/'"_.-]|$)/i;
-  const osDispatch = /\bPlatform\s*\.\s*(?:OS|select)\b|\bprocess\.env\.(?:IOS|ANDROID)\b|\bselectNativeModule\s*\(/;
-  const identityDispatch = /\b(?:if|switch)\s*\([^\n)]*\b(?:screen|control|transaction|asset|layout)(?:Id|Hash|Signature)\b/i;
-  const screenRegistration = /\b(?:registerScreen|screenIdMap|screenRegistry)\b/;
-  const forbiddenTransport = /\b(?:s?ftp):\/\//i;
-  const cdnMutation = /\bcdn\b[\s\S]{0,160}\b(?:POST|PUT|PATCH|DELETE|upload|purge|invalidate)\b/i;
+  for (const { file, text = '' } of files) {
+    if (forbiddenArtifact.test(file)) violations.push(`${file}: forbidden artifact/path`);
+    const behavioral = behaviorFile(file);
+    if (behavioral && /\.(?:ios|android)\.(?:js|jsx|ts|tsx)$/i.test(file)) violations.push(`${file}: platform-suffixed RN/product module`);
+    if (jsTsFile(file)) violations.push(...astViolations(file, text, host, controls, behavioral));
+    else if (text) {
+      if (forbiddenProtocol.test(text)) violations.push(`${file}: FTP/SFTP access`);
+      if (remoteCommand.test(text)) violations.push(`${file}: remote publication/mutation command`);
+      if ((buildConfigFile(file) || /^(?:test|evidence)\//.test(file)) && forbiddenReference.test(text)) violations.push(`${file}: forbidden artifact/reference`);
+      if (buildConfigFile(file) && (cdnMutationName.test(text) || cdnMutationText.test(text))) violations.push(`${file}: CDN mutation`);
+    }
+  }
 
-  for (const { file, text } of files) {
-    if (bannedPathOrImport.test(file) || bannedPathOrImport.test(text)) violations.push(`${file}: forbidden path/dependency/direct import`);
-    if (/\.(?:ios|android)\.(?:js|jsx|ts|tsx)$/i.test(file)) violations.push(`${file}: platform-suffixed RN/product module`);
-    if (osDispatch.test(text)) violations.push(`${file}: OS-selected Host/control behavior`);
-    if (identityDispatch.test(text)) violations.push(`${file}: identity-selected behavior`);
-    if (screenRegistration.test(text)) violations.push(`${file}: build-time screen registration`);
-    if (forbiddenTransport.test(text)) violations.push(`${file}: FTP/SFTP access`);
-    if (cdnMutation.test(text)) violations.push(`${file}: CDN mutation`);
-    for (const match of text.matchAll(/\bHost\.([A-Za-z][A-Za-z0-9_.]*)/g)) {
-      if (!apiNames.has(match[1])) violations.push(`${file}: public Host API omitted from manifest: ${match[1]}`);
-    }
-    for (const match of text.matchAll(/\bregisterControl\(\s*['"]([A-Za-z][A-Za-z0-9]*)['"]/g)) {
-      if (!controlNames.has(match[1])) violations.push(`${file}: public control omitted from registry: ${match[1]}`);
-    }
-  }
   for (const dependency of Object.keys({ ...packageJson.dependencies, ...packageJson.devDependencies })) {
-    if (/^(?:mvigsengine|react-native-lua)$/i.test(dependency)) violations.push(`package.json: forbidden dependency ${dependency}`);
-  }
-  for (const script of Object.keys(packageJson.scripts ?? {})) {
-    if (/^(?:deploy|publish|release)(?::|$)/.test(script)) violations.push(`package.json: prohibited remote/deployment script ${script}`);
+    if (/^(?:mvigsengine|react-native-lua)$/i.test(dependency) || ftpDependencies.test(dependency)) violations.push(`package.json: forbidden dependency ${dependency}`);
   }
   for (const [script, command] of Object.entries(packageJson.scripts ?? {})) {
-    if (/\b(?:npm\s+publish|expo\s+publish|eas\s+(?:build|submit|update)|fastlane\b|s?ftp\b|aws\s+s3\b)/i.test(command)) {
-      violations.push(`package.json: prohibited remote/deployment command in ${script}`);
-    }
+    if (/^(?:deploy|publish|release)(?::|$)/.test(script)) violations.push(`package.json: prohibited remote/deployment script ${script}`);
+    if (remoteCommand.test(command)) violations.push(`package.json: prohibited remote/deployment command in ${script}`);
   }
   return violations;
 }
 
 function verifyPolicy() {
-  const files = allCandidateFiles().filter(productionFile).map((file) => ({ file, text: read(file) }));
+  const candidates = allCandidateFiles();
+  const files = candidates.map((file) => ({ file, text: textPolicyFile(file) ? read(file) : '' }));
   const violations = policyViolations(files, json('package.json'), json('contracts/host-api.json'), json('contracts/control-registry.json'));
   assert.deepEqual(violations, [], `policy contract:\n${violations.join('\n')}\nrerun npm run verify:policy`);
-  console.log(`PASS policy: ${files.length} product source files satisfy objective gates`);
+  console.log(`PASS policy: ${candidates.length} repository paths and ${files.filter(({ text }) => text).length} text/build/config surfaces satisfy objective gates`);
 }
 
 function verifyProvenance() {
@@ -224,10 +390,11 @@ function verifyProvenance() {
 }
 
 export function storyChecks(goalId, manifest = loadManifest()) {
+  verifyStoryDefinitions(manifest);
   const story = manifest.stories.find(({ id }) => id === goalId);
   assert.ok(story, `story contract: unknown goal ${goalId}`);
   if (story.activation === 'deferred') return { deferred: goalId, checks: [] };
-  unique(story.checks, `${goalId} check`);
+  assert.ok(story.checks.length > 0, `story contract: active ${goalId} has no checks`);
   return { deferred: null, checks: story.checks };
 }
 
@@ -236,6 +403,7 @@ export function deferredMilestoneLayers(manifest = loadManifest()) {
 }
 
 function runChecks(ids, tier, manifest = loadManifest()) {
+  assert.ok(ids.length > 0, `${tier} contract: no checks resolved`);
   unique(ids, `${tier} check`);
   const evidence = [];
   for (const id of ids) {

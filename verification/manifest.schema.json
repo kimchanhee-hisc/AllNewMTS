@@ -15,7 +15,7 @@
         "required": ["topic", "path", "heading"],
         "properties": {
           "topic": { "type": "string", "minLength": 1 },
-          "path": { "type": "string", "minLength": 1 },
+          "path": { "type": "string", "minLength": 1, "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*//)(?!.*(?:^|/)\\.\\.?($|/))[^/]+(?:/[^/]+)*$" },
           "heading": { "type": "string", "minLength": 1 }
         }
       }
@@ -51,7 +51,13 @@
           "activation": { "enum": ["active", "deferred"] },
           "checks": { "type": "array", "items": { "type": "string", "minLength": 1 } },
           "budgetSeconds": { "type": "number", "minimum": 1 }
-        }
+        },
+        "allOf": [
+          {
+            "if": { "required": ["activation"], "properties": { "activation": { "const": "active" } } },
+            "then": { "properties": { "checks": { "minItems": 1 } } }
+          }
+        ]
       }
     },
     "tiers": {
@@ -86,7 +92,7 @@
         "additionalProperties": false,
         "required": ["path", "sha256"],
         "properties": {
-          "path": { "type": "string", "minLength": 1 },
+          "path": { "type": "string", "minLength": 1, "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*//)(?!.*(?:^|/)\\.\\.?($|/))[^/]+(?:/[^/]+)*$" },
           "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
         }
       }
