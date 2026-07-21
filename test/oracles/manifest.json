@@ -140,8 +140,8 @@
       "path": "test/oracles/golden/close-cancel-lifecycle.json",
       "classification": "hand-authored-golden-trace",
       "allowedDerivation": "Hand-authored expected control flow derived only from approved frozen inputs; never derived from runtime output.",
-      "bytes": 6831,
-      "sha256": "dbfcb513cb05d2f2cb50825835b47d7d03f28d48f39915e5f9ca6bf1486f5ac2",
+      "bytes": 7098,
+      "sha256": "b9324dcd9f6f2ff475213aec4b629c30f0ac7eb0927b55e87d0f04a11e29b945",
       "sourcePaths": [
         "test/oracles/sources/mts_screen/HS1200P08.xmf_",
         "test/oracles/sources/mts_screen/script.lua",
@@ -332,8 +332,8 @@
       "path": "scripts/verify-g001.mjs",
       "classification": "verification-script",
       "allowedDerivation": "Node-standard-library verification of manifest, raw bytes, provenance, traces, and generator invariants.",
-      "bytes": 19763,
-      "sha256": "13bbec8e2e10d83659271eff970da39ff417063b9c219d052be82ca4d2da0d4f",
+      "bytes": 21496,
+      "sha256": "633affe3dd2478c58dbbc97903085c7a98056bf74df04a5dd34ca4a38dfcff9d",
       "sourcePaths": [
         "test/oracles/sources/mts_screen/HS1200P08.xmf_",
         "test/oracles/sources/mts_screen/script.lua",
