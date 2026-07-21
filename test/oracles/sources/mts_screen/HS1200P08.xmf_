@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <ROOT>
-	<MAP_INFO scrno="9907" scrname="합성_목록추가" version="3" writer="조승희" scrtype="1" scripttype="1" />
-	<FORM_INFO name="SyntheticForm" bgcolor="206:255255255" ly_vert="0,0,360,216,1" />
+	<MAP_INFO scrno="1200" scrname="관심종목_그룹추가" version="3" writer="조승희" scrtype="1" scripttype="1" />
+	<FORM_INFO name="Form" bgcolor="206:255255255" ly_vert="0,0,360,216,1" />
 	<CONTROL_INFO>
-		<BUTTON name="syntheticDismiss" caption="취소" fgcolor="103:111111111" bgcolor="136:227227227" fontsize="2" bordersize="0" ly_vert="24,150,140,48,1" />
-		<LABEL name="syntheticPrompt" caption="추가할 그룹명을 입력해 주세요." ly_vert="24,44,300,22,1" />
-		<BUTTON name="syntheticAccept" enable="0" caption="추가" fgcolor="010:255255255" fontsize="2" ly_vert="176,150,148,48,1" />
-		<EDIT name="syntheticInput" hintcaption="그룹 이름 (최대 10자리)" imetype="0" maxlength="10" leadheight="0" paddinginfo="12,0,12,0" ly_vert="24,76,300,42,1" />
-		<LABEL name="syntheticTitle" caption="관심그룹 추가" fontsize="4" fontstyle="01" ly_vert="24,8,300,24,1" />
-		<TABORDER_INFO horz="syntheticAccept`syntheticDismiss" vert="syntheticAccept`syntheticDismiss" />
+		<LABEL name="lbl0" caption="관심그룹 추가" fontsize="4" fontstyle="01" ly_vert="18,0,324,26,1" />
+		<LABEL name="lbl1" caption="추가할 그룹명을 입력해 주세요." ly_vert="18,42,324,20,1" />
+		<EDIT name="edtGroupNm" hintcaption="그룹 이름 (최대 10자리)" imetype="0" maxlength="10" leadheight="0" paddinginfo="12,0,12,0" ly_vert="18,68,324,40,1" />
+		<BUTTON name="btnAdd" enable="0" caption="추가" fgcolor="010:255255255" fontsize="2" ly_vert="185,142,157,56,1" />
+		<BUTTON name="btnCancel" caption="취소" fgcolor="103:111111111" bgcolor="136:227227227" fontsize="2" bordersize="0" ly_vert="18,142,157,56,1" />
+		<TABORDER_INFO horz="btnAdd`btnCancel" vert="btnAdd`btnCancel" />
 	</CONTROL_INFO>
 	<SCRIPT_INFO _len="6711" _ulen="6441" >
 --===========================================================================
@@ -25,43 +25,43 @@ local json = dofile("scr/json.lua")
 local g_bOnlyClose = true
 local g_szReceiveData = ""
 --============================================================================
-function SyntheticForm_OnFormInit()
-	syntheticAccept.border = "1" -- 활성화 상태의 버튼에 외곽선이 있는 스타일일 경우에만 추가
-    syntheticAccept.dfgcolor = "101"
-	syntheticAccept.SetRadius(12, "138", "139", "131", false, "166", "166", "131", 1)
+function Form_OnFormInit()
+	btnAdd.border = "1" -- 활성화 상태의 버튼에 외곽선이 있는 스타일일 경우에만 추가
+    btnAdd.dfgcolor = "101"
+	btnAdd.SetRadius(12, "138", "139", "131", false, "166", "166", "131", 1)
 	
-	g_szReceiveData = SyntheticForm.GetOpenLinkData()
+	g_szReceiveData = Form.GetOpenLinkData()
 end
 
 --============================================================================
-function SyntheticForm_OnMsgBoxClose(sKeyName, sRet)
+function Form_OnMsgBoxClose(sKeyName, sRet)
 	if sKeyName == "OnlyShow" then
 	    if sRet == "confirm" then
-	        DATAMANAGER.RequestTranData( "SYN90010" )
+	        DATAMANAGER.RequestTranData( "CCS20000" )
 	    end
 	end
 end
 
 --============================================================================
-function SyntheticForm_OnFormClose()
+function Form_OnFormClose()
 	if g_bOnlyClose then
-	    SyntheticForm.SendReturnToParent( "AddNewGroup" ,  "NoChange",  true)
+	    Form.SendReturnToParent( "AddNewGroup" ,  "NoChange",  true)
 	end
 end
 
 --============================================================================
 function DATAMANAGER_OnSendTranBefore(szTranID)
-    local szUserId = SyntheticForm.GetSharedData("&USER_ID", false)
+    local szUserId = Form.GetSharedData("&USER_ID", false)
     
-	if szTranID == "SYN90011" then
+	if szTranID == "CCS20001" then
 	    DATAMANAGER.SetDataValue( false, szTranID , "InBlock1" , "usid" , 0 , szUserId )
 	    DATAMANAGER.SetDataValue( false, szTranID , "InBlock1" , "wk_tp" , 0 , "1" ) -- 관심그룹 신규 등록
 	    DATAMANAGER.SetDataValue( false, szTranID , "InBlock1" , "arr_cnt" , 0 , "1" )
 	    
 	    DATAMANAGER.SetDataValue( false, szTranID , "InBlock2" , "grpnum" , 0 , "" ) -- 관심그룹 신규 등록 시 공백으로 넣기
-	    DATAMANAGER.SetDataValue( false, szTranID , "InBlock2" , "grpname" , 0 , syntheticInput.caption )
+	    DATAMANAGER.SetDataValue( false, szTranID , "InBlock2" , "grpname" , 0 , edtGroupNm.caption )
 	    
-	elseif szTranID == "SYN90010" then    
+	elseif szTranID == "CCS20000" then    
 	    DATAMANAGER.SetDataValue( false, szTranID , "InBlock1" , "usid" , 0 , szUserId )
 	    DATAMANAGER.SetDataValue( false, szTranID , "InBlock1" , "wk_tp" , 0 , "1" ) 
     end
@@ -69,22 +69,22 @@ end
 
 --============================================================================
 function DATAMANAGER_OnReceiveTranComplete(szTranID)
-    if szTranID == "SYN90011" then
+    if szTranID == "CCS20001" then
         if g_szReceiveData == "Now" then
             g_bOnlyClose = false
             
-            SyntheticForm.SendReturnToParent( "AddNewGroup" ,  "",  true)
+            Form.SendReturnToParent( "AddNewGroup" ,  "",  true)
         else
             local nDataCnt = gf_Tonumber(DATAMANAGER.GetDataCount( false, szTranID , "OutBlock2" ))
             local szNewGrpNum = DATAMANAGER.GetDataValue( false, szTranID , "OutBlock2" , "grpnum" , nDataCnt - 1  )
             local szNewGrpName = DATAMANAGER.GetDataValue( false, szTranID , "OutBlock2" , "grpname" , nDataCnt - 1  )
             
-            DATAMANAGER.SetDataValue( false, "SYN90010" , "InBlock1" , "grpnum" , 0 , szNewGrpNum )
-            DATAMANAGER.SetDataValue( false, "SYN90010" , "InBlock1" , "grpname" , 0 , szNewGrpName )
+            DATAMANAGER.SetDataValue( false, "CCS20000" , "InBlock1" , "grpnum" , 0 , szNewGrpNum )
+            DATAMANAGER.SetDataValue( false, "CCS20000" , "InBlock1" , "grpname" , 0 , szNewGrpName )
             
             local tParseData = json.parse(g_szReceiveData, 1, string.len(g_szReceiveData))
             
-            DATAMANAGER.SetDataValue( false, "SYN90010" , "InBlock1" , "arr_cnt" , 0 , #tParseData )
+            DATAMANAGER.SetDataValue( false, "CCS20000" , "InBlock1" , "arr_cnt" , 0 , #tParseData )
 	        
 	        local nProductCnt = #tParseData
 	        if nProductCnt > 100 then
@@ -93,38 +93,38 @@ function DATAMANAGER_OnReceiveTranComplete(szTranID)
 	        
 	        for i = 1, nProductCnt do
 	            local szCode = tParseData[i]["Code"]
-	            local szMarketText = SyntheticForm.GetItemCodeInfo(szCode,  "markettext", tParseData[i]["MarketLink"])
+	            local szMarketText = Form.GetItemCodeInfo(szCode,  "markettext", tParseData[i]["MarketLink"])
 --szMarketText = szMarketText == "Q" and "J" or szMarketText
 	            
-	            DATAMANAGER.SetDataValue( false, "SYN90010" , "InBlock2" , "shrn_iscd" , i - 1 , szCode )
-                DATAMANAGER.SetDataValue( false, "SYN90010" , "InBlock2" , "mrkt_div_cls_code" , i - 1 , szMarketText == "Q" and "J" or szMarketText )
-                DATAMANAGER.SetDataValue( false, "SYN90010" , "InBlock2" , "ldate" , i - 1 , "" )
-                DATAMANAGER.SetDataValue( false, "SYN90010" , "InBlock2" , "color" , i - 1 , "" )
+	            DATAMANAGER.SetDataValue( false, "CCS20000" , "InBlock2" , "shrn_iscd" , i - 1 , szCode )
+                DATAMANAGER.SetDataValue( false, "CCS20000" , "InBlock2" , "mrkt_div_cls_code" , i - 1 , szMarketText == "Q" and "J" or szMarketText )
+                DATAMANAGER.SetDataValue( false, "CCS20000" , "InBlock2" , "ldate" , i - 1 , "" )
+                DATAMANAGER.SetDataValue( false, "CCS20000" , "InBlock2" , "color" , i - 1 , "" )
                 
                 -- 해외일 때만 거래소코드 넣기
                 if szMarketText == "OY" or szMarketText == "OV" then
-                    local szExchangeCode = SyntheticForm.GetItemCodeInfo(szCode,  "exchangecode")
-                    DATAMANAGER.SetDataValue( false, "SYN90010" , "InBlock2" , "exch_cls_code" , i - 1 , szExchangeCode )
+                    local szExchangeCode = Form.GetItemCodeInfo(szCode,  "exchangecode")
+                    DATAMANAGER.SetDataValue( false, "CCS20000" , "InBlock2" , "exch_cls_code" , i - 1 , szExchangeCode )
                 elseif szMarketText == "CR" then -- 크립토 예외처리
-                    local szExchangeCode = SyntheticForm.GetItemCodeInfo(szCode,  "exchangecode", tParseData[i]["MarketLink"])
-                    DATAMANAGER.SetDataValue( false, "SYN90010" , "InBlock2" , "exch_cls_code" , i - 1 , szExchangeCode )
+                    local szExchangeCode = Form.GetItemCodeInfo(szCode,  "exchangecode", tParseData[i]["MarketLink"])
+                    DATAMANAGER.SetDataValue( false, "CCS20000" , "InBlock2" , "exch_cls_code" , i - 1 , szExchangeCode )
                 else
-                    DATAMANAGER.SetDataValue( false, "SYN90010" , "InBlock2" , "exch_cls_code" , i - 1 , "" )
+                    DATAMANAGER.SetDataValue( false, "CCS20000" , "InBlock2" , "exch_cls_code" , i - 1 , "" )
                 end
 	        end
             
             if #tParseData > 100 then
-                SyntheticForm.MsgBoxEx("", "관심그룹에 종목은 최대 100개까지 추가할 수 있어요.\n100개가 넘어가는 종목은 제외하고 추가할게요.", "OnlyShow", "", "확인", 0)
+                Form.MsgBoxEx("", "관심그룹에 종목은 최대 100개까지 추가할 수 있어요.\n100개가 넘어가는 종목은 제외하고 추가할게요.", "OnlyShow", "", "확인", 0)
             else
-                DATAMANAGER.RequestTranData( "SYN90010" )
+                DATAMANAGER.RequestTranData( "CCS20000" )
             end
         end
         
-    elseif szTranID == "SYN90010" then 
+    elseif szTranID == "CCS20000" then 
         g_bOnlyClose = false
         
-        SyntheticForm.Toast(0,  "["..syntheticInput.caption.."]에 추가했어요.",  1)
-        SyntheticForm.SendReturnToParent("FinishAddProduct" ,  syntheticInput.caption,  true)
+        Form.Toast(0,  "["..edtGroupNm.caption.."]에 추가했어요.",  1)
+        Form.SendReturnToParent("FinishAddProduct" ,  edtGroupNm.caption,  true)
     end
 end
 
@@ -134,37 +134,37 @@ function DATAMANAGER_OnReceiveTranError(szTranID , szErrCode , szErrMsg)
 end
 
 --============================================================================
-function syntheticInput_OnEditComplete()
-	if gf_Trim(syntheticInput.caption) ~= nil and gf_Trim(syntheticInput.caption) ~= "" then
-	    syntheticAccept.enable = true
+function edtGroupNm_OnEditComplete()
+	if gf_Trim(edtGroupNm.caption) ~= nil and gf_Trim(edtGroupNm.caption) ~= "" then
+	    btnAdd.enable = true
 	else
-        syntheticAccept.enable = false
+        btnAdd.enable = false
 	end
 end
  
 --============================================================================
-function syntheticAccept_OnClick()
+function btnAdd_OnClick()
     if g_szReceiveData ~= nil and g_szReceiveData ~= "" then
-        DATAMANAGER.RequestTranData( "SYN90011" )
+        DATAMANAGER.RequestTranData( "CCS20001" )
 	else
 	    g_bOnlyClose = false
-	    SyntheticForm.SendReturnToParent( "AddNewGroup" ,  syntheticInput.caption,  true)
+	    Form.SendReturnToParent( "AddNewGroup" ,  edtGroupNm.caption,  true)
     end
 end
 
 --============================================================================
-function syntheticDismiss_OnClick()
-	SyntheticForm.CloseForm()
+function btnCancel_OnClick()
+	Form.CloseForm()
 end
 
 	</SCRIPT_INFO>
 	<DATAIO_INFO>
 		<TRID_INFO>
-			<TRAN tranid="SYN90010" trcode="SYN90010" encryption="1" useattr="0" />
-			<TRAN tranid="SYN90011" trcode="SYN90011" encryption="1" useattr="0" />
+			<TRAN tranid="CCS20000" trcode="CCS20000" encryption="1" useattr="0" />
+			<TRAN tranid="CCS20001" trcode="CCS20001" encryption="1" useattr="0" />
 		</TRID_INFO>
 		<TRIO_INFO>
-			<TRAN name="SYN90010" title="관심종목 등록변경삭제" realdata="0" dessvr="M" occurslen="0" memfieldlen="0" >
+			<TRAN name="CCS20000" title="관심종목 등록변경삭제" realdata="0" dessvr="M" occurslen="0" memfieldlen="0" >
 				<TRBLOCK name="InBlock1" inout="in" _len="197" _ulen="159" >
 usid^회원 ID^10^0^0^0^0^0^0^10^
 wk_tp^처리구분^1^0^0^0^0^0^0^1^
@@ -197,7 +197,7 @@ folder_yn^폴더소속여부^1^0^0^0^0^0^0^1^
 
 				</TRBLOCK>
 			</TRAN>
-			<TRAN name="SYN90011" title="관심그룹_순서변경/그룹명변경/삭제/조회" realdata="0" dessvr="M" occurslen="0" memfieldlen="0" >
+			<TRAN name="CCS20001" title="관심그룹_순서변경/그룹명변경/삭제/조회" realdata="0" dessvr="M" occurslen="0" memfieldlen="0" >
 				<TRBLOCK name="InBlock1" inout="in" _len="121" _ulen="97" >
 usid^회원 ID^10^0^0^0^0^0^0^10^
 wk_tp^처리구분^1^0^0^0^0^0^0^1^
