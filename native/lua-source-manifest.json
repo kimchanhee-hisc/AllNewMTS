@@ -369,6 +369,16 @@
       "logicalPath": "fixtures/error.lua",
       "path": "native/resources/error.lua",
       "sha256": "7478e42425746bd4131d72bda6ee60f8f42ef9edeaff28f41c25a11c248609b5"
+    },
+    {
+      "logicalPath": "fixtures/runtime-conformance.lua",
+      "path": "native/resources/runtime-conformance.lua",
+      "sha256": "f3919d554aa96a902de8a7d3211b87bc569090072c5e19a5d791f1f87cc3ed22"
+    },
+    {
+      "logicalPath": "fixtures/runtime-no-close.lua",
+      "path": "native/resources/runtime-no-close.lua",
+      "sha256": "581d3fff405afcbdd50415e67c84f37e802d571f81c8cc39b7e70780070a6bd9"
     }
   ],
   "testOnlyHashMismatch": {
@@ -397,19 +407,29 @@
       "sha256": "ba1e17ac268528869bc374b5f05dc2c24d3e4bd85d2cb0e92d03de4170539a20"
     },
     {
+      "path": "modules/allnewmts-lua/.DS_Store",
+      "bytes": 6148,
+      "sha256": "00f35c312dfb1ea9440bbc63242c6fd59a5428af7ea1f1c7d349cf07cebf5884"
+    },
+    {
       "path": "modules/allnewmts-lua/AllNewMTSLua.podspec",
-      "bytes": 972,
-      "sha256": "7a6a2bdba1e12788753164a7cae85980d4fc6ee7a367089d46a7fd2b74e16c90"
+      "bytes": 1022,
+      "sha256": "cc7f9b9444c15e9236e3b6940a6b559bfe7aa4a454d426f760dcff48622b9ec0"
     },
     {
       "path": "modules/allnewmts-lua/android/CMakeLists.txt",
-      "bytes": 1437,
-      "sha256": "21d7e54e26a165d32c9bd00bdd9aa232fad8a1e3fa679227bfedae5afb0a504f"
+      "bytes": 1636,
+      "sha256": "bd512d8a9a8f53e3b2f9d70702538a26611230f926eca1d8bb17a06b7a0f46e6"
     },
     {
       "path": "modules/allnewmts-lua/android/allnewmts_lua_android_adapter.c",
       "bytes": 529,
       "sha256": "aeb3517e58bac3086934f910f66ed24b9ff5e7a430f6d1e363b3b5c50e772351"
+    },
+    {
+      "path": "modules/allnewmts-lua/android/allnewmts_runtime_android_adapter.c",
+      "bytes": 638,
+      "sha256": "d624a03d3dc9c6acc8e3506fe3102f9889ab9c88f6348edece1539aa2c500e75"
     },
     {
       "path": "modules/allnewmts-lua/android/build.gradle",
@@ -422,6 +442,11 @@
       "sha256": "b8ff1c2756abb0dc1d4dadff8908a4c0db74fae7a7873ef64689783d50bb6221"
     },
     {
+      "path": "modules/allnewmts-lua/android/runtime_jni.cpp",
+      "bytes": 4370,
+      "sha256": "c8e2fcd23c627d3a7aec8e05e212c4af813b12aa20e93c43b140f589c4c05f97"
+    },
+    {
       "path": "modules/allnewmts-lua/android/src/main/AndroidManifest.xml",
       "bytes": 72,
       "sha256": "343d5be1ac17cdd45d1a2f2ddc616c509290e655869125a9422a96d88aa66066"
@@ -432,9 +457,14 @@
       "sha256": "dca7b0051fcd7c7bbcc2240b24b061e95962f23394de2e9284c5398fc8e7d7c5"
     },
     {
+      "path": "modules/allnewmts-lua/android/src/main/java/com/allnewmts/lua/AllNewMTSRuntimeModule.kt",
+      "bytes": 1594,
+      "sha256": "d7e9f1d2298d559f1a8364ce4544151e7748cd3e90abdc8277488d0c32c612c1"
+    },
+    {
       "path": "modules/allnewmts-lua/expo-module.config.json",
-      "bytes": 215,
-      "sha256": "cfbe8770d2e0bab091d7bdbe26c2d62aa7bef749af26e5ce06f04a50c5299ae7"
+      "bytes": 333,
+      "sha256": "ef742ebb63a9ed92cec73e0e13a847c970d6aedba3d7bba0d2551ac2a7c06802"
     },
     {
       "path": "modules/allnewmts-lua/ios/AllNewMTSLuaAdapter.h",
@@ -452,9 +482,29 @@
       "sha256": "5663162b0cabef1e93b1bc823f04daf49abd2ccd47ce2273d288cfd67959102a"
     },
     {
+      "path": "modules/allnewmts-lua/ios/AllNewMTSRuntimeAdapter.h",
+      "bytes": 523,
+      "sha256": "1c56347c87c3099f59296e19b892834e5c688c539a80de179178dc413ab85cc5"
+    },
+    {
+      "path": "modules/allnewmts-lua/ios/AllNewMTSRuntimeAdapter.mm",
+      "bytes": 2505,
+      "sha256": "925518a2c77fec2748706492d407b90971a1ffd9ebd470163f21e117e28d89ca"
+    },
+    {
+      "path": "modules/allnewmts-lua/ios/AllNewMTSRuntimeModule.swift",
+      "bytes": 703,
+      "sha256": "fd1fd466f1811811086515a9d03bde79eb655f6ec1dff48e96fa2a59dcd5dd85"
+    },
+    {
       "path": "modules/allnewmts-lua/ios/allnewmts_lua_ios_adapter.c",
       "bytes": 509,
       "sha256": "b460794d23c23dfd987bdd5a62d02d204728af80cc4d215fdc5440869431b4ce"
+    },
+    {
+      "path": "modules/allnewmts-lua/ios/allnewmts_runtime_ios_adapter.c",
+      "bytes": 626,
+      "sha256": "15d8a31d90c87e8fdc691be406de32b32083a976edb71964267206e747f0908e"
     },
     {
       "path": "modules/allnewmts-lua/package.json",
@@ -477,14 +527,34 @@
       "sha256": "4def2283f4ba3b825265f01b63ff7fb7aded404d25147b9ae8f63b4720ceb434"
     },
     {
+      "path": "modules/allnewmts-lua/shared/allnewmts_runtime.cpp",
+      "bytes": 68720,
+      "sha256": "65e650393cac9e253efc768637d0e76ea847d595dbae60616ba37fcee32afbe9"
+    },
+    {
+      "path": "modules/allnewmts-lua/shared/allnewmts_runtime.h",
+      "bytes": 2252,
+      "sha256": "6912f5e44f9de6b2917756a3b89fbb908fc99c1a96ceba2f259502bfd7ebbe3e"
+    },
+    {
+      "path": "modules/allnewmts-lua/shared/allnewmts_runtime_adapters.c",
+      "bytes": 780,
+      "sha256": "f928f033752cb55c03b1c9b961341705892b38d10904e5ea5bf074c14206b0b7"
+    },
+    {
+      "path": "modules/allnewmts-lua/shared/allnewmts_runtime_adapters.h",
+      "bytes": 1012,
+      "sha256": "d59200199d09fd91fb24b59e7505cff8712209029b7e3f85162903dc8f7cec6c"
+    },
+    {
       "path": "modules/allnewmts-lua/shared/resource_bundle.c",
-      "bytes": 1659,
-      "sha256": "78355c8bd4ee490a5fee25089989ae19731b188ef2e76565d36b90fffbb6e402"
+      "bytes": 21511,
+      "sha256": "a14044f32a0d3d69b35735d5f0a87262de5cb137a7efcfa47ab8e3dfa86d3ef2"
     },
     {
       "path": "modules/allnewmts-lua/shared/resource_bundle.h",
-      "bytes": 316,
-      "sha256": "720bf2b96a914556be9225e19d7accde6ddbef2a6d56064da1d2b2ce61fb4092"
+      "bytes": 385,
+      "sha256": "78656579dd6f4f8da403b7d1196dd83e8208e98262ab6ad311d5ad325e55da34"
     },
     {
       "path": "modules/allnewmts-lua/shared/sha256.c",
@@ -493,8 +563,8 @@
     },
     {
       "path": "modules/allnewmts-lua/shared/sha256.h",
-      "bytes": 170,
-      "sha256": "75131c95e4f1dd7f7247e982f8fc5c0e31336330dab150ebb6599192864bf216"
+      "bytes": 239,
+      "sha256": "8253b4d98ad7342cfc3d9ed6085be83e64acb624b3e838c122b42785435ff271"
     },
     {
       "path": "modules/allnewmts-lua/src/gate0-fixture.generated.ts",
@@ -508,8 +578,13 @@
     },
     {
       "path": "modules/allnewmts-lua/src/index.ts",
-      "bytes": 222,
-      "sha256": "5a07e658ba7d8e170ba7387bccbec7b7551872c1aff1bebab7c707299d60e5da"
+      "bytes": 311,
+      "sha256": "4772b10e87d6d0592048beffee7f973837ebbaa57b40403ba4b7759977717c93"
+    },
+    {
+      "path": "modules/allnewmts-lua/src/runtime.ts",
+      "bytes": 631,
+      "sha256": "bcdbd41c927aa64330db710223239bd67e9a5685ea463623279056ab76fc439c"
     },
     {
       "path": "native/resources/error.lua",
@@ -527,6 +602,16 @@
       "sha256": "13cdb27d52ce245e9121a7d958c11bc527265303cc852df3aaef499074d10500"
     },
     {
+      "path": "native/resources/runtime-conformance.lua",
+      "bytes": 3816,
+      "sha256": "f3919d554aa96a902de8a7d3211b87bc569090072c5e19a5d791f1f87cc3ed22"
+    },
+    {
+      "path": "native/resources/runtime-no-close.lua",
+      "bytes": 43,
+      "sha256": "581d3fff405afcbdd50415e67c84f37e802d571f81c8cc39b7e70780070a6bd9"
+    },
+    {
       "path": "native/test/adapter-fixture.lua",
       "bytes": 934,
       "sha256": "cbe33d7cee815c2598a03598b6019f9e7eab65548e6933655ff43c494809828b"
@@ -537,9 +622,19 @@
       "sha256": "88f13bee87fa95422082a5fe60e17c6da0cb878f0f3d3f597dd001f4f9b46573"
     },
     {
+      "path": "native/test/g002_narrow_smoke_test.c",
+      "bytes": 860,
+      "sha256": "88843ee73856efab7decd6feeb10df1eec5c422d396f490be90860ac806b3204"
+    },
+    {
       "path": "native/test/native_harness_test.c",
       "bytes": 5699,
       "sha256": "3cee3098f1adf1a1bf5115d272fb4cbf8bd5e40d1cacfd9d39fc9a5a8e60d22f"
+    },
+    {
+      "path": "native/test/runtime_conformance_test.cpp",
+      "bytes": 20815,
+      "sha256": "6bff9320dc69988b6698565867f0396ce7477c27467cd667f419fc2003d0d588"
     }
   ]
 }

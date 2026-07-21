@@ -7,3 +7,6 @@ type LuaHarness = {
 };
 
 export default requireNativeModule<LuaHarness>('AllNewMTSLua');
+
+export { runtime } from './runtime';
+export type { RuntimeAdmission } from './runtime';

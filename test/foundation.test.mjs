@@ -27,14 +27,16 @@ test('story, command, inventory, and path contracts fail closed', () => {
     'format', 'docs', 'policy', 'type', 'unit', 'fixtures', 'provenance'
   ]);
   assert.deepEqual(storyChecks('G002-embed-official-lua-5-1-5', manifest).checks, ['native']);
-  assert.deepEqual(deferredMilestoneLayers(manifest).map(({ id }) => id), ['runtime', 'ui', 'package']);
+  assert.deepEqual(storyChecks('G003-implement-bounded-native-runtime', manifest).checks, ['runtime']);
+  assert.deepEqual(deferredMilestoneLayers(manifest).map(({ id }) => id), ['ui', 'package']);
   assert.deepEqual(manifest.integrity.map(({ path: file }) => file).sort(), [...expectedIntegrityPaths].sort());
 
   const activeEmpty = structuredClone(manifest);
-  activeEmpty.stories.find(({ id }) => id.startsWith('G003-')).activation = 'active';
+  activeEmpty.stories.find(({ id }) => id.startsWith('G004-')).activation = 'active';
+  activeEmpty.stories.find(({ id }) => id.startsWith('G004-')).checks = [];
   assert.throws(() => validateSchema(schema, activeEmpty));
   assert.throws(() => verifyStoryDefinitions(activeEmpty));
-  assert.throws(() => storyChecks(activeEmpty.stories.find(({ id }) => id.startsWith('G003-')).id, activeEmpty));
+  assert.throws(() => storyChecks(activeEmpty.stories.find(({ id }) => id.startsWith('G004-')).id, activeEmpty));
   const escapedManifest = structuredClone(manifest);
   escapedManifest.canonicalOwners[0].path = '../outside.md';
   assert.throws(() => validateSchema(schema, escapedManifest));
@@ -93,10 +95,10 @@ test('native runner preserves primary failures and releases only owned Metro sta
   assert.match(source, /else if \(cleanupErrors\.length\) \{\s+throw new AggregateError/, 'only cleanup-only failure may replace control flow with an aggregate');
 });
 
-test('policy rejects syntax, artifacts, native config, protocols, and remote mutation', () => {
+test('policy rejects product CDN mutation without globally banning non-CDN remote work', () => {
   const host = json('contracts/host-api.json');
   const controls = json('contracts/control-registry.json');
-  const prohibitedScheme = ['s', 'f', 't', 'p', ':', '//'].join('');
+  const prohibitedScheme = ['s', 'f', 't', 'p', ':', '//cdn.example.invalid/item'].join('');
   const prohibitedEnginePath = ['legacy', '-', 'engine'].join('');
   const remoteSync = ['r', 'sync -a dist/ user@example:/srv'].join('');
   const remoteCopy = ['s', 'cp dist/app user@example:/srv'].join('');
@@ -116,7 +118,6 @@ test('policy rejects syntax, artifacts, native config, protocols, and remote mut
     { file: 'modules/a/ios/a.podspec', text: `dependency '${prohibitedEnginePath}'` },
     { file: 'modules/a/android/build.gradle', text: `implementation '${prohibitedEnginePath}'` },
     { file: 'modules/a/ios/project.pbxproj', text: `LIBRARY = ${prohibitedEnginePath}` },
-    { file: 'modules/a/ios/runtime.xcconfig', text: remoteSync },
     { file: 'modules/a/AndroidManifest.xml', text: `<endpoint value="${prohibitedScheme}example.invalid"/>` },
     { file: 'modules/a/runtime.json', text: '{"cdnClient":"purge"}' }
   ];
@@ -155,18 +156,20 @@ test('policy rejects syntax, artifacts, native config, protocols, and remote mut
   const executableConfig = [
     { file: 'modules/live/CMakeLists.txt', text: 'set(COMMAND "cdnClient.purge()")' },
     { file: 'modules/live/build.gradle', text: 'task mutate { cdnClient.purge() }' },
-    { file: 'modules/live/runtime.xcconfig', text: `COMMAND = ${remoteSync}` },
+    { file: 'modules/live/runtime.xcconfig', text: 'COMMAND = purgeCdn()' },
     { file: 'modules/live/a.podspec', text: 'cdnClient.purge()' },
     { file: 'modules/live/runtime.properties', text: 'command=cdnClient.purge()' }
   ];
   const executableViolations = policyViolations(executableConfig, emptyPackage, host, controls);
   for (const { file } of executableConfig) assert.ok(executableViolations.some((violation) => violation.startsWith(`${file}:`)), `missed ${file}`);
 
-  for (const dependency of ['react-native-lua', 'basic-ftp', 'ssh2-sftp-client']) {
-    assert.match(policyViolations([], { ...emptyPackage, dependencies: { [dependency]: '0.0.0' } }, host, controls)[0], /forbidden dependency/);
+  assert.match(policyViolations([], { ...emptyPackage, dependencies: { MVigsEngine: '0.0.0' } }, host, controls)[0], /forbidden dependency/);
+  for (const dependency of ['react-native-lua', 'basic-ftp', 'ssh2-sftp-client', 'ws']) {
+    assert.deepEqual(policyViolations([], { ...emptyPackage, dependencies: { [dependency]: '1.0.0' } }, host, controls), []);
   }
-  for (const command of [['eas', ' update'].join(''), remoteSync, remoteCopy, remoteCurl]) {
-    assert.match(policyViolations([], { ...emptyPackage, scripts: { ship: command } }, host, controls)[0], /prohibited remote/);
+  for (const command of [remoteSync, remoteCopy, ['eas', ' update'].join('')]) {
+    assert.deepEqual(policyViolations([], { ...emptyPackage, scripts: { ship: command } }, host, controls), []);
   }
-  assert.deepEqual(policyViolations([], { ...emptyPackage, scripts: { bootstrap: 'npm ci --ignore-scripts', lookup: 'curl --head https://cdn.invalid/item' } }, host, controls), []);
+  assert.match(policyViolations([], { ...emptyPackage, scripts: { ship: remoteCurl } }, host, controls)[0], /product CDN/);
+  assert.deepEqual(policyViolations([], { ...emptyPackage, scripts: { bootstrap: 'npm ci --ignore-scripts', lookup: 'curl --head https://cdn.invalid/item', transfer: 'sftp://files.example.invalid/item' } }, host, controls), []);
 });

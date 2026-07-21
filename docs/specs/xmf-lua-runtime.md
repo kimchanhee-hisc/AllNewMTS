@@ -18,4 +18,4 @@ Lua compatibility grows incrementally from unchanged approved Lua/XMF and indepe
 
 ## Scope boundaries
 
-Milestone 1 uses integrity-approved repository fixtures after dependency bootstrap. It performs no deployment or remote mutation. Product CDN `GET`/`HEAD`, authenticated services, arbitrary remote Lua, XMS, and unlisted controls are deferred. FTP/SFTP is prohibited for reads and writes.
+Milestone 1 uses integrity-approved repository fixtures after dependency bootstrap and has no active remote-operation feature. Product CDN `GET`/`HEAD`, authenticated services, arbitrary remote Lua, XMS, and unlisted controls are deferred. Product CDN deployment, upload, mutation, deletion, purge, invalidation, configuration changes, and FTP/SFTP access are prohibited; non-CDN remote work is allowed only when a later active feature defines credentials and safety rules.

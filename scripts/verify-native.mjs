@@ -217,11 +217,11 @@ function compileApple(temp) {
   const output = path.join(temp, 'apple');
   fs.mkdirSync(output);
   const include = ['-I', 'modules/allnewmts-lua/vendor/lua-5.1.5/src', '-I', 'modules/allnewmts-lua/shared'];
-  const sources = graph.sources.filter((file) => /\.(?:c|mm)$/.test(file));
+  const sources = graph.sources.filter((file) => /\.(?:c|cpp|mm)$/.test(file));
   const objects = sources.map((source, index) => {
     const object = path.join(output, `${index}.o`);
-    const compiler = source.endsWith('.mm') ? 'clang++' : 'clang';
-    const language = source.endsWith('.mm') ? ['-fobjc-arc'] : ['-std=c99'];
+    const compiler = source.endsWith('.c') ? 'clang' : 'clang++';
+    const language = source.endsWith('.mm') ? ['-std=c++17', '-fobjc-arc'] : (source.endsWith('.cpp') ? ['-std=c++17'] : ['-std=c99']);
     command('xcrun', ['--sdk', 'iphonesimulator', compiler, ...language, '-arch', 'arm64', '-mios-simulator-version-min=16.4', '-isysroot', sdk, ...include, '-c', source, '-o', object]);
     return object;
   });

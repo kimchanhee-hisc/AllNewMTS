@@ -17,9 +17,10 @@ Pod::Spec.new do |s|
   s.static_framework = true
   s.dependency 'ExpoModulesCore'
   lua_sources = manifest['compiledSources'].map { |path| File.join('vendor', 'lua-5.1.5', path) }
-  s.source_files = ['shared/*.{c,h}', 'vendor/lua-5.1.5/src/*.h', 'ios/*.{c,h,mm,swift}'] + lua_sources
+  s.source_files = ['shared/*.{c,cpp,h}', 'vendor/lua-5.1.5/src/*.h', 'ios/*.{c,h,mm,swift}'] + lua_sources
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
+    'CLANG_CXX_LANGUAGE_STANDARD' => 'c++17',
     'HEADER_SEARCH_PATHS' => '"${PODS_TARGET_SRCROOT}/shared" "${PODS_TARGET_SRCROOT}/vendor/lua-5.1.5/src"'
   }
 end

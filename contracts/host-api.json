@@ -1,38 +1,1559 @@
 {
   "$schema": "./host-api.schema.json",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "contract": "cross-platform-host",
-  "inventoryStatus": "deferred",
+  "inventoryStatus": "active",
   "owningGoal": "G003-implement-bounded-native-runtime",
-  "publicApis": [],
-  "compatibilityDecisions": [
+  "runtimeResultSchema": "./runtime-result.schema.json",
+  "evidence": [
     {
-      "id": "shared-platform-result",
+      "id": "oracle-manifest",
+      "path": "test/oracles/manifest.json",
+      "sha256": "77eee612b15d42e5f1a6367eb433a4af6f5f4f4134390ca2288a9369c18a599f"
+    },
+    {
+      "id": "approved-xmf",
+      "path": "test/oracles/sources/mts_screen/HS1200P08.xmf_",
+      "sha256": "4d63ba22ac5339cfd3068cffa91710e0099481da81d974e2aff0ce7ae39ed53e"
+    },
+    {
+      "id": "approved-common-lua",
+      "path": "test/oracles/sources/mts_screen/script.lua",
+      "sha256": "dfa28a8eecf55b8fbd67322fd101e37a2ef2671cc3ac938e9be0c682bd0fc8d4"
+    },
+    {
+      "id": "approved-json-lua",
+      "path": "test/oracles/sources/mts_screen/json.lua",
+      "sha256": "426a06909e126f28971771a978af117de8f99f595f12b9839ad2ed0c86f86019"
+    },
+    {
+      "id": "golden-close",
+      "path": "test/oracles/golden/close-cancel-lifecycle.json",
+      "sha256": "b9324dcd9f6f2ff475213aec4b629c30f0ac7eb0927b55e87d0f04a11e29b945"
+    },
+    {
+      "id": "golden-empty",
+      "path": "test/oracles/golden/empty-open-link.json",
+      "sha256": "3b81f20442e85c13dd3e5e22d3d4254a45d106d2fcacc741419904ab8ed6f23f"
+    },
+    {
+      "id": "golden-over",
+      "path": "test/oracles/golden/json-products-over-100.json",
+      "sha256": "e2ad5d3df978a337fd87fbe851a06e7021a1432fa8482c192cbe6a7ffa708b8b"
+    },
+    {
+      "id": "golden-up-to",
+      "path": "test/oracles/golden/json-products-up-to-100.json",
+      "sha256": "4b4c188e197a8e6d15db2862c79bda9098fe0116f04317d6083a67c9b9d06435"
+    },
+    {
+      "id": "golden-now",
+      "path": "test/oracles/golden/open-link-now.json",
+      "sha256": "f1bee268ae36f86c9016be0bac2e142e801ef9adaaff4c172a5a9e4dd24e13d3"
+    },
+    {
+      "id": "golden-error",
+      "path": "test/oracles/golden/transaction-error.json",
+      "sha256": "db1b1fec55ab1baa112d26a1b8c1941fdd3762a03e06be735cf8d6a4589f2c08"
+    }
+  ],
+  "limits": {
+    "allocatorBytes": 33554432,
+    "committedStateBytes": 8388608,
+    "configBytes": 4194304,
+    "diagnosticBytes": 65536,
+    "eventPayloadBytes": 262144,
+    "hookInstructions": 10000,
+    "hostCallMilliseconds": 50,
+    "instructions": 1000000,
+    "milliseconds": 500,
+    "pendingBytes": 4194304,
+    "pendingEvents": 64,
+    "stagedBytes": 4194304,
+    "stagedCommands": 1024,
+    "tokens": 32
+  },
+  "diagnostics": [
+    "CANCELED_CALLBACK",
+    "DUPLICATE_CALLBACK",
+    "DUPLICATE_CLOSE",
+    "EXECUTION_TIMEOUT",
+    "HOST_ARGUMENT_ERROR",
+    "HOST_LOOKUP_MISS",
+    "LATE_CALLBACK",
+    "LUA_ERROR",
+    "QUEUE_LIMIT",
+    "REENTRANT_CALL",
+    "RESOURCE_LIMIT",
+    "RUNTIME_CLOSED",
+    "RUNTIME_CLOSING",
+    "RUNTIME_INVALID",
+    "STALE_REVISION",
+    "WRONG_RUNTIME",
+    "WRONG_TRANSACTION"
+  ],
+  "publicApis": [
+    {
+      "id": "form-get-open-link-data",
+      "kind": "function",
+      "owner": "G003-implement-bounded-native-runtime",
+      "name": "Form.GetOpenLinkData",
       "decision": "include",
-      "evidence": [
-        "docs/specs/runtime-contract.md#cross-platform-semantics"
+      "arity": {
+        "min": 0,
+        "max": 0
+      },
+      "parameters": [],
+      "returns": [
+        {
+          "type": "string",
+          "count": "1"
+        }
       ],
-      "rationale": "Expose one evidence-backed semantic result above mechanics-only adapters.",
+      "effects": {
+        "mode": "read-only",
+        "rollback": "not-applicable",
+        "command": "none",
+        "lifecycle": "none"
+      },
+      "diagnostics": [
+        "HOST_ARGUMENT_ERROR",
+        "RESOURCE_LIMIT"
+      ],
+      "genericResolution": "runtime-field",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "line 33"
+        },
+        {
+          "source": "golden-empty",
+          "locator": "events[0].hostCalls"
+        }
+      ],
+      "rationale": "Return the immutable create-time open-link string.",
       "affectedPlatforms": [
         "ios",
         "android"
       ],
       "resolution": "normalize",
-      "testOrGolden": "DEFERRED(G003-implement-bounded-native-runtime)"
+      "test": "runtime-host-boundary"
     },
     {
-      "id": "history-only-branches",
+      "id": "form-get-shared-data",
+      "kind": "function",
+      "owner": "G003-implement-bounded-native-runtime",
+      "name": "Form.GetSharedData",
+      "decision": "include",
+      "arity": {
+        "min": 2,
+        "max": 2
+      },
+      "parameters": [
+        {
+          "name": "key",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "mode",
+          "type": "boolean",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "literal=false"
+          ]
+        }
+      ],
+      "returns": [
+        {
+          "type": "string",
+          "count": "1"
+        }
+      ],
+      "effects": {
+        "mode": "read-only",
+        "rollback": "not-applicable",
+        "command": "none",
+        "lifecycle": "none"
+      },
+      "diagnostics": [
+        "HOST_ARGUMENT_ERROR",
+        "HOST_LOOKUP_MISS",
+        "RESOURCE_LIMIT"
+      ],
+      "genericResolution": "provider-map",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "line 54"
+        },
+        {
+          "source": "golden-error",
+          "locator": "events[3].hostCalls"
+        }
+      ],
+      "rationale": "Resolve only an injected exact shared-data provider key.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "test": "runtime-host-boundary"
+    },
+    {
+      "id": "form-get-item-code-info",
+      "kind": "function",
+      "owner": "G003-implement-bounded-native-runtime",
+      "name": "Form.GetItemCodeInfo",
+      "decision": "include",
+      "arity": {
+        "min": 2,
+        "max": 3
+      },
+      "parameters": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "kind",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144",
+            "enum=markettext|exchangecode"
+          ]
+        },
+        {
+          "name": "marketLink",
+          "type": "string",
+          "required": false,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        }
+      ],
+      "returns": [
+        {
+          "type": "string",
+          "count": "1"
+        }
+      ],
+      "effects": {
+        "mode": "read-only",
+        "rollback": "not-applicable",
+        "command": "none",
+        "lifecycle": "none"
+      },
+      "diagnostics": [
+        "HOST_ARGUMENT_ERROR",
+        "HOST_LOOKUP_MISS",
+        "RESOURCE_LIMIT"
+      ],
+      "genericResolution": "provider-map",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "lines 96,106,109"
+        },
+        {
+          "source": "golden-up-to",
+          "locator": "item-code host calls"
+        }
+      ],
+      "rationale": "Resolve an exact injected tuple; transaction/code identity remains data.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "test": "runtime-host-boundary"
+    },
+    {
+      "id": "form-message-box-ex",
+      "kind": "function",
+      "owner": "G003-implement-bounded-native-runtime",
+      "name": "Form.MsgBoxEx",
+      "decision": "include",
+      "arity": {
+        "min": 6,
+        "max": 6
+      },
+      "parameters": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "key",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "legacySlot",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144",
+            "literal="
+          ]
+        },
+        {
+          "name": "confirmLabel",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "mode",
+          "type": "number",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "finite",
+            "literal=0"
+          ]
+        }
+      ],
+      "returns": [
+        {
+          "type": "none",
+          "count": "0"
+        }
+      ],
+      "effects": {
+        "mode": "staged",
+        "rollback": "discard-on-error",
+        "command": "messageBox",
+        "lifecycle": "none"
+      },
+      "diagnostics": [
+        "HOST_ARGUMENT_ERROR",
+        "RESOURCE_LIMIT"
+      ],
+      "genericResolution": "shared-helper",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "line 117"
+        },
+        {
+          "source": "golden-error",
+          "locator": "events[3].commands"
+        }
+      ],
+      "rationale": "Stage the evidenced ordered message-box command without invoking UI.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "test": "runtime-success-ordered"
+    },
+    {
+      "id": "form-toast",
+      "kind": "function",
+      "owner": "G003-implement-bounded-native-runtime",
+      "name": "Form.Toast",
+      "decision": "include",
+      "arity": {
+        "min": 3,
+        "max": 3
+      },
+      "parameters": [
+        {
+          "name": "kind",
+          "type": "number",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "finite",
+            "literal=0"
+          ]
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "number",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "finite",
+            "literal=1"
+          ]
+        }
+      ],
+      "returns": [
+        {
+          "type": "none",
+          "count": "0"
+        }
+      ],
+      "effects": {
+        "mode": "staged",
+        "rollback": "discard-on-error",
+        "command": "toast",
+        "lifecycle": "none"
+      },
+      "diagnostics": [
+        "HOST_ARGUMENT_ERROR",
+        "RESOURCE_LIMIT"
+      ],
+      "genericResolution": "shared-helper",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "line 126"
+        },
+        {
+          "source": "golden-over",
+          "locator": "toast command"
+        }
+      ],
+      "rationale": "Stage the evidenced toast command without interpreting content.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "test": "runtime-success-ordered"
+    },
+    {
+      "id": "form-send-return-to-parent",
+      "kind": "function",
+      "owner": "G003-implement-bounded-native-runtime",
+      "name": "Form.SendReturnToParent",
+      "decision": "include",
+      "arity": {
+        "min": 3,
+        "max": 3
+      },
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "payload",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "close",
+          "type": "boolean",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "literal=true"
+          ]
+        }
+      ],
+      "returns": [
+        {
+          "type": "none",
+          "count": "0"
+        }
+      ],
+      "effects": {
+        "mode": "staged",
+        "rollback": "discard-on-error",
+        "command": "returnToParent",
+        "lifecycle": "stage-close"
+      },
+      "diagnostics": [
+        "HOST_ARGUMENT_ERROR",
+        "RESOURCE_LIMIT"
+      ],
+      "genericResolution": "shared-helper",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "lines 48,76,127,151"
+        },
+        {
+          "source": "golden-close",
+          "locator": "returnToParent commands"
+        }
+      ],
+      "rationale": "Stage one return command and the evidence-backed close transition.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "test": "runtime-close-choreography"
+    },
+    {
+      "id": "form-close-form",
+      "kind": "function",
+      "owner": "G003-implement-bounded-native-runtime",
+      "name": "Form.CloseForm",
+      "decision": "include",
+      "arity": {
+        "min": 0,
+        "max": 0
+      },
+      "parameters": [],
+      "returns": [
+        {
+          "type": "none",
+          "count": "0"
+        }
+      ],
+      "effects": {
+        "mode": "staged",
+        "rollback": "discard-on-error",
+        "command": "close-request",
+        "lifecycle": "stage-close"
+      },
+      "diagnostics": [
+        "DUPLICATE_CLOSE",
+        "RESOURCE_LIMIT"
+      ],
+      "genericResolution": "shared-helper",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "line 157"
+        },
+        {
+          "source": "golden-close",
+          "locator": "cancel-returns-no-change"
+        }
+      ],
+      "rationale": "Stage one idempotent semantic close request.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "test": "runtime-close-choreography"
+    },
+    {
+      "id": "data-request",
+      "kind": "function",
+      "owner": "G003-implement-bounded-native-runtime",
+      "name": "DATAMANAGER.RequestTranData",
+      "decision": "include",
+      "arity": {
+        "min": 1,
+        "max": 1
+      },
+      "parameters": [
+        {
+          "name": "tranId",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        }
+      ],
+      "returns": [
+        {
+          "type": "none",
+          "count": "0"
+        }
+      ],
+      "effects": {
+        "mode": "staged",
+        "rollback": "discard-on-error",
+        "command": "requestTranData",
+        "lifecycle": "none"
+      },
+      "diagnostics": [
+        "HOST_ARGUMENT_ERROR",
+        "HOST_LOOKUP_MISS",
+        "RESOURCE_LIMIT",
+        "REENTRANT_CALL"
+      ],
+      "genericResolution": "declared-transaction-schema",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "lines 40,119,148"
+        },
+        {
+          "source": "golden-now",
+          "locator": "events[2].nestedEvent"
+        }
+      ],
+      "rationale": "Run send-before synchronously and publish a token only on outer commit.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "test": "runtime-nested-send-token"
+    },
+    {
+      "id": "data-set",
+      "kind": "function",
+      "owner": "G003-implement-bounded-native-runtime",
+      "name": "DATAMANAGER.SetDataValue",
+      "decision": "include",
+      "arity": {
+        "min": 6,
+        "max": 6
+      },
+      "parameters": [
+        {
+          "name": "scope",
+          "type": "boolean",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "literal=false"
+          ]
+        },
+        {
+          "name": "tranId",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "block",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "field",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "index",
+          "type": "integer",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "finite",
+            "minimum=0"
+          ]
+        },
+        {
+          "name": "value",
+          "type": "string-or-number",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "stringMaxBytes=262144",
+            "finiteNumber"
+          ]
+        }
+      ],
+      "returns": [
+        {
+          "type": "none",
+          "count": "0"
+        }
+      ],
+      "effects": {
+        "mode": "staged",
+        "rollback": "discard-on-error",
+        "command": "none",
+        "lifecycle": "none"
+      },
+      "diagnostics": [
+        "HOST_ARGUMENT_ERROR",
+        "HOST_LOOKUP_MISS",
+        "RESOURCE_LIMIT"
+      ],
+      "genericResolution": "declared-transaction-schema",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "lines 57-66,82-112"
+        },
+        {
+          "source": "golden-up-to",
+          "locator": "SetDataValue host calls"
+        }
+      ],
+      "rationale": "Stage a typed declared field write with no coercion.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "test": "runtime-data-manager"
+    },
+    {
+      "id": "data-count",
+      "kind": "function",
+      "owner": "G003-implement-bounded-native-runtime",
+      "name": "DATAMANAGER.GetDataCount",
+      "decision": "include",
+      "arity": {
+        "min": 3,
+        "max": 3
+      },
+      "parameters": [
+        {
+          "name": "scope",
+          "type": "boolean",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "literal=false"
+          ]
+        },
+        {
+          "name": "tranId",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "block",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        }
+      ],
+      "returns": [
+        {
+          "type": "integer",
+          "count": "1"
+        }
+      ],
+      "effects": {
+        "mode": "read-only",
+        "rollback": "not-applicable",
+        "command": "none",
+        "lifecycle": "none"
+      },
+      "diagnostics": [
+        "HOST_ARGUMENT_ERROR",
+        "HOST_LOOKUP_MISS",
+        "RESOURCE_LIMIT"
+      ],
+      "genericResolution": "declared-transaction-schema",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "line 78"
+        },
+        {
+          "source": "golden-up-to",
+          "locator": "GetDataCount host call"
+        }
+      ],
+      "rationale": "Read the event-visible declared row count.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "test": "runtime-data-manager"
+    },
+    {
+      "id": "data-get",
+      "kind": "function",
+      "owner": "G003-implement-bounded-native-runtime",
+      "name": "DATAMANAGER.GetDataValue",
+      "decision": "include",
+      "arity": {
+        "min": 5,
+        "max": 5
+      },
+      "parameters": [
+        {
+          "name": "scope",
+          "type": "boolean",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "literal=false"
+          ]
+        },
+        {
+          "name": "tranId",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "block",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "field",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "index",
+          "type": "integer",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "finite",
+            "minimum=0"
+          ]
+        }
+      ],
+      "returns": [
+        {
+          "type": "string",
+          "count": "1"
+        }
+      ],
+      "effects": {
+        "mode": "read-only",
+        "rollback": "not-applicable",
+        "command": "none",
+        "lifecycle": "none"
+      },
+      "diagnostics": [
+        "HOST_ARGUMENT_ERROR",
+        "HOST_LOOKUP_MISS",
+        "RESOURCE_LIMIT"
+      ],
+      "genericResolution": "declared-transaction-schema",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "lines 79-80"
+        },
+        {
+          "source": "golden-up-to",
+          "locator": "GetDataValue host calls"
+        }
+      ],
+      "rationale": "Read one existing event-visible declared string field.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "test": "runtime-data-manager"
+    },
+    {
+      "id": "trim",
+      "kind": "function",
+      "owner": "G003-implement-bounded-native-runtime",
+      "name": "Trim",
+      "decision": "include",
+      "arity": {
+        "min": 1,
+        "max": 1
+      },
+      "parameters": [
+        {
+          "name": "value",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144",
+            "leadingTrailingAsciiWhitespace=reject"
+          ]
+        }
+      ],
+      "returns": [
+        {
+          "type": "string",
+          "count": "1"
+        }
+      ],
+      "effects": {
+        "mode": "read-only",
+        "rollback": "not-applicable",
+        "command": "none",
+        "lifecycle": "none"
+      },
+      "diagnostics": [
+        "HOST_ARGUMENT_ERROR",
+        "RESOURCE_LIMIT"
+      ],
+      "genericResolution": "shared-helper",
+      "evidence": [
+        {
+          "source": "approved-common-lua",
+          "locator": "lines 71-76"
+        },
+        {
+          "source": "golden-empty",
+          "locator": "Trim host calls"
+        }
+      ],
+      "rationale": "Preserve approved non-edge-whitespace strings; unknown trim policy rejects.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "test": "runtime-host-boundary"
+    },
+    {
+      "id": "dofile",
+      "kind": "resource-loader",
+      "owner": "G003-implement-bounded-native-runtime",
+      "name": "dofile",
+      "decision": "include",
+      "arity": {
+        "min": 1,
+        "max": 1
+      },
+      "parameters": [
+        {
+          "name": "logicalPath",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144",
+            "canonicalManifestPath"
+          ]
+        }
+      ],
+      "returns": [
+        {
+          "type": "lua-values",
+          "count": "zero-or-more"
+        }
+      ],
+      "effects": {
+        "mode": "validated-no-state",
+        "rollback": "not-applicable",
+        "command": "none",
+        "lifecycle": "none"
+      },
+      "diagnostics": [
+        "HOST_ARGUMENT_ERROR",
+        "HOST_LOOKUP_MISS",
+        "RESOURCE_LIMIT"
+      ],
+      "genericResolution": "manifest-resource",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "lines 22-23"
+        },
+        {
+          "source": "approved-json-lua",
+          "locator": "returned table"
+        }
+      ],
+      "rationale": "Load and rehash only manifest resources with Lua 5.1 return/error behavior.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "test": "runtime-resource-dofile"
+    },
+    {
+      "id": "edit-caption-get",
+      "kind": "property-get",
+      "owner": "G003-implement-bounded-native-runtime",
+      "name": "Edit.caption",
+      "decision": "include",
+      "arity": {
+        "min": 0,
+        "max": 0
+      },
+      "parameters": [],
+      "returns": [
+        {
+          "type": "string",
+          "count": "1"
+        }
+      ],
+      "effects": {
+        "mode": "read-only",
+        "rollback": "not-applicable",
+        "command": "none",
+        "lifecycle": "none"
+      },
+      "diagnostics": [
+        "HOST_ARGUMENT_ERROR",
+        "RESOURCE_LIMIT"
+      ],
+      "genericResolution": "control-type-registry",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "lines 62,126-151"
+        },
+        {
+          "source": "golden-empty",
+          "locator": "controls.edtGroupNm.caption"
+        }
+      ],
+      "rationale": "Read canonical caption from a generic Edit proxy.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "test": "runtime-control-boundary"
+    },
+    {
+      "id": "button-border-set",
+      "kind": "property-set",
+      "owner": "G003-implement-bounded-native-runtime",
+      "name": "Button.border",
+      "decision": "include",
+      "arity": {
+        "min": 1,
+        "max": 1
+      },
+      "parameters": [
+        {
+          "name": "value",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        }
+      ],
+      "returns": [
+        {
+          "type": "none",
+          "count": "0"
+        }
+      ],
+      "effects": {
+        "mode": "staged",
+        "rollback": "discard-on-error",
+        "command": "none",
+        "lifecycle": "none"
+      },
+      "diagnostics": [
+        "HOST_ARGUMENT_ERROR",
+        "RESOURCE_LIMIT"
+      ],
+      "genericResolution": "control-type-registry",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "line 29"
+        },
+        {
+          "source": "golden-empty",
+          "locator": "controls.btnAdd.border"
+        }
+      ],
+      "rationale": "Stage the exact generic Button border string.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "test": "runtime-control-boundary"
+    },
+    {
+      "id": "button-dfgcolor-set",
+      "kind": "property-set",
+      "owner": "G003-implement-bounded-native-runtime",
+      "name": "Button.dfgcolor",
+      "decision": "include",
+      "arity": {
+        "min": 1,
+        "max": 1
+      },
+      "parameters": [
+        {
+          "name": "value",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        }
+      ],
+      "returns": [
+        {
+          "type": "none",
+          "count": "0"
+        }
+      ],
+      "effects": {
+        "mode": "staged",
+        "rollback": "discard-on-error",
+        "command": "none",
+        "lifecycle": "none"
+      },
+      "diagnostics": [
+        "HOST_ARGUMENT_ERROR",
+        "RESOURCE_LIMIT"
+      ],
+      "genericResolution": "control-type-registry",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "line 30"
+        },
+        {
+          "source": "golden-empty",
+          "locator": "controls.btnAdd.dfgcolor"
+        }
+      ],
+      "rationale": "Stage the exact generic Button disabled-foreground string.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "test": "runtime-control-boundary"
+    },
+    {
+      "id": "button-enable-set",
+      "kind": "property-set",
+      "owner": "G003-implement-bounded-native-runtime",
+      "name": "Button.enable",
+      "decision": "include",
+      "arity": {
+        "min": 1,
+        "max": 1
+      },
+      "parameters": [
+        {
+          "name": "value",
+          "type": "boolean",
+          "required": true,
+          "coercion": "none",
+          "restrictions": []
+        }
+      ],
+      "returns": [
+        {
+          "type": "none",
+          "count": "0"
+        }
+      ],
+      "effects": {
+        "mode": "staged",
+        "rollback": "discard-on-error",
+        "command": "none",
+        "lifecycle": "none"
+      },
+      "diagnostics": [
+        "HOST_ARGUMENT_ERROR",
+        "RESOURCE_LIMIT"
+      ],
+      "genericResolution": "control-type-registry",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "lines 139-141"
+        },
+        {
+          "source": "golden-empty",
+          "locator": "controls.btnAdd.enabled"
+        }
+      ],
+      "rationale": "Stage normalized enabled state from the Lua enable spelling.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "test": "runtime-control-boundary"
+    },
+    {
+      "id": "button-set-radius",
+      "kind": "method",
+      "owner": "G003-implement-bounded-native-runtime",
+      "name": "Button.SetRadius",
+      "decision": "include",
+      "arity": {
+        "min": 9,
+        "max": 9
+      },
+      "parameters": [
+        {
+          "name": "radius",
+          "type": "number",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "finite"
+          ]
+        },
+        {
+          "name": "a",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "b",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "c",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "flag",
+          "type": "boolean",
+          "required": true,
+          "coercion": "none",
+          "restrictions": []
+        },
+        {
+          "name": "d",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "e",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "f",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        },
+        {
+          "name": "mode",
+          "type": "number",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "finite"
+          ]
+        }
+      ],
+      "returns": [
+        {
+          "type": "none",
+          "count": "0"
+        }
+      ],
+      "effects": {
+        "mode": "validated-no-state",
+        "rollback": "not-applicable",
+        "command": "none",
+        "lifecycle": "none"
+      },
+      "diagnostics": [
+        "HOST_ARGUMENT_ERROR",
+        "RESOURCE_LIMIT"
+      ],
+      "genericResolution": "control-type-registry",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "line 31"
+        },
+        {
+          "source": "golden-empty",
+          "locator": "events[0].hostCalls[2]"
+        }
+      ],
+      "rationale": "Validate the evidenced shape without inventing a serialized or UI effect.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "test": "runtime-control-boundary"
+    }
+  ],
+  "deniedCandidates": [
+    {
+      "id": "unknown-host-members",
       "decision": "exclude",
       "evidence": [
-        "docs/specs/runtime-contract.md#semantic-reimplementation"
+        {
+          "source": "approved-xmf",
+          "locator": "selected Host calls"
+        }
       ],
-      "rationale": "Bug workarounds, historical forks, dead paths, and accidental behavior are not compatibility requirements.",
+      "rationale": "The inventory is deny-by-default; unlisted members reject.",
       "affectedPlatforms": [
         "ios",
         "android"
       ],
       "resolution": "reject",
-      "testOrGolden": "DEFERRED(G003-implement-bounded-native-runtime)"
+      "testOrGolden": "runtime-deny-by-default"
+    },
+    {
+      "id": "trim-edge-whitespace",
+      "decision": "defer",
+      "evidence": [
+        {
+          "source": "approved-common-lua",
+          "locator": "lines 71-76"
+        }
+      ],
+      "rationale": "No approved expected pair defines whitespace or Unicode trimming.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "defer",
+      "testOrGolden": "runtime-host-boundary"
+    },
+    {
+      "id": "set-radius-visual-effect",
+      "decision": "defer",
+      "evidence": [
+        {
+          "source": "golden-empty",
+          "locator": "events[0].hostCalls[2]"
+        }
+      ],
+      "rationale": "Frozen full state contains no radius serialization or command.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "defer",
+      "testOrGolden": "runtime-control-boundary"
+    },
+    {
+      "id": "common-os-date-time",
+      "decision": "defer",
+      "evidence": [
+        {
+          "source": "approved-common-lua",
+          "locator": "unselected os.date/time references"
+        }
+      ],
+      "rationale": "The selected slice does not execute this absent sandbox surface.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "defer",
+      "testOrGolden": "runtime-sandbox"
+    },
+    {
+      "id": "unapproved-data-modes",
+      "decision": "exclude",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "selected false/true literals"
+        }
+      ],
+      "rationale": "Unobserved scope/shared/close modes must not acquire guessed semantics.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "reject",
+      "testOrGolden": "runtime-host-arguments"
+    }
+  ],
+  "compatibilityDecisions": [
+    {
+      "id": "shared-platform-result",
+      "decision": "include",
+      "evidence": [
+        {
+          "source": "oracle-manifest",
+          "locator": "approved shared goldens"
+        }
+      ],
+      "rationale": "One shared core emits one canonical result above mechanics-only adapters.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "testOrGolden": "runtime-adapter-parity"
+    },
+    {
+      "id": "active-to-open",
+      "decision": "include",
+      "evidence": [
+        {
+          "source": "golden-empty",
+          "locator": "state.lifecycle ACTIVE"
+        }
+      ],
+      "rationale": "Normalize trace ACTIVE to the production lifecycle name OPEN.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "testOrGolden": "runtime-success-ordered"
+    },
+    {
+      "id": "strict-no-coercion",
+      "decision": "include",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "selected typed arguments"
+        }
+      ],
+      "rationale": "Only observed Lua types and literals are accepted.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "testOrGolden": "runtime-host-arguments"
+    },
+    {
+      "id": "transport-token-enrichment",
+      "decision": "include",
+      "evidence": [
+        {
+          "source": "golden-now",
+          "locator": "transportRequests"
+        }
+      ],
+      "rationale": "Add the mandatory runtime/token/transaction tuple without mutating G001 goldens.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "testOrGolden": "runtime-nested-send-token"
+    },
+    {
+      "id": "generic-provider-registry",
+      "decision": "include",
+      "evidence": [
+        {
+          "source": "approved-xmf",
+          "locator": "data-valued identities"
+        }
+      ],
+      "rationale": "Resolve providers, schemas, and controls by generic maps rather than identity behavior.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "testOrGolden": "runtime-generic-renaming"
+    },
+    {
+      "id": "history-only-branches",
+      "decision": "exclude",
+      "evidence": [
+        {
+          "source": "oracle-manifest",
+          "locator": "approved evidence boundary"
+        }
+      ],
+      "rationale": "Historical forks and bug workarounds are not compatibility requirements.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "reject",
+      "testOrGolden": "runtime-deny-by-default"
     }
   ]
 }

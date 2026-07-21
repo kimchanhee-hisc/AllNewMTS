@@ -3,43 +3,490 @@
   "$id": "urn:allnewmts:schema:host-api",
   "type": "object",
   "additionalProperties": false,
-  "required": ["$schema", "schemaVersion", "contract", "inventoryStatus", "owningGoal", "publicApis", "compatibilityDecisions"],
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "contract",
+    "inventoryStatus",
+    "owningGoal",
+    "runtimeResultSchema",
+    "evidence",
+    "limits",
+    "diagnostics",
+    "publicApis",
+    "deniedCandidates",
+    "compatibilityDecisions"
+  ],
   "properties": {
-    "$schema": { "const": "./host-api.schema.json" },
-    "schemaVersion": { "const": 1 },
-    "contract": { "const": "cross-platform-host" },
-    "inventoryStatus": { "enum": ["active", "deferred"] },
-    "owningGoal": { "type": "string", "minLength": 1 },
+    "$schema": {
+      "const": "./host-api.schema.json"
+    },
+    "schemaVersion": {
+      "const": 2
+    },
+    "contract": {
+      "const": "cross-platform-host"
+    },
+    "inventoryStatus": {
+      "const": "active"
+    },
+    "owningGoal": {
+      "const": "G003-implement-bounded-native-runtime"
+    },
+    "runtimeResultSchema": {
+      "const": "./runtime-result.schema.json"
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidenceSource"
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allocatorBytes",
+        "committedStateBytes",
+        "configBytes",
+        "diagnosticBytes",
+        "eventPayloadBytes",
+        "hookInstructions",
+        "hostCallMilliseconds",
+        "instructions",
+        "milliseconds",
+        "pendingBytes",
+        "pendingEvents",
+        "stagedBytes",
+        "stagedCommands",
+        "tokens"
+      ],
+      "properties": {
+        "allocatorBytes": {
+          "type": "number",
+          "minimum": 1
+        },
+        "committedStateBytes": {
+          "type": "number",
+          "minimum": 1
+        },
+        "configBytes": {
+          "type": "number",
+          "minimum": 1
+        },
+        "diagnosticBytes": {
+          "type": "number",
+          "minimum": 1
+        },
+        "eventPayloadBytes": {
+          "type": "number",
+          "minimum": 1
+        },
+        "hookInstructions": {
+          "type": "number",
+          "minimum": 1
+        },
+        "hostCallMilliseconds": {
+          "type": "number",
+          "minimum": 1
+        },
+        "instructions": {
+          "type": "number",
+          "minimum": 1
+        },
+        "milliseconds": {
+          "type": "number",
+          "minimum": 1
+        },
+        "pendingBytes": {
+          "type": "number",
+          "minimum": 1
+        },
+        "pendingEvents": {
+          "type": "number",
+          "minimum": 1
+        },
+        "stagedBytes": {
+          "type": "number",
+          "minimum": 1
+        },
+        "stagedCommands": {
+          "type": "number",
+          "minimum": 1
+        },
+        "tokens": {
+          "type": "number",
+          "minimum": 1
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z][A-Z0-9_]*$"
+      }
+    },
     "publicApis": {
       "type": "array",
+      "minItems": 18,
       "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["name", "signature", "returns", "effects", "evidence", "test"],
-        "properties": {
-          "name": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.]*$" },
-          "signature": { "type": "string", "minLength": 1 },
-          "returns": { "type": "string", "minLength": 1 },
-          "effects": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
-          "evidence": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
-          "test": { "type": "string", "minLength": 1 }
-        }
+        "$ref": "#/$defs/api"
+      }
+    },
+    "deniedCandidates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/decision"
       }
     },
     "compatibilityDecisions": {
       "type": "array",
+      "minItems": 1,
       "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["id", "decision", "evidence", "rationale", "affectedPlatforms", "resolution", "testOrGolden"],
-        "properties": {
-          "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
-          "decision": { "enum": ["include", "exclude", "defer"] },
-          "evidence": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
-          "rationale": { "type": "string", "minLength": 1 },
-          "affectedPlatforms": { "type": "array", "minItems": 1, "items": { "enum": ["ios", "android", "shared"] }, "uniqueItems": true },
-          "resolution": { "enum": ["normalize", "safe-union", "reject", "defer"] },
-          "testOrGolden": { "type": "string", "minLength": 1 }
+        "$ref": "#/$defs/decision"
+      }
+    }
+  },
+  "$defs": {
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*//)(?!.*(?:^|/)\\.\\.?($|/))[^/]+(?:/[^/]+)*$"
+    },
+    "evidenceSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "path": {
+          "$ref": "#/$defs/path"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "evidenceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "locator"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type",
+        "required",
+        "coercion",
+        "restrictions"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "enum": [
+            "boolean",
+            "integer",
+            "number",
+            "string",
+            "string-or-number"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "coercion": {
+          "const": "none"
+        },
+        "restrictions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "return": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "count"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "boolean",
+            "integer",
+            "lua-values",
+            "none",
+            "number",
+            "string"
+          ]
+        },
+        "count": {
+          "type": "string",
+          "pattern": "^(?:0|1|zero-or-more)$"
+        }
+      }
+    },
+    "effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "rollback",
+        "command",
+        "lifecycle"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "read-only",
+            "staged",
+            "validated-no-state"
+          ]
+        },
+        "rollback": {
+          "enum": [
+            "not-applicable",
+            "discard-on-error"
+          ]
+        },
+        "command": {
+          "enum": [
+            "none",
+            "close-request",
+            "messageBox",
+            "requestTranData",
+            "returnToParent",
+            "toast"
+          ]
+        },
+        "lifecycle": {
+          "enum": [
+            "none",
+            "stage-close"
+          ]
+        }
+      }
+    },
+    "api": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "owner",
+        "name",
+        "decision",
+        "arity",
+        "parameters",
+        "returns",
+        "effects",
+        "diagnostics",
+        "genericResolution",
+        "evidence",
+        "rationale",
+        "affectedPlatforms",
+        "resolution",
+        "test"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "kind": {
+          "enum": [
+            "function",
+            "method",
+            "property-get",
+            "property-set",
+            "resource-loader"
+          ]
+        },
+        "owner": {
+          "const": "G003-implement-bounded-native-runtime"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_.]*$"
+        },
+        "decision": {
+          "const": "include"
+        },
+        "arity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "min",
+            "max"
+          ],
+          "properties": {
+            "min": {
+              "type": "number",
+              "minimum": 0
+            },
+            "max": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/parameter"
+          }
+        },
+        "returns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/return"
+          }
+        },
+        "effects": {
+          "$ref": "#/$defs/effects"
+        },
+        "diagnostics": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          }
+        },
+        "genericResolution": {
+          "enum": [
+            "control-type-registry",
+            "declared-transaction-schema",
+            "manifest-resource",
+            "provider-map",
+            "runtime-field",
+            "shared-helper"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/evidenceRef"
+          }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "affectedPlatforms": {
+          "const": [
+            "ios",
+            "android"
+          ]
+        },
+        "resolution": {
+          "enum": [
+            "normalize",
+            "safe-union"
+          ]
+        },
+        "test": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "decision",
+        "evidence",
+        "rationale",
+        "affectedPlatforms",
+        "resolution",
+        "testOrGolden"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "decision": {
+          "enum": [
+            "include",
+            "exclude",
+            "defer"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/evidenceRef"
+          }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "affectedPlatforms": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "ios",
+              "android",
+              "shared"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "resolution": {
+          "enum": [
+            "normalize",
+            "safe-union",
+            "reject",
+            "defer"
+          ]
+        },
+        "testOrGolden": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }

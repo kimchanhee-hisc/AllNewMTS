@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:allnewmts:schema:runtime-result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["commands", "diagnostics", "schemaVersion", "snapshot"],
+  "properties": {
+    "commands": {
+      "type": "array",
+      "maxItems": 1024,
+      "items": { "$ref": "#/$defs/command" }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/diagnostic" }
+    },
+    "nextLifecycle": { "enum": ["CLOSING", "CLOSED", "INVALID"] },
+    "schemaVersion": { "const": 1 },
+    "snapshot": { "$ref": "#/$defs/snapshot" }
+  },
+  "$defs": {
+    "command": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["closeForm", "messageBox", "requestTranData", "returnToParent", "runtimeError", "toast"] }
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "source"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        "event": { "type": "string", "maxLength": 262144 },
+        "limit": { "type": "string", "pattern": "^[a-z][A-Za-z0-9]*$" },
+        "source": { "enum": ["runtime", "supervisor"] }
+      }
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event", "lifecycle", "revision", "runtimeId", "state", "status"],
+      "properties": {
+        "event": { "type": "string", "maxLength": 262144 },
+        "lifecycle": { "enum": ["OPEN", "CLOSING"] },
+        "revision": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+        "runtimeId": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+        "state": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["controls", "data"],
+          "properties": {
+            "controls": { "type": "object" },
+            "data": { "type": "object" }
+          }
+        },
+        "status": { "enum": ["ok", "error"] }
+      }
+    }
+  }
+}

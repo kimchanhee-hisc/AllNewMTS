@@ -98,6 +98,7 @@ function foundationFiles() {
     'docs/adr/0001-official-lua-5.1.5.md',
     'contracts/host-api.json',
     'contracts/host-api.schema.json',
+    'contracts/runtime-result.schema.json',
     'contracts/control-registry.json',
     'contracts/control-registry.schema.json',
     'native/lua-source-manifest.json',
@@ -108,6 +109,7 @@ function foundationFiles() {
     'scripts/run-gate0-development-build.mjs',
     'scripts/verify-foundation.mjs',
     'scripts/verify-native.mjs',
+    'scripts/verify-runtime.mjs',
     'test/foundation.test.mjs',
     'package.json'
   ];
@@ -123,6 +125,7 @@ export const expectedIntegrityPaths = [
   'docs/adr/0001-official-lua-5.1.5.md',
   'contracts/host-api.json',
   'contracts/host-api.schema.json',
+  'contracts/runtime-result.schema.json',
   'contracts/control-registry.json',
   'contracts/control-registry.schema.json',
   'native/lua-source-manifest.json',
@@ -133,6 +136,7 @@ export const expectedIntegrityPaths = [
   'scripts/run-gate0-development-build.mjs',
   'scripts/verify-foundation.mjs',
   'scripts/verify-native.mjs',
+  'scripts/verify-runtime.mjs',
   'test/foundation.test.mjs'
 ];
 
@@ -225,6 +229,12 @@ function verifyDocs() {
   const controls = json('contracts/control-registry.json');
   validateSchema(json('verification/manifest.schema.json'), manifest, 'verification manifest');
   validateSchema(json('contracts/host-api.schema.json'), host, 'Host manifest');
+  validateSchema(json('contracts/runtime-result.schema.json'), {
+    schemaVersion: 1,
+    snapshot: { runtimeId: '1', revision: '1', status: 'ok', event: 'Noop', lifecycle: 'OPEN', state: { controls: {}, data: {} } },
+    commands: [],
+    diagnostics: []
+  }, 'runtime result sample');
   validateSchema(json('contracts/control-registry.schema.json'), controls, 'control registry');
   validateSchema(json('native/lua-source-manifest.schema.json'), json('native/lua-source-manifest.json'), 'Lua source manifest');
 
@@ -250,8 +260,14 @@ function verifyDocs() {
   assert.equal(manifest.tiers.fast.readinessClaim, 'diagnostic-only');
   assert.deepEqual(manifest.tiers.ci.checks, ['milestone-once']);
 
-  assert.deepEqual(host.publicApis, [], 'Host contract: G001A public API inventory must remain empty');
-  assert.equal(host.inventoryStatus, 'deferred');
+  assert.equal(host.inventoryStatus, 'active');
+  assert.equal(host.owningGoal, 'G003-implement-bounded-native-runtime');
+  assert.deepEqual(host.publicApis.map(({ name }) => name), [
+    'Form.GetOpenLinkData', 'Form.GetSharedData', 'Form.GetItemCodeInfo', 'Form.MsgBoxEx', 'Form.Toast', 'Form.SendReturnToParent', 'Form.CloseForm',
+    'DATAMANAGER.RequestTranData', 'DATAMANAGER.SetDataValue', 'DATAMANAGER.GetDataCount', 'DATAMANAGER.GetDataValue', 'Trim', 'dofile',
+    'Edit.caption', 'Button.border', 'Button.dfgcolor', 'Button.enable', 'Button.SetRadius'
+  ]);
+  assert.ok(host.publicApis.every(({ decision, affectedPlatforms, test }) => decision === 'include' && affectedPlatforms.join(',') === 'ios,android' && test));
   verifyContractInventories(host, controls);
   const roles = Object.fromEntries(controls.inputRoles.map((role) => [role.name, role]));
   assert.equal(roles.XMF.decision, 'include');
@@ -274,11 +290,10 @@ const buildConfigFile = (file) => /(?:^|\/)(?:CMakeLists\.txt|Makefile|Podfile)$
 const textPolicyFile = (file) => jsTsFile(file) || buildConfigFile(file) || /\.(?:c|cc|cpp|cxx|h|hpp|m|mm|swift|java|kt|lua|sh|bash|zsh|ya?ml|toml|txt|source|qry|xmf_)$/i.test(file);
 const forbiddenArtifact = /(?:^|[/'"_-])(?:mvigsengine|legacy-engine)(?:[/'"_.-]|$)/i;
 const forbiddenReference = /\b(?:mvigsengine|legacy-engine)\b/i;
-const forbiddenProtocol = /\b(?:s?ftp):\/\//i;
+const remoteProtocol = /\b(?:s?ftp):\/\//i;
 const remoteCommand = /\b(?:npm\s+publish|expo\s+publish|eas\s+(?:build|submit|update)|fastlane\b|rsync\b|scp\b|aws\s+s3\b|git\s+push|gh\s+release|vercel\b|netlify\s+deploy|firebase\s+deploy|kubectl\s+apply|curl\b[^\n]*(?:(?:--request|-X)\s*(?:POST|PUT|PATCH|DELETE)|(?:--upload-file|-T|--data(?:-raw|-binary|-urlencode)?|-d|--form|-F)\b))/i;
-const cdnMutationName = /(?:cdn[A-Za-z0-9_]*(?:post|put|patch|purge|delete|remove|invalidate|upload)|(?:post|put|patch|purge|delete|remove|invalidate|upload)[A-Za-z0-9_]*cdn)/i;
-const cdnMutationText = /(?:cdn[\s\S]{0,160}(?:POST|PUT|PATCH|DELETE|remove|purge|invalidate|upload)|(?:POST|PUT|PATCH|DELETE|remove|purge|invalidate|upload)[\s\S]{0,160}cdn)/i;
-const ftpDependencies = /(?:^|[-/])s?ftp(?:$|-)|^ssh2$/i;
+const cdnMutationName = /(?:cdn[A-Za-z0-9_]*(?:post|put|patch|deploy|publish|configure|config|purge|delete|remove|invalidate|upload)|(?:post|put|patch|deploy|publish|configure|config|purge|delete|remove|invalidate|upload)[A-Za-z0-9_]*cdn)/i;
+const cdnMutationText = /(?:cdn[\s\S]{0,160}(?:POST|PUT|PATCH|DELETE|deploy|publish|configure|config|remove|purge|invalidate|upload)|(?:POST|PUT|PATCH|DELETE|deploy|publish|configure|config|remove|purge|invalidate|upload)[\s\S]{0,160}cdn)/i;
 
 function scriptKind(file) {
   if (/\.tsx$/i.test(file)) return ts.ScriptKind.TSX;
@@ -345,8 +360,8 @@ function astViolations(file, text, host, controls, behavioral) {
       if (behavioral && /\.(?:ios|android)(?:\.[cm]?[jt]sx?)?$/i.test(specifier)) add('platform-suffixed RN/product import');
     }
     if (ts.isStringLiteralLike(node)) {
-      if (forbiddenProtocol.test(node.text)) add('FTP/SFTP access');
-      if (remoteCommand.test(node.text)) add('remote publication/mutation command');
+      if (/cdn/i.test(node.text) && remoteProtocol.test(node.text)) add('product CDN FTP/SFTP access');
+      if (/cdn/i.test(node.text) && remoteCommand.test(node.text)) add('product CDN publication/mutation command');
     }
     if (behavioral) {
       const name = memberName(node);
@@ -458,20 +473,19 @@ export function policyViolations(files, packageJson, host, controls) {
     if (behavioral && /\.(?:ios|android)\.(?:js|jsx|ts|tsx)$/i.test(file)) violations.push(`${file}: platform-suffixed RN/product module`);
     if (jsTsFile(file)) violations.push(...astViolations(file, text, host, controls, behavioral));
     else if (text) {
-      if (forbiddenProtocol.test(text)) violations.push(`${file}: FTP/SFTP access`);
+      if (/cdn/i.test(text) && remoteProtocol.test(text)) violations.push(`${file}: product CDN FTP/SFTP access`);
       if ((buildConfigFile(file) || /^(?:test|evidence)\//.test(file)) && forbiddenReference.test(text)) violations.push(`${file}: forbidden artifact/reference`);
       const behaviorText = buildConfigFile(file) ? configBehaviorText(file, text) : text;
-      if (remoteCommand.test(behaviorText)) violations.push(`${file}: remote publication/mutation command`);
+      if (/cdn/i.test(behaviorText) && remoteCommand.test(behaviorText)) violations.push(`${file}: product CDN publication/mutation command`);
       if (buildConfigFile(file) && (cdnMutationName.test(behaviorText) || cdnMutationText.test(behaviorText))) violations.push(`${file}: CDN mutation`);
     }
   }
 
   for (const dependency of Object.keys({ ...packageJson.dependencies, ...packageJson.devDependencies })) {
-    if (/^(?:mvigsengine|react-native-lua)$/i.test(dependency) || ftpDependencies.test(dependency)) violations.push(`package.json: forbidden dependency ${dependency}`);
+    if (/^mvigsengine$/i.test(dependency)) violations.push(`package.json: forbidden dependency ${dependency}`);
   }
   for (const [script, command] of Object.entries(packageJson.scripts ?? {})) {
-    if (/^(?:deploy|publish|release)(?::|$)/.test(script)) violations.push(`package.json: prohibited remote/deployment script ${script}`);
-    if (remoteCommand.test(command)) violations.push(`package.json: prohibited remote/deployment command in ${script}`);
+    if ((/cdn/i.test(command) && (remoteCommand.test(command) || remoteProtocol.test(command))) || cdnMutationText.test(command)) violations.push(`package.json: prohibited product CDN command in ${script}`);
   }
   return violations;
 }

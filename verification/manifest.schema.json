@@ -3,20 +3,47 @@
   "$id": "urn:allnewmts:schema:verification-manifest",
   "type": "object",
   "additionalProperties": false,
-  "required": ["$schema", "schemaVersion", "canonicalOwners", "focusedChecks", "stories", "tiers", "layers", "integrity"],
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "canonicalOwners",
+    "focusedChecks",
+    "stories",
+    "tiers",
+    "layers",
+    "integrity"
+  ],
   "properties": {
-    "$schema": { "const": "./manifest.schema.json" },
-    "schemaVersion": { "const": 1 },
+    "$schema": {
+      "const": "./manifest.schema.json"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
     "canonicalOwners": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["topic", "path", "heading"],
+        "required": [
+          "topic",
+          "path",
+          "heading"
+        ],
         "properties": {
-          "topic": { "type": "string", "minLength": 1 },
-          "path": { "type": "string", "minLength": 1, "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*//)(?!.*(?:^|/)\\.\\.?($|/))[^/]+(?:/[^/]+)*$" },
-          "heading": { "type": "string", "minLength": 1 }
+          "topic": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*//)(?!.*(?:^|/)\\.\\.?($|/))[^/]+(?:/[^/]+)*$"
+          },
+          "heading": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },
@@ -25,18 +52,80 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "packageScript", "command", "argv", "owner", "activation", "risk", "inputs", "outputs", "budgetSeconds"],
+        "required": [
+          "id",
+          "packageScript",
+          "command",
+          "argv",
+          "owner",
+          "activation",
+          "risk",
+          "inputs",
+          "outputs",
+          "budgetSeconds"
+        ],
         "properties": {
-          "id": { "type": "string", "pattern": "^[a-z][a-z-]*$" },
-          "packageScript": { "type": "string", "pattern": "^verify:" },
-          "command": { "type": "string", "pattern": "^npm run verify:" },
-          "argv": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-          "owner": { "type": "string", "minLength": 1 },
-          "activation": { "enum": ["active", "deferred"] },
-          "risk": { "enum": ["static", "contract", "type", "unit", "fixture", "native", "ui", "package", "provenance"] },
-          "inputs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-          "outputs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-          "budgetSeconds": { "type": "number", "minimum": 1 }
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z-]*$"
+          },
+          "packageScript": {
+            "type": "string",
+            "pattern": "^verify:"
+          },
+          "command": {
+            "type": "string",
+            "pattern": "^npm run verify:"
+          },
+          "argv": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "activation": {
+            "enum": [
+              "active",
+              "deferred"
+            ]
+          },
+          "risk": {
+            "enum": [
+              "static",
+              "contract",
+              "type",
+              "unit",
+              "fixture",
+              "native",
+              "runtime",
+              "ui",
+              "package",
+              "provenance"
+            ]
+          },
+          "inputs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "budgetSeconds": {
+            "type": "number",
+            "minimum": 1
+          }
         }
       }
     },
@@ -45,17 +134,54 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "activation", "checks", "budgetSeconds"],
+        "required": [
+          "id",
+          "activation",
+          "checks",
+          "budgetSeconds"
+        ],
         "properties": {
-          "id": { "type": "string", "pattern": "^G[0-9A-Z]+-" },
-          "activation": { "enum": ["active", "deferred"] },
-          "checks": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-          "budgetSeconds": { "type": "number", "minimum": 1 }
+          "id": {
+            "type": "string",
+            "pattern": "^G[0-9A-Z]+-"
+          },
+          "activation": {
+            "enum": [
+              "active",
+              "deferred"
+            ]
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "budgetSeconds": {
+            "type": "number",
+            "minimum": 1
+          }
         },
         "allOf": [
           {
-            "if": { "required": ["activation"], "properties": { "activation": { "const": "active" } } },
-            "then": { "properties": { "checks": { "minItems": 1 } } }
+            "if": {
+              "required": [
+                "activation"
+              ],
+              "properties": {
+                "activation": {
+                  "const": "active"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "checks": {
+                  "minItems": 1
+                }
+              }
+            }
           }
         ]
       }
@@ -63,12 +189,25 @@
     "tiers": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["fast", "story", "milestone", "ci"],
+      "required": [
+        "fast",
+        "story",
+        "milestone",
+        "ci"
+      ],
       "properties": {
-        "fast": { "$ref": "#/$defs/tier" },
-        "story": { "$ref": "#/$defs/tier" },
-        "milestone": { "$ref": "#/$defs/tier" },
-        "ci": { "$ref": "#/$defs/tier" }
+        "fast": {
+          "$ref": "#/$defs/tier"
+        },
+        "story": {
+          "$ref": "#/$defs/tier"
+        },
+        "milestone": {
+          "$ref": "#/$defs/tier"
+        },
+        "ci": {
+          "$ref": "#/$defs/tier"
+        }
       }
     },
     "layers": {
@@ -76,12 +215,30 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "status", "owner", "requiredForMilestone"],
+        "required": [
+          "id",
+          "status",
+          "owner",
+          "requiredForMilestone"
+        ],
         "properties": {
-          "id": { "type": "string", "pattern": "^[a-z][a-z-]*$" },
-          "status": { "enum": ["active", "deferred"] },
-          "owner": { "type": "string", "minLength": 1 },
-          "requiredForMilestone": { "type": "boolean" }
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z-]*$"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "deferred"
+            ]
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "requiredForMilestone": {
+            "type": "boolean"
+          }
         }
       }
     },
@@ -90,10 +247,20 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["path", "sha256"],
+        "required": [
+          "path",
+          "sha256"
+        ],
         "properties": {
-          "path": { "type": "string", "minLength": 1, "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*//)(?!.*(?:^|/)\\.\\.?($|/))[^/]+(?:/[^/]+)*$" },
-          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*//)(?!.*(?:^|/)\\.\\.?($|/))[^/]+(?:/[^/]+)*$"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
         }
       }
     }
@@ -102,12 +269,35 @@
     "tier": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["command", "checks", "budgetSeconds", "readinessClaim"],
+      "required": [
+        "command",
+        "checks",
+        "budgetSeconds",
+        "readinessClaim"
+      ],
       "properties": {
-        "command": { "type": "string", "minLength": 1 },
-        "checks": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-        "budgetSeconds": { "type": "number", "minimum": 1 },
-        "readinessClaim": { "enum": ["diagnostic-only", "story", "milestone"] }
+        "command": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "budgetSeconds": {
+          "type": "number",
+          "minimum": 1
+        },
+        "readinessClaim": {
+          "enum": [
+            "diagnostic-only",
+            "story",
+            "milestone"
+          ]
+        }
       }
     }
   }

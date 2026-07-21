@@ -3,6 +3,10 @@
 
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
   const char *path;
   const unsigned char *bytes;
@@ -11,5 +15,9 @@ typedef struct {
 } AllNewMTSResource;
 
 const AllNewMTSResource *allnewmts_resource(const char *path, size_t size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

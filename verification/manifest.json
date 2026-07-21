@@ -171,7 +171,30 @@
         "source/build/sandbox/resource/symbol evidence",
         "PASS or explicit unavailable-runtime BLOCKED evidence"
       ],
-      "budgetSeconds": 1.2e3
+      "budgetSeconds": 1200
+    },
+    {
+      "id": "runtime",
+      "packageScript": "verify:runtime",
+      "command": "npm run verify:runtime",
+      "argv": [
+        "node",
+        "scripts/verify-runtime.mjs"
+      ],
+      "owner": "G003-implement-bounded-native-runtime",
+      "activation": "active",
+      "risk": "runtime",
+      "inputs": [
+        "active Host API ledger and runtime-result schema",
+        "shared production runtime and manifest Lua resources",
+        "iOS and Android mechanics adapters",
+        "hostile runtime and narrow G002 smoke fixtures"
+      ],
+      "outputs": [
+        "contract/core/limits/lifecycle/token/isolation/adapter parity evidence",
+        "focused PASS without UI, network, upstream adoption, or story aggregation"
+      ],
+      "budgetSeconds": 1200
     },
     {
       "id": "provenance",
@@ -258,13 +281,15 @@
       "checks": [
         "native"
       ],
-      "budgetSeconds": 1.2e3
+      "budgetSeconds": 1200
     },
     {
       "id": "G003-implement-bounded-native-runtime",
-      "activation": "deferred",
-      "checks": [],
-      "budgetSeconds": 1.2e3
+      "activation": "active",
+      "checks": [
+        "runtime"
+      ],
+      "budgetSeconds": 1200
     },
     {
       "id": "G004-build-generic-xmf-ui-path",
@@ -272,10 +297,10 @@
       "checks": [
         "ui"
       ],
-      "budgetSeconds": 1.2e3
+      "budgetSeconds": 1200
     },
     {
-      "id": "G005-complete-hs\u0031\u0032\u0030\u0030p08-fixture-path",
+      "id": "G005-complete-hs1200p08-fixture-path",
       "activation": "deferred",
       "checks": [],
       "budgetSeconds": 600
@@ -318,7 +343,8 @@
         "unit",
         "fixtures",
         "provenance",
-        "native"
+        "native",
+        "runtime"
       ],
       "budgetSeconds": 2700,
       "readinessClaim": "milestone"
@@ -341,7 +367,7 @@
     },
     {
       "id": "runtime",
-      "status": "deferred",
+      "status": "active",
       "owner": "G003-implement-bounded-native-runtime",
       "requiredForMilestone": true
     },
@@ -365,7 +391,7 @@
     },
     {
       "path": "AGENTS.md",
-      "sha256": "e9498b0b04d7a55f1e465b88890c24d19b178aad245a6bd8f23c72c67cb1f6bd"
+      "sha256": "8a4a81dba8f3afe307ebfe282b13171c9b44a612936cccd6aa8ad3ac9a8038a8"
     },
     {
       "path": "README.md",
@@ -373,15 +399,15 @@
     },
     {
       "path": "docs/specs/xmf-lua-runtime.md",
-      "sha256": "64a61539140cc03410fc706aba18f0fed73103eac2a786d12eada2a03d54e27a"
+      "sha256": "15c85b6d42ccf67631a87fccc939eb184b1ebdc78b71508b6d54da7eb30465b1"
     },
     {
       "path": "docs/specs/runtime-contract.md",
-      "sha256": "d40c2cf440303616128cf5110fc5b7d00032d6cbadc642b700e59f4172da09dc"
+      "sha256": "4962270109002476e6ed5993cdf0e7e36bf5e9798cf92244b754e72fb39381cd"
     },
     {
       "path": "docs/testing.md",
-      "sha256": "19464a159e162ad5b9bf52bc860df8ca53ed6677c8bc617cea5ff872cffba6d3"
+      "sha256": "929aa4248bc29aed773eaa4f97edd584225caed6fa6e3d65d9246dd34e3a6bc8"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
@@ -389,11 +415,15 @@
     },
     {
       "path": "contracts/host-api.json",
-      "sha256": "4e746e02795ba93c468172c3b923fd333458d1f857cf5e5ec6e6a408755c4841"
+      "sha256": "ec5b6ee875451ec42aefcc2f764f487a4f6a72e3b6f54675d76fd28eedcfc34b"
     },
     {
       "path": "contracts/host-api.schema.json",
-      "sha256": "087884c3a03ff65871e46085e9ba0c2bd966989a33b92a70c005e1917a12f69e"
+      "sha256": "d15f18d2cc17e725c598f1affdc322bec2bf018a121b6686211b071e50bc182c"
+    },
+    {
+      "path": "contracts/runtime-result.schema.json",
+      "sha256": "e105ae7191fae6e460038bf8c39fee4dd962db89d4f7ee171c86c55ce8adb43e"
     },
     {
       "path": "contracts/control-registry.json",
@@ -405,7 +435,7 @@
     },
     {
       "path": "native/lua-source-manifest.json",
-      "sha256": "accdbc3e5e908826a227ada1864951ea94801f7a7ca1c8771f94cc06873826f5"
+      "sha256": "d7d3f1d46204d91b94e18b58a7a0d84e5dd0d8f202992ef7f6c99f71531255df"
     },
     {
       "path": "native/lua-source-manifest.schema.json",
@@ -413,11 +443,11 @@
     },
     {
       "path": "verification/manifest.schema.json",
-      "sha256": "c48458146ad1633de7284682cfdc632e9395e73ab2454338a637ab8f45671922"
+      "sha256": "826a742cbbb1e4889f3524531a910f515110bfdb8e0f7e0457f177011cb33cfb"
     },
     {
       "path": "package.json",
-      "sha256": "c39c90c93c227df7d4a9096cb387d2dd6d8b2a386a21a49db979046c01ad6bef"
+      "sha256": "b8c3a0d71ec89743764621d8f6d3bd018180376670813b88c93181008232ecaa"
     },
     {
       "path": "scripts/generate-native-assets.mjs",
@@ -429,15 +459,19 @@
     },
     {
       "path": "scripts/verify-foundation.mjs",
-      "sha256": "e14c40c65e0cbf3b5937e09e772de6dd85628c1f67dc62912f7d2d2cd0ab379a"
+      "sha256": "9ce3a4440bb0360cb878a1ccbe848c377cc8282225d7ccbd8138fb8ec60b6baf"
     },
     {
       "path": "scripts/verify-native.mjs",
-      "sha256": "241ea976fce93d79cc1204a0b800e0f9a25da9fef87f3d4cc114c8e61ab328cf"
+      "sha256": "0474264e64d5e87280e4be7edbda07458f9436112b4a6c000c50c68b9d267d2c"
+    },
+    {
+      "path": "scripts/verify-runtime.mjs",
+      "sha256": "eacc0182e0be7acdad7248f752c4e18ddacdf2b6461bb2d8d618ae626869c05c"
     },
     {
       "path": "test/foundation.test.mjs",
-      "sha256": "ea4a93e4fe5b8acb26934b5c9e8dba1949d277420b7ad3cf81631f644ca9d9f9"
+      "sha256": "8386916869e8c9c342d616caf25c9e29e9799c80306de45697101813bfc54be4"
     }
   ]
 }

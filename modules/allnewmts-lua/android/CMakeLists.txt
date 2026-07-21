@@ -38,11 +38,16 @@ target_compile_options(allnewmts_lua51 PRIVATE -U_FORTIFY_SOURCE)
 
 add_library(allnewmts_lua SHARED
   ${SHARED_ROOT}/allnewmts_lua.c
+  ${SHARED_ROOT}/allnewmts_runtime.cpp
+  ${SHARED_ROOT}/allnewmts_runtime_adapters.c
   ${SHARED_ROOT}/resource_bundle.c
   ${SHARED_ROOT}/sha256.c
   allnewmts_lua_android_adapter.c
+  allnewmts_runtime_android_adapter.c
   jni.cpp
+  runtime_jni.cpp
 )
 
+target_compile_features(allnewmts_lua PRIVATE cxx_std_17)
 target_include_directories(allnewmts_lua PRIVATE ${LUA_ROOT} ${SHARED_ROOT})
 target_link_libraries(allnewmts_lua allnewmts_lua51 log m)
