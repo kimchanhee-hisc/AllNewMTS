@@ -2,7 +2,7 @@ local marker, number = dofile("fixtures/multi.lua")
 if marker ~= "resource" or number ~= 51 then error("fixture") end
 
 function Success(value)
-  Input.caption = value
+  if Input.caption ~= value then error("pre-handler mutation") end
   Action.border = "solid"
   Action.dfgcolor = "blue"
   Action.enable = true
@@ -14,11 +14,10 @@ function ReadProviders()
   local value = Form.GetOpenLinkData()
   if Form.GetSharedData("shared", false) ~= "shared-value" then error("provider") end
   if Form.GetItemCodeInfo("item", "markettext", "") ~= "item-value" then error("item") end
-  Input.caption = Trim(value)
+  if Trim(value) ~= "open" then error("trim") end
 end
 
 function Rollback()
-  Input.caption = "must-rollback"
   Form.Toast(0, "must-rollback", 1)
   error("redacted-value")
 end
@@ -85,6 +84,23 @@ function Request32()
   for i = 1, 32 do DATAMANAGER.RequestTranData("T_ALPHA") end
 end
 
+function RequestLargeName()
+  DATAMANAGER.RequestTranData(Form.GetSharedData("longTransaction", false))
+end
+
+local function requestLargeNames(count)
+  local transaction = Form.GetSharedData("longTransaction", false)
+  local block = Form.GetSharedData("longBlock", false)
+  local value = string.rep("q", 262144)
+  for index = 0, count - 1 do
+    DATAMANAGER.SetDataValue(false, transaction, block, "value", index, value)
+  end
+  DATAMANAGER.RequestTranData(transaction)
+end
+
+function LargeRequestTwo() requestLargeNames(2) end
+function LargeRequestThree() requestLargeNames(3) end
+
 local fail_send_before = false
 function NestedFailure()
   fail_send_before = true
@@ -92,8 +108,14 @@ function NestedFailure()
 end
 
 local close_error = false
+local close_command_limit = false
 function CloseError()
   close_error = true
+  Form.CloseForm()
+end
+
+function CloseCommandLimit()
+  close_command_limit = true
   Form.CloseForm()
 end
 
@@ -115,12 +137,13 @@ end
 local original_send_before = DATAMANAGER_OnSendTranBefore
 function DATAMANAGER_OnSendTranBefore(tranId)
   if fail_send_before then error("send-before-redacted") end
-  original_send_before(tranId)
+  if tranId == "T_ALPHA" then original_send_before(tranId) end
 end
 
 local original_close = Form_OnFormClose
 function Form_OnFormClose()
   if close_error then error("close-redacted") end
+  if close_command_limit then for i = 1, 1022 do Form.Toast(0, "x", 1) end end
   original_close()
 end
 
@@ -137,7 +160,7 @@ function ErrorValue(value)
 end
 
 function HostMax(value)
-  Input.caption = Trim(value)
+  if Trim(value) ~= value then error("trim") end
 end
 
 function HostBoundary()
@@ -151,4 +174,44 @@ end
 
 function BadTrim()
   Trim(" whitespace")
+end
+
+function EditWrite()
+  Input.caption = "forbidden"
+end
+
+function ButtonRead()
+  return Action.border
+end
+
+function ClobberHost()
+  Form = nil
+end
+
+function ReplaceHostTable()
+  Form = {}
+end
+
+function ReplaceHostFunction()
+  Trim = function(value) return value end
+end
+
+function ReplaceHostMember()
+  rawset(Form, "Toast", function() end)
+end
+
+function AddHostMember()
+  rawset(DATAMANAGER, "Undeclared", function() end)
+end
+
+function ReplaceHostMetatable()
+  setmetatable(Form, {})
+end
+
+function ReplaceControlMetatable()
+  setmetatable(Action, {})
+end
+
+function ReplaceGlobalAlias()
+  _G = {}
 end

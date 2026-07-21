@@ -20,6 +20,12 @@ const command = (file, args, options = {}) => {
   assert.equal(result.status, 0, `${file} ${args.join(' ')} failed:\n${result.stdout ?? ''}${result.stderr ?? ''}`);
   return result.stdout ?? '';
 };
+const harnessEnvironment = (enabled) => {
+  const env = { ...process.env };
+  if (enabled) env.EXPO_PUBLIC_G002_NATIVE_HARNESS = '1';
+  else delete env.EXPO_PUBLIC_G002_NATIVE_HARNESS;
+  return env;
+};
 
 function walk(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -96,6 +102,9 @@ function verifyContracts() {
   assert.match(androidGradle, /project\.getProperties\(\)\.get\('reactNativeArchitectures'\)/, 'Android module must read the React Native ABI property');
   assert.match(androidGradle, /value \? value\.split\(','\) : \['armeabi-v7a', 'x86', 'x86_64', 'arm64-v8a'\]/, 'Android module must retain the standard four-ABI fallback');
   assert.match(androidGradle, /abiFilters\(\*reactNativeArchitectures\(\)\)/, 'Android module must apply the shared React Native ABI selection');
+  assert.match(androidGradle, /def verificationHarnessEnabled = System\.getenv\('EXPO_PUBLIC_G002_NATIVE_HARNESS'\) == '1'/, 'Gradle verification source set must use the explicit G002 flag');
+  assert.match(androidGradle, /java\.srcDirs = \['src\/main\/java'\][\s\S]+if \(verificationHarnessEnabled\) java\.srcDir 'src\/g002\/java'/, 'Gradle default source set must exclude G002 and add it only under the explicit flag');
+  assert.equal((androidGradle.match(/src\/g002\/java/g) ?? []).length, 1, 'Gradle must expose exactly one flag-gated G002 source-set path');
 
   for (const resource of manifest.resources) assert.equal(sha256(read(resource.path)), resource.sha256, `resource hash drift: ${resource.path}`);
   assert.equal(sha256(read(manifest.testOnlyHashMismatch.path)), manifest.testOnlyHashMismatch.actualSha256, 'hostile resource drift');
@@ -104,7 +113,7 @@ function verifyContracts() {
   safeRepoFile(manifest.adapterFixture.golden);
 
   const appleFunctions = [...read('modules/allnewmts-lua/ios/AllNewMTSLuaModule.swift').toString().matchAll(/Function\("([^"]+)"/g)].map((match) => match[1]);
-  const androidModule = read('modules/allnewmts-lua/android/src/main/java/com/allnewmts/lua/AllNewMTSLuaModule.kt').toString('utf8');
+  const androidModule = read('modules/allnewmts-lua/android/src/g002/java/com/allnewmts/lua/AllNewMTSLuaModule.kt').toString('utf8');
   const androidFunctions = [...androidModule.matchAll(/Function\("([^"]+)"/g)].map((match) => match[1]);
   assert.deepEqual(appleFunctions, ['create', 'evaluate', 'destroy']);
   assert.deepEqual(androidFunctions, appleFunctions);
@@ -187,32 +196,43 @@ function expandPodSources(patterns) {
   }))].sort();
 }
 
-function expectedPodSources() {
-  const authored = manifest.authoredInventory.map(({ path: file }) => file).filter((file) =>
-    file.startsWith('modules/allnewmts-lua/shared/') ||
-    (file.startsWith('modules/allnewmts-lua/ios/') && /\.(?:c|h|mm|swift)$/.test(file))
+function expectedPodSources(includeVerification) {
+  const authored = manifest.authoredInventory.map(({ path: file }) => file);
+  const production = authored.filter((file) =>
+    /^modules\/allnewmts-lua\/shared\/(?:allnewmts_runtime.*|resource_bundle\.[ch]|sha256\.[ch])$/.test(file) ||
+    /^modules\/allnewmts-lua\/ios\/(?:AllNewMTSRuntime.*\.(?:h|mm|swift)|allnewmts_runtime_ios_adapter\.c)$/.test(file)
+  );
+  const verification = authored.filter((file) =>
+    /^modules\/allnewmts-lua\/shared\/(?:allnewmts_lua\.[ch]|allnewmts_lua_adapters\.h)$/.test(file) ||
+    /^modules\/allnewmts-lua\/ios\/(?:AllNewMTSLua.*\.(?:h|mm|swift)|allnewmts_lua_ios_adapter\.c)$/.test(file)
   );
   const headers = manifest.inventory.filter(({ path: file }) => file.startsWith('src/') && file.endsWith('.h')).map(({ path: file }) => `${manifest.vendoredRoot}/${file}`);
-  return [...authored, ...headers, ...manifest.compiledSources.map((file) => `${manifest.vendoredRoot}/${file}`)].sort();
+  return [...production, ...(includeVerification ? verification : []), ...headers, ...manifest.compiledSources.map((file) => `${manifest.vendoredRoot}/${file}`)].sort();
 }
 
-function validatePodGraph(sources, dependencies) {
-  assert.deepEqual(sources, expectedPodSources(), 'evaluated Pod source graph drift');
+function validatePodGraph(sources, dependencies, includeVerification) {
+  assert.deepEqual(sources, expectedPodSources(includeVerification), `evaluated ${includeVerification ? 'G002 verification' : 'default production'} Pod source graph drift`);
   assert.deepEqual(dependencies, { ExpoModulesCore: [] }, 'evaluated Pod dependencies must contain only ExpoModulesCore');
 }
 
-function evaluatedPodGraph() {
-  const spec = JSON.parse(command('pod', ['ipc', 'spec', 'modules/allnewmts-lua/AllNewMTSLua.podspec']));
+function evaluatedPodGraph(includeVerification) {
+  const spec = JSON.parse(command('pod', ['ipc', 'spec', 'modules/allnewmts-lua/AllNewMTSLua.podspec'], { env: harnessEnvironment(includeVerification) }));
   const sources = expandPodSources(Array.isArray(spec.source_files) ? spec.source_files : [spec.source_files]);
-  validatePodGraph(sources, spec.dependencies ?? {});
+  validatePodGraph(sources, spec.dependencies ?? {}, includeVerification);
   const badSources = [...sources, `${manifest.vendoredRoot}/src/lua.c`].sort();
-  assert.throws(() => validatePodGraph(badSources, spec.dependencies ?? {}), 'excluded Lua source mutation must fail');
-  assert.throws(() => validatePodGraph(sources, { ...spec.dependencies, LuaKit: [] }), 'second Lua dependency mutation must fail');
+  assert.throws(() => validatePodGraph(badSources, spec.dependencies ?? {}, includeVerification), 'excluded Lua source mutation must fail');
+  assert.throws(() => validatePodGraph(sources, { ...spec.dependencies, LuaKit: [] }, includeVerification), 'second Lua dependency mutation must fail');
   return { sources, dependencies: spec.dependencies };
 }
 
 function compileApple(temp) {
-  const graph = evaluatedPodGraph();
+  const productionGraph = evaluatedPodGraph(false);
+  const graph = evaluatedPodGraph(true);
+  const verificationOnly = expectedPodSources(true).filter((file) => !expectedPodSources(false).includes(file));
+  for (const file of verificationOnly) {
+    assert.equal(productionGraph.sources.includes(file), false, `default Pod graph leaked G002 source: ${file}`);
+    assert.equal(graph.sources.includes(file), true, `verification Pod graph omitted G002 source: ${file}`);
+  }
   const sdk = command('xcrun', ['--sdk', 'iphonesimulator', '--show-sdk-path']).trim();
   const output = path.join(temp, 'apple');
   fs.mkdirSync(output);
@@ -230,8 +250,8 @@ function compileApple(temp) {
   const symbols = command('nm', ['-g', library]);
   for (const name of ['create', 'evaluate', 'destroy']) assert.equal(symbols.split('\n').filter((line) => new RegExp(` [Tt] _allnewmts_lua_ios_${name}$`).test(line)).length, 1, `evaluated Pod graph omits iOS ${name} provider`);
   assert.equal(symbols.split('\n').filter((line) => / [Tt] _lua_newstate$/.test(line)).length, 1, 'evaluated Pod graph has multiple Lua providers');
-  fs.writeFileSync(path.join(output, 'pod-source-inventory.json'), JSON.stringify(graph, null, 2));
-  console.log(`PASS native Apple Pod graph: ${graph.sources.length} exact sources, ExpoModulesCore-only dependency, linked adapter and sole Lua provider`);
+  fs.writeFileSync(path.join(output, 'pod-source-inventory.json'), JSON.stringify({ production: productionGraph, verification: graph }, null, 2));
+  console.log(`PASS native Apple Pod graphs: ${productionGraph.sources.length} default sources exclude G002; ${graph.sources.length} flagged sources link the adapter and sole Lua provider`);
 }
 
 function compileAndroid(temp) {
@@ -239,13 +259,24 @@ function compileAndroid(temp) {
   const ndk = path.join(sdk, 'ndk/27.1.12297006');
   const cmake = path.join(sdk, 'cmake/3.22.1/bin/cmake');
   const ninja = path.join(sdk, 'cmake/3.22.1/bin/ninja');
-  const output = path.join(temp, 'android');
+  const productionOutput = path.join(temp, 'android-production');
+  const output = path.join(temp, 'android-verification');
   assert.ok(fs.existsSync(cmake) && fs.existsSync(ninja) && fs.existsSync(ndk), 'declared Android SDK/NDK toolchain is unavailable');
-  command(cmake, ['-S', 'modules/allnewmts-lua/android', '-B', output, '-G', 'Ninja',
-    `-DCMAKE_MAKE_PROGRAM=${ninja}`, `-DCMAKE_TOOLCHAIN_FILE=${ndk}/build/cmake/android.toolchain.cmake`,
-    '-DANDROID_ABI=arm64-v8a', '-DANDROID_PLATFORM=android-24', '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON']);
-  command(cmake, ['--build', output]);
-  const compileCommands = JSON.parse(fs.readFileSync(path.join(output, 'compile_commands.json'), 'utf8'));
+  const configure = (directory, includeVerification) => {
+    const env = harnessEnvironment(includeVerification);
+    command(cmake, ['-S', 'modules/allnewmts-lua/android', '-B', directory, '-G', 'Ninja',
+      `-DCMAKE_MAKE_PROGRAM=${ninja}`, `-DCMAKE_TOOLCHAIN_FILE=${ndk}/build/cmake/android.toolchain.cmake`,
+      '-DANDROID_ABI=arm64-v8a', '-DANDROID_PLATFORM=android-24', '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'], { env });
+    command(cmake, ['--build', directory], { env });
+    return JSON.parse(fs.readFileSync(path.join(directory, 'compile_commands.json'), 'utf8'));
+  };
+  const productionCommands = configure(productionOutput, false);
+  const compileCommands = configure(output, true);
+  const normalizedSource = ({ file }) => file.replaceAll('\\', '/');
+  for (const suffix of ['/shared/allnewmts_lua.c', '/android/allnewmts_lua_android_adapter.c', '/android/jni.cpp']) {
+    assert.equal(productionCommands.some((entry) => normalizedSource(entry).endsWith(suffix)), false, `default CMake graph leaked G002 source: ${suffix}`);
+    assert.equal(compileCommands.some((entry) => normalizedSource(entry).endsWith(suffix)), true, `flagged CMake graph omitted G002 source: ${suffix}`);
+  }
   const commandText = (entry) => entry.command ?? entry.arguments.join(' ');
   const luaCommands = compileCommands.filter(({ file }) => file.replaceAll('\\', '/').includes('/vendor/lua-5.1.5/src/'));
   assert.ok(luaCommands.length, 'Android compile database omits vendored Lua sources');
@@ -261,12 +292,14 @@ function compileAndroid(temp) {
   const library = path.join(output, 'liballnewmts_lua.so');
   assert.ok(fs.existsSync(library), 'Android shared library missing');
   const tools = path.join(ndk, 'toolchains/llvm/prebuilt/darwin-x86_64/bin');
+  const productionSymbols = command(path.join(tools, 'llvm-nm'), ['-D', '--defined-only', path.join(productionOutput, 'liballnewmts_lua.so')]);
+  assert.doesNotMatch(productionSymbols, /Java_com_allnewmts_lua_AllNewMTSLuaModule_nativeCreate/, 'default Android library exported the G002 JNI module');
   const dynamic = command(path.join(tools, 'llvm-readelf'), ['-d', library]);
   assert.doesNotMatch(dynamic, /NEEDED.*(?:lua|luajit)/i, 'Android linked a second Lua provider');
   const symbols = command(path.join(tools, 'llvm-nm'), ['-D', '--defined-only', library]);
   assert.match(symbols, /Java_com_allnewmts_lua_AllNewMTSLuaModule_nativeCreate/);
   assert.match(symbols, /\blua_newstate\b/);
-  console.log('PASS native Android compile: arm64-v8a JNI shared library, package symbols, and no second Lua dependency');
+  console.log('PASS native Android graphs: default arm64-v8a library excludes G002; flagged graph includes its JNI adapter and no second Lua dependency');
 }
 
 function verifyAutolinking() {
@@ -282,6 +315,8 @@ function verifyAutolinking() {
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'allnewmts-g002-'));
 try {
   const developmentBuildSource = read('scripts/run-gate0-development-build.mjs').toString('utf8');
+  assert.match(developmentBuildSource, /EXPO_PUBLIC_G002_NATIVE_HARNESS: '1'/, 'G002 Development Build must explicitly enable the verification flag for CocoaPods and Gradle');
+  assert.match(developmentBuildSource, /spawnSync\(gradle\.binary,[\s\S]+env: runEnv/, 'G002 Gradle build must receive the explicit verification environment');
   assert.doesNotMatch(developmentBuildSource, /command\(android\.adb, \['-s', androidSerial, 'shell', 'pm', 'path', androidPackageId\]\)/, 'Android absence preflight must preserve adb pm path status');
   assert.match(developmentBuildSource, /spawnSync\(android\.adb, \['-s', androidSerial, 'shell', 'pm', 'path', androidPackageId\], \{ encoding: 'utf8', env: runEnv \}\)/, 'Android absence preflight must capture adb pm path directly');
   assert.match(developmentBuildSource, /androidInstallPreflight\.status === 0 \|\| androidInstallPreflight\.status === 1/, 'Android absence preflight must accept only documented absent-package statuses');

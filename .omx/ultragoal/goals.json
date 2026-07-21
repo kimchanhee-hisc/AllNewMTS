@@ -1,12 +1,88 @@
 {
   "version": 1,
   "createdAt": "2026-07-20T09:21:44.122Z",
-  "updatedAt": "2026-07-21T07:40:27.808Z",
+  "updatedAt": "2026-07-21T22:39:25.883Z",
   "briefPath": ".omx/ultragoal/brief.md",
   "goalsPath": ".omx/ultragoal/goals.json",
   "ledgerPath": ".omx/ultragoal/ledger.jsonl",
   "codexGoalMode": "aggregate",
   "goals": [
+    {
+      "id": "G011-complete-g004-after-build-failure-tr",
+      "title": "Complete G004 after build-failure transport repair",
+      "objective": "Preserve the accepted G004 generic XMF UI implementation and product scope; replace the producer's asynchronous large failure-marker emission with the existing synchronous chunked stdout pattern, prove the actual runner-to-parent transport with one focused regression, rerun fast verification, obtain independent exact-byte approval, then run exactly one fresh G004 story acceptance attempt and complete G004 only if all gates pass.",
+      "status": "in_progress",
+      "attempt": 1,
+      "createdAt": "2026-07-21T22:39:19.975Z",
+      "updatedAt": "2026-07-21T22:39:25.883Z",
+      "evidence": ".omx/handoff/g004-story-acceptance-attempt-8.log sha256 f9c9d0192cb13fb7d13fcaa7cfe655d5ca49bde150ffb6eadf0c185decbe9c05: six phases passed; development-build returned one truncated marker with stdoutByteCount=65536. The runner uses console.log immediately before rethrow while the reviewed parent already has a synchronous chunked writer.",
+      "supersedes": [
+        "G004-build-generic-xmf-ui-path"
+      ],
+      "startedAt": "2026-07-21T22:39:25.883Z"
+    },
+    {
+      "id": "G010-complete-hs1200p08-fixture-path",
+      "title": "Complete HS1200P08 fixture path",
+      "objective": "Run original HS1200P08 and common Lua unchanged; implement only its transitive Host API ledger and deterministic CCS20000/CCS20001 flows matching frozen golden traces.",
+      "status": "pending",
+      "attempt": 0,
+      "createdAt": "2026-07-21T22:38:59.265Z",
+      "updatedAt": "2026-07-21T22:38:59.265Z",
+      "evidence": "The retry-failed scheduler activated G005 while G004 remained failed, contrary to the binding G004-before-G005 sequence. No G005 implementation or verification command ran.",
+      "supersedes": [
+        "G005-complete-hs1200p08-fixture-path"
+      ]
+    },
+    {
+      "id": "G006-verify-first-milestone",
+      "title": "Verify first milestone",
+      "objective": "Run typecheck, unit/native/runtime/build/package provenance, cross-platform golden trace, screenshots/accessibility, adversarial lifecycle/security tests, cleanup, invariant audit, independent code review, and UltraQA evidence.",
+      "status": "pending",
+      "attempt": 0,
+      "createdAt": "2026-07-20T09:21:44.122Z",
+      "updatedAt": "2026-07-20T09:21:44.122Z"
+    },
+    {
+      "id": "G008-inventory-complete-migration-surface",
+      "title": "Inventory and contract the complete permitted migration surface",
+      "objective": "After G006, first obtain fresh Planner -> Architect -> Critic approval for canonical product/runtime/testing/verification-contract changes that bind G008/G009 as nonempty stories/checks and replace the blanket OS-selected-behavior prohibition only for later Goals with a default prohibition plus evidence-backed allowlisted exceptions; do not retroactively alter G004. Safely reconcile the active G004 Ultragoal state, stale G003 Autopilot recovery metadata, and the active aggregate Codex goal snapshot without stopping live processes. Then inventory every project-rule-permitted screen, control, event, Lua, QRY, communication model, service flow, and relevant hardcoded constant under ~/Dev/mts_screen and ~/Dev/Plus; the current 10 frozen files are initial fixtures only. Create the canonical matrix: source path -> feature/case -> platform -> common/platform-specific classification -> owning Goal -> implementation status -> tests/evidence. For iOS/Android conflicts, derive common valid behavior/invariants first, prefer one shared normalized or evidence-backed safe-union semantic contract and common fixtures/goldens, exclude only evidenced bugs/dead code/workarounds, and never exclude/defer a valid feature merely for conflict or analysis difficulty. When irreducibly platform-specific, prefer a native adapter; permit the smallest React Native platform branch only when native adapters cannot suffice, with exact manifest/compatibility-ledger reason, platforms, common invariants, platform expectations and tests; never select behavior by screen/control/transaction/asset/layout identity or create broad Platform.OS duplicate paths. Classify constants as common domain/protocol, iOS public configuration, Android public configuration, environment configuration, or secret/potential secret; never copy secret values into repository/generated/handoff/ledger/log/fixtures, store only names/schema/injection points/redacted test values, and require Keychain/Keystore/platform resource/build secret/approved credential-provider injection plus a separate credential/safety/test contract before endpoint/communication activation. Record every missing/unclassified row through explicit ledger-audited steering kind add_subgoal or split_subgoal, then explicitly reorder all pending Goals so G009 remains last. Preserve MVigsEngine prohibition, no legacy copying/translation, CDN/deployment restrictions, and do not start this inventory during G004.",
+      "status": "pending",
+      "attempt": 0,
+      "createdAt": "2026-07-21T20:04:38.620Z",
+      "updatedAt": "2026-07-21T20:29:21.142Z",
+      "evidence": "User directive 2026-07-22: preserve current G004 scope/validation order and do not start G005 early; record complete migration coverage and traceability as a mandatory later goal.",
+      "steeringEvidence": "Correct literal steering syntax after the accepted 2026-07-22 binding G008 revision; no scope or completion gate changes.",
+      "steeringRationale": "Remove shell-rendered command formatting ambiguity while preserving the approved future G008 contract."
+    },
+    {
+      "id": "G009-close-complete-permitted-migration-c",
+      "title": "Final fail-closed full migration closure",
+      "objective": "Remain the final pending termination Goal after G008 and every explicitly appended/split migration Goal. Re-audit the canonical source-to-feature matrix after every Goal checkpoint; whenever a permitted path/case is missing, unclassified, unimplemented, untested, or mismatched with its owner/evidence, execute explicit ledger-audited add_subgoal or split_subgoal steering and reorder pending Goals so G009 is last. G009 cannot complete until all permitted mts_screen/Plus paths and features are classified; every valid normal feature is implemented and tested; every iOS/Android conflict has a shared normalized/safe-union semantic contract with common fixtures/goldens or an Architect/Critic-approved minimal allowlisted platform exception (native adapter first, React Native branch only when necessary) with manifest/compatibility-ledger rationale, platforms, common invariants, per-platform results and tests; no identity-selected or broad Platform.OS duplicate path exists; no unclassified, unimplemented, or unsupported exclusion remains; every evidenced bug/dead-code/workaround exclusion has rationale and owner; all constants are classified; no secret or potential-secret value appears in repository/generated/handoff/ledger/log/fixture evidence; endpoint/communication behavior has its own credential/safety/test contract; canonical product/runtime/testing docs and nonempty verification manifest stories/checks match the matrix and follow-up Goals; and MVigsEngine, legacy copy/translation, CDN/deployment prohibitions remain intact. Aggregate Codex goal completion and final Ultragoal checkpoint are forbidden until this closure is independently APPROVE/CLEAR and UltraQA-clean.",
+      "status": "pending",
+      "attempt": 0,
+      "createdAt": "2026-07-21T20:12:05.929Z",
+      "updatedAt": "2026-07-21T20:28:28.149Z",
+      "evidence": "User directive 2026-07-22: persist the full permitted mts_screen/Plus migration as the top-level durable objective; recheck source coverage after each Goal and prevent aggregate completion while any allowed case lacks implementation/evidence or an explicit owned blocker.",
+      "steeringEvidence": "Binding user steering 2026-07-22 defines the exact G009 completion gate, platform conflict/exception policy, secret handling, manifest/story activation, matrix reconciliation, and G009-last ordering invariant.",
+      "steeringRationale": "A terminal fail-closed Goal prevents the aggregate pointer from completing while any permitted functionality or evidence remains missing, without changing active G004."
+    },
+    {
+      "id": "G005-complete-hs1200p08-fixture-path",
+      "title": "Complete HS1200P08 fixture path",
+      "objective": "Run original HS1200P08 and common Lua unchanged; implement only its transitive Host API ledger and deterministic CCS20000/CCS20001 flows matching frozen golden traces.",
+      "status": "in_progress",
+      "attempt": 1,
+      "createdAt": "2026-07-20T09:21:44.122Z",
+      "updatedAt": "2026-07-21T22:38:59.265Z",
+      "startedAt": "2026-07-21T22:38:17.917Z",
+      "steeringStatus": "superseded",
+      "supersededBy": [
+        "G010-complete-hs1200p08-fixture-path"
+      ],
+      "steeringEvidence": "The retry-failed scheduler activated G005 while G004 remained failed, contrary to the binding G004-before-G005 sequence. No G005 implementation or verification command ran.",
+      "steeringRationale": "Supersede the prematurely activated shell state with an identical pending G005 replacement so the audited plan can restore G004 repair first without changing G005 scope."
+    },
     {
       "id": "G007-g001a-establish-ai-native-repository",
       "title": "G001A — Establish AI-native repository foundation",
@@ -35,38 +111,31 @@
       "id": "G003-implement-bounded-native-runtime",
       "title": "Implement bounded native runtime",
       "objective": "Implement shared native Host state, synchronous C API callbacks, resource dofile, serial off-main events, staged commit/rollback, limits, lifecycle, request tokens, snapshots, and conformance/resource tests.",
-      "status": "in_progress",
+      "status": "complete",
       "attempt": 1,
       "createdAt": "2026-07-20T09:21:44.122Z",
-      "updatedAt": "2026-07-21T07:40:27.808Z",
-      "startedAt": "2026-07-21T07:40:27.808Z"
+      "updatedAt": "2026-07-21T15:29:00.179Z",
+      "startedAt": "2026-07-21T07:40:27.808Z",
+      "completedAt": "2026-07-21T15:29:00.179Z",
+      "evidence": "G003 complete on current reviewed tree. Rework .omx/handoff/g003-rework-iteration-8.md SHA256 7fa2175d6ab9db96c74f630baafc83c3f96a59b14ce8bdddc480cbc54ef15e6d; independent code review APPROVE .omx/handoff/g003-code-reviewer-iteration-9.md SHA256 23ce1be70428859d362f7879e53ca5045746020ef49785f1e7298ef78077ec5f; architect CLEAR .omx/handoff/g003-architect-review-iteration-9.md SHA256 f719f474974528bddc0f250ba4c541ed6c5873b9ca9601620dd6eae89874fe9c; UltraQA PASS .omx/handoff/g003-ultraqa-cycle-1.md SHA256 e1c402fb38fab0ef6780bed8abc59599d9952af144a69d6e73ecbc1b6556eb19; verify:fast and verify:runtime passed on Xcode 26.3/Swift 6.2.4; no G004, remote/CDN, verify:native, or G003 story rerun."
     },
     {
       "id": "G004-build-generic-xmf-ui-path",
       "title": "Build generic XMF UI path",
       "objective": "Implement the generic XMF parser/model, React Native Label/Edit/Button renderer and generic event client, plus synthetic generated fixture coverage without screen/control/transaction identity branches.",
-      "status": "pending",
-      "attempt": 0,
+      "status": "failed",
+      "attempt": 1,
       "createdAt": "2026-07-20T09:21:44.122Z",
-      "updatedAt": "2026-07-20T09:21:44.122Z"
-    },
-    {
-      "id": "G005-complete-hs1200p08-fixture-path",
-      "title": "Complete HS1200P08 fixture path",
-      "objective": "Run original HS1200P08 and common Lua unchanged; implement only its transitive Host API ledger and deterministic CCS20000/CCS20001 flows matching frozen golden traces.",
-      "status": "pending",
-      "attempt": 0,
-      "createdAt": "2026-07-20T09:21:44.122Z",
-      "updatedAt": "2026-07-20T09:21:44.122Z"
-    },
-    {
-      "id": "G006-verify-first-milestone",
-      "title": "Verify first milestone",
-      "objective": "Run typecheck, unit/native/runtime/build/package provenance, cross-platform golden trace, screenshots/accessibility, adversarial lifecycle/security tests, cleanup, invariant audit, independent code review, and UltraQA evidence.",
-      "status": "pending",
-      "attempt": 0,
-      "createdAt": "2026-07-20T09:21:44.122Z",
-      "updatedAt": "2026-07-20T09:21:44.122Z"
+      "updatedAt": "2026-07-21T22:39:19.975Z",
+      "startedAt": "2026-07-21T16:57:56.457Z",
+      "failedAt": "2026-07-21T22:37:07.645Z",
+      "failureReason": "Attempt 8 failed at development-build; six earlier phases passed; wrapper emitted BUILD_FAILURE_EVIDENCE_FORWARD_ERROR (markerCount=1 stdoutByteCount=65536 stderrByteCount=1311). Log .omx/handoff/g004-story-acceptance-attempt-8.log sha256 f9c9d0192cb13fb7d13fcaa7cfe655d5ca49bde150ffb6eadf0c185decbe9c05; failure handoff .omx/handoff/g004-story-attempt-8-failure.md sha256 1580402eae92620ea15d038c74940180ff0e9222785f8f1bc912ecce74f67b2d; authorized attempt consumed, no retry.",
+      "steeringStatus": "superseded",
+      "supersededBy": [
+        "G011-complete-g004-after-build-failure-tr"
+      ],
+      "steeringEvidence": ".omx/handoff/g004-story-acceptance-attempt-8.log sha256 f9c9d0192cb13fb7d13fcaa7cfe655d5ca49bde150ffb6eadf0c185decbe9c05: six phases passed; development-build returned one truncated marker with stdoutByteCount=65536. The runner uses console.log immediately before rethrow while the reviewed parent already has a synchronous chunked writer.",
+      "steeringRationale": "Replace the failed G004 story with the smallest auditable repair story while retaining its existing story acceptance, independent review, cleanup, and UltraQA requirements."
     },
     {
       "id": "G001-freeze-independent-oracles",
@@ -82,5 +151,5 @@
     }
   ],
   "codexObjective": "Complete the durable ultragoal plan in .omx/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .omx/ultragoal/ledger.jsonl as the audit trail.",
-  "activeGoalId": "G003-implement-bounded-native-runtime"
+  "activeGoalId": "G011-complete-g004-after-build-failure-tr"
 }

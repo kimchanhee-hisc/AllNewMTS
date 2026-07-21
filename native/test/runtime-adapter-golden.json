@@ -1,0 +1,1 @@
+{"commands":[],"diagnostics":[],"schemaVersion":1,"snapshot":{"event":"Noop","lifecycle":"OPEN","revision":"1","runtimeId":"1","state":{"controls":{"Action":{"properties":{"border":"none","dfgcolor":"black","enabled":false},"type":"Button"},"Input":{"properties":{"caption":"initial"},"type":"Edit"}},"data":{}},"status":"ok"}}

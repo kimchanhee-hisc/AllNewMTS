@@ -1,13 +1,13 @@
 import { EventSubscription, requireNativeModule } from 'expo-modules-core';
 
 export type RuntimeAdmission = { code: string; runtimeId: string; reservedRevision: string };
-type RuntimeResultEvent = { runtimeId: string; canonicalJSON: string };
+export type RuntimeResultEvent = { runtimeId: string; canonicalJSON: string };
 
-type NativeRuntime = {
+export type RuntimeBinding = {
   create(config: string): Promise<RuntimeAdmission>;
   dispatch(runtimeId: string, event: string): RuntimeAdmission;
   destroy(runtimeId: string): Promise<RuntimeAdmission>;
-  addListener(event: 'onRuntimeResult', listener: (value: RuntimeResultEvent) => void): EventSubscription;
+  addListener(event: 'onRuntimeResult', listener: (value: unknown) => void): EventSubscription;
 };
 
-export const runtime = requireNativeModule<NativeRuntime>('AllNewMTSRuntime');
+export const runtime = requireNativeModule<RuntimeBinding>('AllNewMTSRuntime');

@@ -2,6 +2,7 @@
 #define ALLNEWMTS_RUNTIME_LUA_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -75,6 +76,7 @@ int allnewmts_lua_load_entry(lua_State *state, void *runtime,
                             const char *path, size_t path_size);
 int allnewmts_lua_call_handler(lua_State *state,
                               const AllNewMTSLuaInvocation *invocation);
+int allnewmts_lua_validate_boundary(lua_State *state, void *runtime);
 void allnewmts_lua_set_budget_hook(lua_State *state, int instruction_interval);
 void allnewmts_lua_clear_budget_hook(lua_State *state);
 
@@ -88,10 +90,12 @@ int allnewmts_runtime_lua_control_call(AllNewMTSLuaControlRef *control,
                                       AllNewMTSLuaValue *value);
 int allnewmts_runtime_lua_prepare_request(void *runtime, lua_State *state,
                                          const char **transaction,
-                                         size_t *transaction_size);
+                                         size_t *transaction_size,
+                                         uint64_t *request_token);
 int allnewmts_runtime_lua_finish_request(void *runtime,
                                         const char *transaction,
                                         size_t transaction_size,
+                                        uint64_t request_token,
                                         int nested_status);
 int allnewmts_runtime_lua_prepare_dofile(void *runtime, lua_State *state,
                                         const AllNewMTSResource **resource,

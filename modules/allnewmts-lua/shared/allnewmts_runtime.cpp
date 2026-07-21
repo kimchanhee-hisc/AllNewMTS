@@ -25,6 +25,7 @@ extern "C" {
 #include <map>
 #include <memory>
 #include <mutex>
+#include <new>
 #include <set>
 #include <string>
 #include <string_view>
@@ -39,7 +40,7 @@ constexpr size_t kCommittedBytes = 8u * 1024u * 1024u;
 constexpr size_t kConfigBytes = 4u * 1024u * 1024u;
 constexpr size_t kDiagnosticBytes = 64u * 1024u;
 constexpr size_t kEventBytes = 256u * 1024u;
-constexpr uint64_t kHookInstructions = 10000;
+constexpr uint64_t kHookInstructions = 1;
 constexpr uint64_t kInstructionLimit = 1000000;
 constexpr auto kDeadline = std::chrono::milliseconds(500);
 constexpr size_t kPendingBytes = 4u * 1024u * 1024u;
@@ -337,6 +338,11 @@ bool decimalU64(const Json *value, uint64_t &output, bool allow_zero = false) {
 }
 
 std::string decimal(uint64_t value) { return std::to_string(value); }
+size_t decimalDigits(uint64_t value) {
+  size_t digits = 1;
+  while (value >= 10) { value /= 10; ++digits; }
+  return digits;
+}
 
 bool canonicalResourcePath(const std::string &path) {
   if (path.empty() || path[0] == '/' || path.find('\\') != std::string::npos || path.find('\0') != std::string::npos) return false;
@@ -558,28 +564,9 @@ bool parseEvent(const uint8_t *bytes, size_t size, Event &event) {
   return true;
 }
 
-Json hostStateJson(const HostState &state) {
-  Json result = Json::objectValue(), controls = Json::objectValue(), data = Json::objectValue();
-  for (const auto &entry : state.controls) {
-    Json control = Json::objectValue(), properties = Json::objectValue();
-    control.object["type"] = Json::stringValue(entry.second.type);
-    for (const auto &property : entry.second.properties) properties.object[property.first] = scalarJson(property.second);
-    control.object["properties"] = std::move(properties); controls.object[entry.first] = std::move(control);
-  }
-  for (const auto &entry : state.data) {
-    Json value = Json::objectValue();
-    value.object["block"] = Json::stringValue(entry.first.block);
-    value.object["field"] = Json::stringValue(entry.first.field);
-    value.object["index"] = Json::stringValue(decimal(entry.first.index));
-    value.object["transaction"] = Json::stringValue(entry.first.transaction);
-    value.object["value"] = scalarJson(entry.second);
-    auto part=[](const std::string &value){return decimal(value.size())+":"+value;};
-    std::string key = part(entry.first.transaction)+part(entry.first.block)+
-                      part(decimal(entry.first.index))+part(entry.first.field);
-    data.object[key] = std::move(value);
-  }
-  result.object["controls"] = std::move(controls); result.object["data"] = std::move(data); return result;
-}
+struct Stage;
+
+Json hostStateJson(const HostState &state, const Stage *overlay = nullptr);
 
 struct Stage {
   std::map<std::string, std::map<std::string, Scalar>> controls;
@@ -588,7 +575,7 @@ struct Stage {
   std::vector<Json> commands, diagnostics;
   std::map<uint64_t, std::string> tokens;
   size_t charged = 0;
-  uint64_t maximum_token = 0;
+  uint64_t maximum_token = 0, provisional_token = 0;
   bool close_requested = false, duplicate_close_reported = false,
        in_send_before = false, reserve_close_command = false;
   bool charge(size_t bytes) {
@@ -606,6 +593,44 @@ struct Stage {
   }
 };
 
+Json hostStateJson(const HostState &state, const Stage *overlay) {
+  Json result = Json::objectValue(), controls = Json::objectValue(), data = Json::objectValue();
+  for (const auto &entry : state.controls) {
+    Json control = Json::objectValue(), properties = Json::objectValue();
+    control.object["type"] = Json::stringValue(entry.second.type);
+    for (const auto &property : entry.second.properties) {
+      const Scalar *value = &property.second;
+      if (overlay) {
+        auto staged_control = overlay->controls.find(entry.first);
+        if (staged_control != overlay->controls.end()) {
+          auto staged_property = staged_control->second.find(property.first);
+          if (staged_property != staged_control->second.end()) value = &staged_property->second;
+        }
+      }
+      properties.object[property.first] = scalarJson(*value);
+    }
+    control.object["properties"] = std::move(properties); controls.object[entry.first] = std::move(control);
+  }
+  auto appendData = [&](const auto &entry) {
+    Json value = Json::objectValue();
+    value.object["block"] = Json::stringValue(entry.first.block);
+    value.object["field"] = Json::stringValue(entry.first.field);
+    value.object["index"] = Json::stringValue(decimal(entry.first.index));
+    value.object["transaction"] = Json::stringValue(entry.first.transaction);
+    value.object["value"] = scalarJson(entry.second);
+    auto part=[](const std::string &value){return decimal(value.size())+":"+value;};
+    std::string key = part(entry.first.transaction)+part(entry.first.block)+
+                      part(decimal(entry.first.index))+part(entry.first.field);
+    data.object[key] = std::move(value);
+  };
+  for (const auto &entry : state.data) {
+    if (overlay && (overlay->cleared_transactions.count(entry.first.transaction) || overlay->data.count(entry.first))) continue;
+    appendData(entry);
+  }
+  if (overlay) for (const auto &entry : overlay->data) appendData(entry);
+  result.object["controls"] = std::move(controls); result.object["data"] = std::move(data); return result;
+}
+
 enum class Lifecycle { Open, Closing, Closed, Invalid };
 const char *lifecycleName(Lifecycle value) {
   switch (value) { case Lifecycle::Open: return "OPEN"; case Lifecycle::Closing: return "CLOSING"; case Lifecycle::Closed: return "CLOSED"; case Lifecycle::Invalid: return "INVALID"; }
@@ -620,6 +645,26 @@ std::atomic<uint64_t> next_runtime_id{1}, next_token_id{1};
 #ifdef ALLNEWMTS_RUNTIME_TESTING
 std::atomic<size_t> next_allocator_limit{kAllocatorBytes};
 #endif
+
+bool allocateIdentifier(std::atomic<uint64_t> &counter, uint64_t &identifier) {
+  uint64_t candidate = counter.load(std::memory_order_relaxed);
+  for (;;) {
+    if (!candidate) return false;
+    uint64_t next = candidate == std::numeric_limits<uint64_t>::max()
+        ? 0
+        : candidate + 1;
+    if (counter.compare_exchange_weak(candidate, next,
+                                      std::memory_order_relaxed,
+                                      std::memory_order_relaxed)) {
+      identifier = candidate;
+      return true;
+    }
+  }
+}
+
+bool instructionLimitExceeded(uint64_t instructions) {
+  return instructions > kInstructionLimit;
+}
 
 class Runtime : public std::enable_shared_from_this<Runtime> {
  public:
@@ -670,10 +715,12 @@ class Runtime : public std::enable_shared_from_this<Runtime> {
       }
       if (found->second != event.transaction) return {ALLNEWMTS_RUNTIME_WRONG_TRANSACTION, id_, 0};
     }
+    uint32_t admission_failure=1;
+    if (native_failure_.compare_exchange_strong(admission_failure,0)) return {ALLNEWMTS_RUNTIME_RESOURCE_LIMIT, id_, 0};
     uint64_t revision=admission_revision_+1;
     event.revision=revision;
     try { queue_.push_back(std::move(event)); } catch (...) { return {ALLNEWMTS_RUNTIME_RESOURCE_LIMIT,id_,0}; }
-    if(queue_.back().kind!=EventKind::Handler)tokens_.erase(queue_.back().token);
+    if(queue_.back().kind!=EventKind::Handler){tokens_.erase(queue_.back().token);outstanding_tokens_.store(tokens_.size(),std::memory_order_release);}
     admission_revision_=revision;pending_bytes_+=queue_.back().encoded_bytes;cv_.notify_one();
     return {ALLNEWMTS_RUNTIME_OK, id_, admission_revision_};
   }
@@ -690,7 +737,7 @@ class Runtime : public std::enable_shared_from_this<Runtime> {
   Stage *stage() { return stage_; }
   const Config &config() const { return config_; }
   bool loading() const { return loading_; }
-  bool budgetExpired() const { return timed_out_ || instruction_count_ > kInstructionLimit || std::chrono::steady_clock::now() > deadline_; }
+  bool budgetExpired() const { return timed_out_ || instructionLimitExceeded(instruction_count_.load()) || std::chrono::steady_clock::now() > deadline_; }
   bool budgetTick() { instruction_count_.fetch_add(kHookInstructions);if(budgetExpired()){timed_out_=true;return true;}return false; }
   bool hostReady() const { return !loading_&&stage_&&!budgetExpired(); }
   bool stageLimited() const { return stage_limit_; }
@@ -729,22 +776,37 @@ class Runtime : public std::enable_shared_from_this<Runtime> {
     }
     stage_->close_requested = true;
   }
-  bool issueRequest(const std::string &transaction);
+  bool prepareRequest(uint64_t &token) {
+    if (outstanding_tokens_.load(std::memory_order_acquire) + stage_->tokens.size() >= kTokens ||
+        stage_->provisional_token || !allocateIdentifier(next_token_id, token)) {
+      stage_limit_ = true;
+      return false;
+    }
+    stage_->provisional_token = token;
+#ifdef ALLNEWMTS_RUNTIME_TESTING
+    pausePreparedRequest();
+#endif
+    return true;
+  }
+  bool issueRequest(std::string_view transaction, uint64_t token);
   bool dataCount(const std::string &transaction,const std::string &block,uint64_t &count) const {
     bool declared=false;for(const FieldKey &field:config_.fields)if(field.transaction==transaction&&field.block==block){declared=true;break;}if(!declared)return false;
     count=0;for(const auto &entry:committed_.data)if(entry.first.transaction==transaction&&entry.first.block==block&&!stage_->cleared_transactions.count(transaction)&&!stage_->data.count(entry.first))count=std::max(count,entry.first.index+1);
     for(const auto &entry:stage_->data)if(entry.first.transaction==transaction&&entry.first.block==block)count=std::max(count,entry.first.index+1);return true;
   }
-  std::mutex &intakeMutex(){return mutex_;}
-  size_t tokenCount() const{return tokens_.size();}
 #ifdef ALLNEWMTS_RUNTIME_TESTING
   void setAllocatorLimit(size_t value){allocator_limit_.store(value);}
+  void failNextNativeAllocation(uint32_t phase){native_failure_.store(phase);}
+  void armRequestPause(){std::lock_guard<std::mutex> lock(request_test_mutex_);pause_request_=true;request_prepared_=false;resume_request_=false;}
+  bool waitRequestPrepared(){std::unique_lock<std::mutex> lock(request_test_mutex_);return request_test_cv_.wait_for(lock,std::chrono::seconds(2),[this]{return request_prepared_;});}
+  void resumeRequest(){std::lock_guard<std::mutex> lock(request_test_mutex_);resume_request_=true;request_test_cv_.notify_all();}
 #endif
 
 #ifdef ALLNEWMTS_RUNTIME_TESTING
   void counters(AllNewMTSRuntimeTestCounters &out) {
     std::lock_guard<std::mutex> lock(mutex_); out.allocator_current=allocated_.load(); out.allocator_peak=peak_.load(); out.committed_bytes=committed_bytes_;
-    out.staged_bytes=stage_?stage_->charged:0; out.staged_commands=stage_?stage_->commands.size():0; out.pending_events=queue_.size(); out.pending_bytes=pending_bytes_; out.outstanding_tokens=tokens_.size();
+    out.staged_bytes=stage_?stage_->charged:0; out.staged_commands=stage_?stage_->commands.size():0; out.pending_events=queue_.size(); out.pending_bytes=pending_bytes_; out.outstanding_tokens=outstanding_tokens_.load();
+    out.outstanding_token_bytes=0;for(const auto &token:tokens_)out.outstanding_token_bytes+=token.second.size();out.last_staged_bytes=last_staged_bytes_;out.token_commit_copied_bytes=token_commit_copied_bytes_;
   }
 #endif
 
@@ -759,29 +821,36 @@ class Runtime : public std::enable_shared_from_this<Runtime> {
  private:
   void releaseContext() { if (owns_context_.exchange(false) && release_) release_(context_); }
   void clearPendingLocked() { queue_.clear(); pending_bytes_=0; }
-  void cancelTokensLocked() { if (!tokens_.empty()) canceled_token_=std::max(canceled_token_,tokens_.rbegin()->first); tokens_.clear(); }
+  void cancelTokensLocked() { if (!tokens_.empty()) canceled_token_=std::max(canceled_token_,tokens_.rbegin()->first); tokens_.clear(); outstanding_tokens_.store(0,std::memory_order_release); }
   bool loadEntry(uint32_t &code);
   bool runEvent(Event &event, bool internal);
-  bool freeze(Event &event, bool ok, Lifecycle shown, const char *next, const std::vector<Json> &commands, const std::vector<Json> &diagnostics, const HostState &state, std::string &encoded);
+  bool freeze(Event &event, bool ok, Lifecycle shown, const char *next, std::vector<Json> commands, std::vector<Json> diagnostics, const HostState &state, const Stage *overlay, std::string &encoded, size_t *state_bytes = nullptr);
   void deliver(const std::string &encoded) { if(sink_)sink_(context_,id_,reinterpret_cast<const uint8_t *>(encoded.data()),encoded.size()); }
   void workerMain();
   void invalidate(Event &event, const char *diagnostic, bool closing);
   bool callHandler(const char *name, const Event &event);
-  HostState materialize(const Stage &stage) const;
   void removeRegistry();
   void closeLua() { if (lua_) { allnewmts_lua_clear_budget_hook(lua_); lua_close(lua_); lua_=nullptr; } }
   void beginBudget() { allocation_failed_=false; timed_out_=false; stage_limit_=false; failure_code_=nullptr; instruction_count_=0; deadline_=std::chrono::steady_clock::now()+kDeadline; allnewmts_lua_set_budget_hook(lua_,static_cast<int>(kHookInstructions)); }
   void endBudget() { if (lua_) allnewmts_lua_clear_budget_hook(lua_); }
+#ifdef ALLNEWMTS_RUNTIME_TESTING
+  void pausePreparedRequest(){std::unique_lock<std::mutex> lock(request_test_mutex_);if(!pause_request_)return;request_prepared_=true;request_test_cv_.notify_all();request_test_cv_.wait(lock,[this]{return resume_request_;});pause_request_=false;}
+#endif
 
   uint64_t id_; std::vector<uint8_t> config_bytes_; Config config_; HostState committed_; size_t committed_bytes_=0;
   AllNewMTSRuntimeOutputSink sink_; AllNewMTSRuntimeReleaseContext release_; void *context_; std::atomic<bool> owns_context_{false};
   lua_State *lua_=nullptr; Stage *stage_=nullptr; bool loading_=true, allocation_failed_=false, timed_out_=false, stage_limit_=false;
   const char *failure_code_=nullptr;
   std::atomic<size_t> allocated_{0},peak_{0},allocator_limit_{kAllocatorBytes}; std::atomic<uint64_t> instruction_count_{0}; std::chrono::steady_clock::time_point deadline_;
+  std::atomic<uint32_t> native_failure_{0};
   std::mutex mutex_; std::condition_variable cv_,ready_cv_; std::deque<Event> queue_; size_t pending_bytes_=0;
-  uint64_t admission_revision_=0,published_revision_=0,issued_token_=0,canceled_token_=0; std::map<uint64_t,std::string> tokens_;
+  uint64_t admission_revision_=0,published_revision_=0,issued_token_=0,canceled_token_=0; std::map<uint64_t,std::string> tokens_; std::atomic<size_t> outstanding_tokens_{0};
+  size_t last_staged_bytes_=0,token_commit_copied_bytes_=0;
   Lifecycle lifecycle_=Lifecycle::Open; bool destroy_requested_=false,ready_=false; uint32_t init_code_=ALLNEWMTS_RUNTIME_LOAD_ERROR;
   std::thread worker_; std::thread::id worker_id_;
+#ifdef ALLNEWMTS_RUNTIME_TESTING
+  std::mutex request_test_mutex_; std::condition_variable request_test_cv_; bool pause_request_=false,request_prepared_=false,resume_request_=false;
+#endif
 };
 
 void Runtime::removeRegistry(){std::lock_guard<std::mutex> lock(registry_mutex);auto found=registry.find(id_);if(found!=registry.end()&&found->second.get()==this)registry.erase(found);}
@@ -863,12 +932,12 @@ extern "C" int allnewmts_runtime_lua_control_call(AllNewMTSLuaControlRef *ref,in
   });
 }
 
-extern "C" int allnewmts_runtime_lua_prepare_request(void *opaque,lua_State *state,const char **transaction,size_t *size){
-  auto *runtime=static_cast<Runtime *>(opaque);if(!runtime||!state||!transaction||!size)return ALLNEWMTS_LUA_ARGUMENT;
-  return caught([&]{if(!runtime->hostReady()||lua_gettop(state)!=1||runtime->stage()->in_send_before)return ALLNEWMTS_LUA_ARGUMENT;const char *value=nullptr;size_t amount=0;if(lua_type(state,1)!=LUA_TSTRING||(value=lua_tolstring(state,1,&amount))==nullptr||amount>kEventBytes)return ALLNEWMTS_LUA_ARGUMENT;std::string key(value,amount);bool declared=false;for(const FieldKey &field:runtime->config().fields)if(field.transaction==key){declared=true;break;}if(!declared)return ALLNEWMTS_LUA_LOOKUP;{std::lock_guard<std::mutex> lock(runtime->intakeMutex());if(runtime->tokenCount()+runtime->stage()->tokens.size()>=kTokens)return ALLNEWMTS_LUA_LIMIT;}runtime->stage()->in_send_before=true;*transaction=value;*size=amount;return ALLNEWMTS_LUA_OK;});
+extern "C" int allnewmts_runtime_lua_prepare_request(void *opaque,lua_State *state,const char **transaction,size_t *size,uint64_t *token){
+  auto *runtime=static_cast<Runtime *>(opaque);if(!runtime||!state||!transaction||!size||!token)return ALLNEWMTS_LUA_ARGUMENT;
+  return caught([&]{if(!runtime->hostReady()||lua_gettop(state)!=1||runtime->stage()->in_send_before)return ALLNEWMTS_LUA_ARGUMENT;const char *value=nullptr;size_t amount=0;if(lua_type(state,1)!=LUA_TSTRING||(value=lua_tolstring(state,1,&amount))==nullptr||amount>kEventBytes)return ALLNEWMTS_LUA_ARGUMENT;bool declared=false;for(const FieldKey &field:runtime->config().fields)if(field.transaction.size()==amount&&std::memcmp(field.transaction.data(),value,amount)==0){declared=true;break;}if(!declared)return ALLNEWMTS_LUA_LOOKUP;if(!runtime->prepareRequest(*token))return ALLNEWMTS_LUA_LIMIT;runtime->stage()->in_send_before=true;*transaction=value;*size=amount;return ALLNEWMTS_LUA_OK;});
 }
-extern "C" int allnewmts_runtime_lua_finish_request(void *opaque,const char *transaction,size_t size,int nested){
-  auto *runtime=static_cast<Runtime *>(opaque);if(!runtime)return ALLNEWMTS_LUA_ARGUMENT;runtime->stage()->in_send_before=false;if(nested!=ALLNEWMTS_LUA_OK)return nested;return caught([&]{return runtime->issueRequest(std::string(transaction,size))?ALLNEWMTS_LUA_OK:(runtime->stageLimited()?ALLNEWMTS_LUA_LIMIT:ALLNEWMTS_LUA_LOOKUP);});
+extern "C" int allnewmts_runtime_lua_finish_request(void *opaque,const char *transaction,size_t size,uint64_t token,int nested){
+  auto *runtime=static_cast<Runtime *>(opaque);if(!runtime)return ALLNEWMTS_LUA_ARGUMENT;runtime->stage()->in_send_before=false;if(nested!=ALLNEWMTS_LUA_OK){runtime->stage()->provisional_token=0;return nested;}return caught([&]{return runtime->issueRequest(std::string_view(transaction,size),token)?ALLNEWMTS_LUA_OK:(runtime->stageLimited()?ALLNEWMTS_LUA_LIMIT:ALLNEWMTS_LUA_LOOKUP);});
 }
 extern "C" int allnewmts_runtime_lua_prepare_dofile(void *opaque,lua_State *state,const AllNewMTSResource **resource,const char **path,size_t *size){
   auto *runtime=static_cast<Runtime *>(opaque);if(!runtime||!state||!resource||!path||!size)return ALLNEWMTS_LUA_ARGUMENT;
@@ -882,37 +951,50 @@ extern "C" int allnewmts_runtime_lua_event_strings(const void *opaque,AllNewMTSL
 bool Runtime::loadEntry(uint32_t &code) {
   code=ALLNEWMTS_RUNTIME_LOAD_ERROR;lua_=lua_newstate(allocate,this);if(!lua_){code=ALLNEWMTS_RUNTIME_RESOURCE_LIMIT;return false;}
   beginBudget();int status=allnewmts_lua_install(lua_,this);const AllNewMTSResource *resource=nullptr;
-  if(!status){resource=allnewmts_resource(config_.entry_path.data(),config_.entry_path.size());if(!resource){endBudget();code=ALLNEWMTS_RUNTIME_RESOURCE_NOT_FOUND;return false;}unsigned char hash[32];allnewmts_sha256(resource->bytes,resource->size,hash);if(std::memcmp(hash,resource->sha256,32)!=0||std::memcmp(hash,config_.entry_hash,32)!=0){endBudget();code=ALLNEWMTS_RUNTIME_RESOURCE_HASH_MISMATCH;return false;}status=allnewmts_lua_load_entry(lua_,this,resource,config_.entry_path.data(),config_.entry_path.size());}
+  if(!status){resource=allnewmts_resource(config_.entry_path.data(),config_.entry_path.size());if(!resource){endBudget();code=ALLNEWMTS_RUNTIME_RESOURCE_NOT_FOUND;return false;}unsigned char hash[32];allnewmts_sha256(resource->bytes,resource->size,hash);if(std::memcmp(hash,resource->sha256,32)!=0||std::memcmp(hash,config_.entry_hash,32)!=0){endBudget();code=ALLNEWMTS_RUNTIME_RESOURCE_HASH_MISMATCH;return false;}status=allnewmts_lua_load_entry(lua_,this,resource,config_.entry_path.data(),config_.entry_path.size());if(!status)status=allnewmts_lua_validate_boundary(lua_,this);}
   endBudget();if(status){code=(allocation_failed_||timed_out_)?ALLNEWMTS_RUNTIME_RESOURCE_LIMIT:ALLNEWMTS_RUNTIME_LOAD_ERROR;return false;}lua_settop(lua_,0);loading_=false;code=ALLNEWMTS_RUNTIME_OK;return true;
 }
 
 bool Runtime::callHandler(const char *name,const Event &event) {
-  size_t size=event.kind==EventKind::Handler?event.handler.size():std::strlen(name);AllNewMTSLuaInvocation call{this,&event,name,size,event.kind==EventKind::InternalClose};int status=allnewmts_lua_call_handler(lua_,&call);if(status){if(!failure_code_)failure_code_="LUA_ERROR";return false;}lua_settop(lua_,0);return !budgetExpired();
+  size_t size=event.kind==EventKind::Handler?event.handler.size():std::strlen(name);AllNewMTSLuaInvocation call{this,&event,name,size,event.kind==EventKind::InternalClose};int status=allnewmts_lua_call_handler(lua_,&call);if(!status)status=allnewmts_lua_validate_boundary(lua_,this);if(status){if(!failure_code_)failure_code_="LUA_ERROR";return false;}lua_settop(lua_,0);return !budgetExpired();
 }
 
-bool Runtime::issueRequest(const std::string &transaction) {
-  uint64_t token=next_token_id.fetch_add(1);if(!token){stage_limit_=true;return false;}
-  size_t charge=transaction.size()+8*kContainerCharge;
-  auto count=[&](const DataKey &key,const Scalar &value){if(key.transaction==transaction)charge+=key.block.size()+key.field.size()+decimal(key.index).size()+(value.kind==Scalar::Kind::String?value.string.size():sizeof(value))+5*kContainerCharge;};
-  for(const auto &entry:committed_.data)if(!stage_->cleared_transactions.count(transaction)&&!stage_->data.count(entry.first))count(entry.first,entry.second);
-  for(const auto &entry:stage_->data)count(entry.first,entry.second);
-  if(!stage_->reserveCommand(charge)){stage_limit_=true;return false;}
-  Json command=Json::objectValue(),blocks=Json::arrayValue();std::map<std::pair<std::string,uint64_t>,Json> grouped;
-  auto append=[&](const DataKey &key,const Scalar &value){if(key.transaction!=transaction)return;auto group=std::make_pair(key.block,key.index);Json &row=grouped[group];if(row.kind!=Json::Kind::Object){row=Json::objectValue();row.object["block"]=Json::stringValue(key.block);row.object["index"]=Json::stringValue(decimal(key.index));row.object["values"]=Json::objectValue();}row.object["values"].object[key.field]=scalarJson(value);};
-  for(const auto &entry:committed_.data)if(!stage_->cleared_transactions.count(transaction)&&!stage_->data.count(entry.first))append(entry.first,entry.second);
-  for(const auto &entry:stage_->data)append(entry.first,entry.second);
+bool Runtime::issueRequest(std::string_view transaction, uint64_t token) {
+  if (!token || stage_->provisional_token != token) { stage_limit_=true; return false; }
+  stage_->provisional_token=0;
+  auto charge=[&](size_t bytes){if(!stage_->charge(bytes)){stage_limit_=true;return false;}return true;};
+  if(stage_->commands.size()>=kStageCommands-(stage_->reserve_close_command?1:0) ||
+     !charge(transaction.size()*2+decimalDigits(token)+decimalDigits(id_)+8*kContainerCharge))return false;
+  Json command=Json::objectValue(),blocks=Json::arrayValue();
+  std::map<std::pair<std::string_view,uint64_t>,Json> grouped;
+  auto append=[&](const DataKey &key,const Scalar &value){
+    if(key.transaction.size()!=transaction.size()||std::memcmp(key.transaction.data(),transaction.data(),transaction.size())!=0)return true;
+    auto group=std::make_pair(std::string_view(key.block),key.index);auto found=grouped.find(group);
+    if(found==grouped.end()){
+      if(!charge(key.block.size()+decimalDigits(key.index)+5*kContainerCharge))return false;
+      std::string index=decimal(key.index);
+      Json row=Json::objectValue();row.object["block"]=Json::stringValue(key.block);row.object["index"]=Json::stringValue(std::move(index));row.object["values"]=Json::objectValue();found=grouped.emplace(group,std::move(row)).first;
+    }
+    size_t scalar_bytes=value.kind==Scalar::Kind::String?value.string.size():sizeof(value);
+    if(!charge(key.field.size()+scalar_bytes+2*kContainerCharge))return false;
+    found->second.object["values"].object[key.field]=scalarJson(value);return true;
+  };
+  bool cleared=false;for(const auto &value:stage_->cleared_transactions)if(value.size()==transaction.size()&&std::memcmp(value.data(),transaction.data(),transaction.size())==0){cleared=true;break;}
+  for(const auto &entry:committed_.data)if(!cleared&&!stage_->data.count(entry.first)&&!append(entry.first,entry.second))return false;
+  for(const auto &entry:stage_->data)if(!append(entry.first,entry.second))return false;
   for(auto &entry:grouped)blocks.array.push_back(std::move(entry.second));
-  command.object["blocks"]=std::move(blocks);command.object["requestToken"]=Json::stringValue(decimal(token));command.object["runtimeId"]=Json::stringValue(decimal(id_));command.object["tranId"]=Json::stringValue(transaction);command.object["type"]=Json::stringValue("requestTranData");
-  stage_->commands.push_back(std::move(command));stage_->tokens.emplace(token,transaction);stage_->maximum_token=std::max(stage_->maximum_token,token);return true;
+  command.object["blocks"]=std::move(blocks);command.object["requestToken"]=Json::stringValue(decimal(token));command.object["runtimeId"]=Json::stringValue(decimal(id_));command.object["tranId"]=Json::stringValue(std::string(transaction));command.object["type"]=Json::stringValue("requestTranData");
+  stage_->commands.push_back(std::move(command));auto inserted=stage_->tokens.emplace(token,std::string(transaction));if(!inserted.second){stage_limit_=true;return false;}stage_->maximum_token=std::max(stage_->maximum_token,token);return true;
 }
 
-bool Runtime::freeze(Event &event,bool ok,Lifecycle shown,const char *next,const std::vector<Json> &commands,const std::vector<Json> &diagnostics,const HostState &state,std::string &encoded) {
+bool Runtime::freeze(Event &event,bool ok,Lifecycle shown,const char *next,std::vector<Json> commands,std::vector<Json> diagnostics,const HostState &state,const Stage *overlay,std::string &encoded,size_t *state_bytes) {
   try {
   Json root=Json::objectValue(),snapshot=Json::objectValue(),commandArray=Json::arrayValue(),diagnosticArray=Json::arrayValue();
   for(const Json &diagnostic:diagnostics){std::string bytes;if(!encodeJson(diagnostic,bytes,kDiagnosticBytes))return false;}
-  commandArray.array=commands; diagnosticArray.array=diagnostics;
+  commandArray.array=std::move(commands); diagnosticArray.array=std::move(diagnostics);
   std::string eventName=event.kind==EventKind::Handler?event.handler:(event.kind==EventKind::Complete?"transactionComplete":(event.kind==EventKind::Error?"transactionError":"Form_OnFormClose"));
-  snapshot.object["event"]=Json::stringValue(eventName); snapshot.object["lifecycle"]=Json::stringValue(lifecycleName(shown)); snapshot.object["revision"]=Json::stringValue(decimal(event.revision)); snapshot.object["runtimeId"]=Json::stringValue(decimal(id_)); snapshot.object["state"]=hostStateJson(state); snapshot.object["status"]=Json::stringValue(ok?"ok":"error");
+  Json state_json=hostStateJson(state,overlay);std::string state_encoded;if(!encodeJson(state_json,state_encoded,kCommittedBytes))return false;if(state_bytes)*state_bytes=state_encoded.size();
+  snapshot.object["event"]=Json::stringValue(eventName); snapshot.object["lifecycle"]=Json::stringValue(lifecycleName(shown)); snapshot.object["revision"]=Json::stringValue(decimal(event.revision)); snapshot.object["runtimeId"]=Json::stringValue(decimal(id_)); snapshot.object["state"]=std::move(state_json); snapshot.object["status"]=Json::stringValue(ok?"ok":"error");
   root.object["commands"]=std::move(commandArray); root.object["diagnostics"]=std::move(diagnosticArray); if(next)root.object["nextLifecycle"]=Json::stringValue(next); root.object["schemaVersion"]=Json::numberValue(1); root.object["snapshot"]=std::move(snapshot);
   return encodeJson(root,encoded,kCommittedBytes+kStageBytes+kDiagnosticBytes);
   } catch (...) { encoded.clear(); return false; }
@@ -923,18 +1005,10 @@ void Runtime::invalidate(Event &event,const char *diagnostic,bool closing) {
   Json detail=Json::objectValue(); detail.object["code"]=Json::stringValue(diagnostic); detail.object["event"]=Json::stringValue(event.kind==EventKind::Handler&&event.handler.size()<=1024?event.handler:"runtime"); detail.object["source"]=Json::stringValue("supervisor");
   std::vector<Json> commands{std::move(command)},diagnostics{std::move(detail)};
   if(closing) { Json close=Json::objectValue();close.object["type"]=Json::stringValue("closeForm");commands.push_back(std::move(close)); }
-  std::string encoded;if(freeze(event,false,closing?Lifecycle::Closing:Lifecycle::Open,"INVALID",commands,diagnostics,committed_,encoded))deliver(encoded);
+  std::string encoded;if(freeze(event,false,closing?Lifecycle::Closing:Lifecycle::Open,"INVALID",std::move(commands),std::move(diagnostics),committed_,nullptr,encoded))deliver(encoded);
   { std::lock_guard<std::mutex> lock(mutex_); lifecycle_=Lifecycle::Invalid; clearPendingLocked(); cancelTokensLocked(); }
   closeLua(); releaseContext();
   removeRegistry();
-}
-
-HostState Runtime::materialize(const Stage &stage) const {
-  HostState next=committed_;
-  for(auto it=next.data.begin();it!=next.data.end();)it=stage.cleared_transactions.count(it->first.transaction)?next.data.erase(it):std::next(it);
-  for(const auto &entry:stage.data)next.data[entry.first]=entry.second;
-  for(const auto &control:stage.controls){auto found=next.controls.find(control.first);if(found==next.controls.end())continue;for(const auto &property:control.second)found->second.properties[property.first]=property.second;}
-  return next;
 }
 
 bool Runtime::runEvent(Event &event,bool internal) {
@@ -944,13 +1018,15 @@ bool Runtime::runEvent(Event &event,bool internal) {
   const char *handler=event.kind==EventKind::Handler?event.handler.data():(event.kind==EventKind::Complete?"DATAMANAGER_OnReceiveTranComplete":(event.kind==EventKind::Error?"DATAMANAGER_OnReceiveTranError":"Form_OnFormClose"));
   if(ok)ok=callHandler(handler,event);endBudget();
   if(!ok||allocation_failed_||timed_out_||stage_limit_){const char *code=timed_out_?"EXECUTION_TIMEOUT":((allocation_failed_||stage_limit_)?"RESOURCE_LIMIT":(failure_code_?failure_code_:"LUA_ERROR"));stage_=nullptr;invalidate(event,code,internal);return false;}
-  HostState nextState=materialize(stage);Json serialized=hostStateJson(nextState);std::string bytes;if(!encodeJson(serialized,bytes,kCommittedBytes)){stage_=nullptr;invalidate(event,"RESOURCE_LIMIT",internal);return false;}
   if(internal){Json close=Json::objectValue();close.object["type"]=Json::stringValue("closeForm");stage.commands.push_back(std::move(close));}
-  const char *next=internal?"CLOSED":(stage.close_requested?"CLOSING":nullptr);std::string output;
-  if(!freeze(event,true,internal?Lifecycle::Closing:Lifecycle::Open,next,stage.commands,stage.diagnostics,nextState,output)){stage_=nullptr;invalidate(event,"RESOURCE_LIMIT",internal);return false;}
+  const char *next=internal?"CLOSED":(stage.close_requested?"CLOSING":nullptr);std::string output;size_t state_bytes=0;
+  if(!freeze(event,true,internal?Lifecycle::Closing:Lifecycle::Open,next,std::move(stage.commands),std::move(stage.diagnostics),committed_,&stage,output,&state_bytes)){stage_=nullptr;invalidate(event,"RESOURCE_LIMIT",internal);return false;}
   {
-    std::lock_guard<std::mutex> lock(mutex_);std::map<uint64_t,std::string> nextTokens=tokens_;for(const auto &token:stage.tokens)nextTokens.emplace(token.first,token.second);
-    std::swap(committed_,nextState);committed_bytes_=bytes.size();tokens_.swap(nextTokens);issued_token_=std::max(issued_token_,stage.maximum_token);published_revision_=event.revision;
+    std::lock_guard<std::mutex> lock(mutex_);uint32_t commit_failure=2;if(native_failure_.compare_exchange_strong(commit_failure,0))throw std::bad_alloc();for(const auto &token:stage.tokens)if(tokens_.count(token.first))throw std::bad_alloc();tokens_.merge(stage.tokens);if(!stage.tokens.empty())throw std::bad_alloc();
+    for(auto it=committed_.data.begin();it!=committed_.data.end();)it=stage.cleared_transactions.count(it->first.transaction)?committed_.data.erase(it):std::next(it);
+    while(!stage.data.empty()){auto node=stage.data.extract(stage.data.begin());committed_.data.erase(node.key());committed_.data.insert(std::move(node));}
+    for(auto &control:stage.controls){auto found=committed_.controls.find(control.first);if(found==committed_.controls.end())continue;for(auto &property:control.second){auto value=found->second.properties.find(property.first);if(value!=found->second.properties.end())value->second=std::move(property.second);}}
+    committed_bytes_=state_bytes;outstanding_tokens_.store(tokens_.size(),std::memory_order_release);issued_token_=std::max(issued_token_,stage.maximum_token);published_revision_=event.revision;last_staged_bytes_=stage.charged;token_commit_copied_bytes_=0;
   }
   deliver(output);
   if(internal){std::lock_guard<std::mutex> lock(mutex_);lifecycle_=Lifecycle::Closed;clearPendingLocked();cancelTokensLocked();}
@@ -992,14 +1068,14 @@ void Runtime::workerMain() {
 extern "C" AllNewMTSRuntimeResult allnewmts_runtime_create(const uint8_t *config_json,size_t config_json_size,AllNewMTSRuntimeOutputSink sink,AllNewMTSRuntimeReleaseContext release_context,void *context) {
   try {
   if(!config_json||!config_json_size||config_json_size>kConfigBytes||!sink||!release_context) return {config_json_size>kConfigBytes?ALLNEWMTS_RUNTIME_RESOURCE_LIMIT:ALLNEWMTS_RUNTIME_INVALID_ARGUMENT,0,0};
-  uint64_t id=next_runtime_id.fetch_add(1); if(!id)return {ALLNEWMTS_RUNTIME_RESOURCE_LIMIT,0,0};
+  uint64_t id=0; if(!allocateIdentifier(next_runtime_id,id))return {ALLNEWMTS_RUNTIME_RESOURCE_LIMIT,0,0};
   size_t allocator_limit=kAllocatorBytes;
 #ifdef ALLNEWMTS_RUNTIME_TESTING
   allocator_limit=next_allocator_limit.exchange(kAllocatorBytes);
 #endif
   std::vector<uint8_t> bytes(config_json,config_json+config_json_size); auto runtime=std::make_shared<Runtime>(id,std::move(bytes),sink,release_context,context,allocator_limit);
   uint32_t code=runtime->start(); if(code!=ALLNEWMTS_RUNTIME_OK)return {code,0,0};
-  try { std::lock_guard<std::mutex> lock(registry_mutex);registry[id]=runtime; }
+  try { std::lock_guard<std::mutex> lock(registry_mutex);if(!registry.emplace(id,runtime).second){runtime->destroy();return {ALLNEWMTS_RUNTIME_RESOURCE_LIMIT,0,0};} }
   catch (...) { runtime->destroy(); return {ALLNEWMTS_RUNTIME_RESOURCE_LIMIT,0,0}; }
   runtime->takeContext(); return {ALLNEWMTS_RUNTIME_OK,id,0};
   } catch (...) { return {ALLNEWMTS_RUNTIME_RESOURCE_LIMIT,0,0}; }
@@ -1031,4 +1107,12 @@ extern "C" int allnewmts_runtime_test_counters(uint64_t runtime_id,AllNewMTSRunt
 }
 extern "C" void allnewmts_runtime_test_next_lua_allocator_limit(size_t bytes){next_allocator_limit.store(bytes);}
 extern "C" int allnewmts_runtime_test_lua_allocator_limit(uint64_t runtime_id,size_t bytes){std::shared_ptr<Runtime> runtime;{std::lock_guard<std::mutex> lock(registry_mutex);auto found=registry.find(runtime_id);if(found==registry.end())return 0;runtime=found->second;}runtime->setAllocatorLimit(bytes);return 1;}
+extern "C" int allnewmts_runtime_test_fail_next_native_allocation(uint64_t runtime_id,uint32_t phase){if(phase!=1&&phase!=2)return 0;std::shared_ptr<Runtime> runtime;{std::lock_guard<std::mutex> lock(registry_mutex);auto found=registry.find(runtime_id);if(found==registry.end())return 0;runtime=found->second;}runtime->failNextNativeAllocation(phase);return 1;}
+extern "C" int allnewmts_runtime_test_instruction_limit_exceeded(uint64_t instructions){return instructionLimitExceeded(instructions)?1:0;}
+extern "C" int allnewmts_runtime_test_stage_charge(size_t charged,size_t bytes,size_t *result){if(!result||charged>kStageBytes)return 0;Stage stage;stage.charged=charged;if(!stage.charge(bytes))return 0;*result=stage.charged;return 1;}
+extern "C" void allnewmts_runtime_test_set_next_runtime_id(uint64_t next_id){next_runtime_id.store(next_id);}
+extern "C" void allnewmts_runtime_test_set_next_token_id(uint64_t next_id){next_token_id.store(next_id);}
+extern "C" int allnewmts_runtime_test_pause_next_request(uint64_t runtime_id){std::shared_ptr<Runtime> runtime;{std::lock_guard<std::mutex> lock(registry_mutex);auto found=registry.find(runtime_id);if(found==registry.end())return 0;runtime=found->second;}runtime->armRequestPause();return 1;}
+extern "C" int allnewmts_runtime_test_wait_request_prepared(uint64_t runtime_id){std::shared_ptr<Runtime> runtime;{std::lock_guard<std::mutex> lock(registry_mutex);auto found=registry.find(runtime_id);if(found==registry.end())return 0;runtime=found->second;}return runtime->waitRequestPrepared()?1:0;}
+extern "C" int allnewmts_runtime_test_resume_request(uint64_t runtime_id){std::shared_ptr<Runtime> runtime;{std::lock_guard<std::mutex> lock(registry_mutex);auto found=registry.find(runtime_id);if(found==registry.end())return 0;runtime=found->second;}runtime->resumeRequest();return 1;}
 #endif

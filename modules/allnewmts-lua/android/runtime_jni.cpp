@@ -1,9 +1,19 @@
 #include <jni.h>
 #include <cstdlib>
+#include <new>
 
 #include "allnewmts_runtime_adapters.h"
 
-struct RuntimeContext { JavaVM *vm; jobject module; };
+struct RuntimeContext { JavaVM *vm = nullptr; jobject module = nullptr; };
+
+static bool attach(RuntimeContext *context, JNIEnv **environment, bool *attached) {
+  *attached = false;
+  if (!context || !context->vm) return false;
+  if (context->vm->GetEnv(reinterpret_cast<void **>(environment), JNI_VERSION_1_6) == JNI_OK) return true;
+  if (context->vm->AttachCurrentThread(environment, nullptr) != JNI_OK) return false;
+  *attached = true;
+  return true;
+}
 
 static jlongArray result(JNIEnv *environment, AllNewMTSRuntimeResult value) {
   jlong values[3] = {(jlong)value.code, (jlong)value.runtime_id, (jlong)value.reserved_revision};
@@ -13,6 +23,7 @@ static jlongArray result(JNIEnv *environment, AllNewMTSRuntimeResult value) {
 static bool runtimeId(JNIEnv *environment, jstring input, uint64_t *output) {
   if (!input) return false;
   const char *bytes = environment->GetStringUTFChars(input, nullptr);
+  if (!bytes) return false;
   jsize size = environment->GetStringUTFLength(input);
   uint32_t code = allnewmts_runtime_adapter_parse_id(
       reinterpret_cast<const uint8_t *>(bytes), static_cast<size_t>(size), output);
@@ -22,32 +33,40 @@ static bool runtimeId(JNIEnv *environment, jstring input, uint64_t *output) {
 
 static void output(void *opaque, uint64_t runtime_id, const uint8_t *bytes, size_t size) {
   RuntimeContext *context = static_cast<RuntimeContext *>(opaque); JNIEnv *environment = nullptr; bool attached = false;
-  if (context->vm->GetEnv((void **)&environment, JNI_VERSION_1_6) != JNI_OK) { if (context->vm->AttachCurrentThread(&environment, nullptr) != JNI_OK) return; attached = true; }
-  jclass type = environment->GetObjectClass(context->module); jmethodID method = environment->GetMethodID(type, "nativeEmit", "(J[B)V");
+  if (!attach(context, &environment, &attached)) return;
+  jclass type = environment->GetObjectClass(context->module); jmethodID method = type ? environment->GetMethodID(type, "nativeEmit", "(J[B)V") : nullptr;
   jbyteArray data = environment->NewByteArray((jsize)size); if (data) environment->SetByteArrayRegion(data, 0, (jsize)size, reinterpret_cast<const jbyte *>(bytes));
   if (method && data) environment->CallVoidMethod(context->module, method, (jlong)runtime_id, data);
-  if (environment->ExceptionCheck()) environment->ExceptionClear(); if (data) environment->DeleteLocalRef(data); environment->DeleteLocalRef(type);
+  if (environment->ExceptionCheck()) environment->ExceptionClear(); if (data) environment->DeleteLocalRef(data); if (type) environment->DeleteLocalRef(type);
   if (attached) context->vm->DetachCurrentThread();
 }
 
 static void release(void *opaque) {
   RuntimeContext *context = static_cast<RuntimeContext *>(opaque); JNIEnv *environment = nullptr; bool attached = false;
-  if (context->vm->GetEnv((void **)&environment, JNI_VERSION_1_6) != JNI_OK) { if (context->vm->AttachCurrentThread(&environment, nullptr) != JNI_OK) return; attached = true; }
-  environment->DeleteGlobalRef(context->module); if (attached) context->vm->DetachCurrentThread(); delete context;
+  if (!context) return;
+  if (!attach(context, &environment, &attached)) { delete context; return; }
+  if (context->module) environment->DeleteGlobalRef(context->module); if (attached) context->vm->DetachCurrentThread(); delete context;
 }
 
 extern "C" JNIEXPORT jlongArray JNICALL
 Java_com_allnewmts_lua_AllNewMTSRuntimeModule_nativeCreate(JNIEnv *environment, jobject module, jbyteArray input) {
+  if (!input) return result(environment, {ALLNEWMTS_RUNTIME_INVALID_ARGUMENT, 0, 0});
   jsize size = environment->GetArrayLength(input); jbyte *bytes = environment->GetByteArrayElements(input, nullptr);
-  RuntimeContext *context = new RuntimeContext(); environment->GetJavaVM(&context->vm); context->module = environment->NewGlobalRef(module);
+  RuntimeContext *context = new (std::nothrow) RuntimeContext();
+  if (!bytes || !context || environment->GetJavaVM(&context->vm) != JNI_OK || !(context->module = environment->NewGlobalRef(module))) {
+    if (bytes) environment->ReleaseByteArrayElements(input, bytes, JNI_ABORT);
+    if (context) release(context);
+    return result(environment, {ALLNEWMTS_RUNTIME_RESOURCE_LIMIT, 0, 0});
+  }
   AllNewMTSRuntimeResult value = allnewmts_runtime_android_create(reinterpret_cast<uint8_t *>(bytes), (size_t)size, output, release, context);
   environment->ReleaseByteArrayElements(input, bytes, JNI_ABORT); if (value.code != ALLNEWMTS_RUNTIME_OK) release(context); return result(environment, value);
 }
 extern "C" JNIEXPORT jlongArray JNICALL
 Java_com_allnewmts_lua_AllNewMTSRuntimeModule_nativeDispatch(JNIEnv *environment, jobject, jstring runtime_text, jbyteArray input) {
   uint64_t runtime_id = 0;
-  if (!runtimeId(environment, runtime_text, &runtime_id)) return result(environment, {ALLNEWMTS_RUNTIME_INVALID_ARGUMENT, 0, 0});
+  if (!input || !runtimeId(environment, runtime_text, &runtime_id)) return result(environment, {ALLNEWMTS_RUNTIME_INVALID_ARGUMENT, 0, 0});
   jsize size = environment->GetArrayLength(input); jbyte *bytes = environment->GetByteArrayElements(input, nullptr);
+  if (!bytes) return result(environment, {ALLNEWMTS_RUNTIME_RESOURCE_LIMIT, runtime_id, 0});
   AllNewMTSRuntimeResult value = allnewmts_runtime_android_dispatch((uint64_t)runtime_id, reinterpret_cast<uint8_t *>(bytes), (size_t)size);
   environment->ReleaseByteArrayElements(input, bytes, JNI_ABORT); return result(environment, value);
 }

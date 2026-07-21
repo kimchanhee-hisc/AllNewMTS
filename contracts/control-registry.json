@@ -16,6 +16,13 @@
       "diagnostic": "UNSUPPORTED_INPUT_ROLE"
     }
   ],
+  "form": {
+    "properties": [
+      { "name": "name", "policy": "identifier", "required": true, "default": null, "maxBytes": 128 },
+      { "name": "bgcolor", "policy": "encoded-color", "required": true, "default": null, "maxBytes": 13 },
+      { "name": "ly_vert", "policy": "layout", "required": true, "default": null, "maxBytes": 21 }
+    ]
+  },
   "controls": [
     {
       "id": "label",
@@ -23,11 +30,17 @@
       "sourceTags": ["LABEL"],
       "semanticFamilies": [],
       "normalizedType": "Label",
-      "properties": ["name", "caption", "fontsize", "fontstyle", "ly_vert"],
+      "properties": [
+        { "name": "name", "policy": "identifier", "required": true, "default": null, "maxBytes": 128 },
+        { "name": "caption", "policy": "text", "required": true, "default": null, "maxBytes": 2048 },
+        { "name": "fontsize", "policy": "font-size", "required": false, "default": "omit", "maxBytes": 3 },
+        { "name": "fontstyle", "policy": "font-style", "required": false, "default": "omit", "maxBytes": 2 },
+        { "name": "ly_vert", "policy": "layout", "required": true, "default": null, "maxBytes": 21 }
+      ],
       "mutableProperties": [],
       "events": [],
       "capabilities": ["text", "layout", "accessibility-label"],
-      "fallback": "reject-undeclared",
+      "undeclared": "reject",
       "diagnostic": null
     },
     {
@@ -36,11 +49,26 @@
       "sourceTags": ["EDIT"],
       "semanticFamilies": [],
       "normalizedType": "Edit",
-      "properties": ["name", "caption", "hintcaption", "imetype", "maxlength", "leadheight", "paddinginfo", "ly_vert"],
+      "properties": [
+        { "name": "name", "policy": "identifier", "required": true, "default": null, "maxBytes": 128 },
+        { "name": "caption", "policy": "text", "required": false, "default": "empty-string", "maxBytes": 2048 },
+        { "name": "hintcaption", "policy": "text", "required": true, "default": null, "maxBytes": 2048 },
+        { "name": "imetype", "policy": "input-mode", "required": true, "default": null, "maxBytes": 1 },
+        { "name": "maxlength", "policy": "max-length", "required": true, "default": null, "maxBytes": 6 },
+        { "name": "leadheight", "policy": "lead-height", "required": true, "default": null, "maxBytes": 1 },
+        { "name": "paddinginfo", "policy": "padding", "required": true, "default": null, "maxBytes": 19 },
+        { "name": "ly_vert", "policy": "layout", "required": true, "default": null, "maxBytes": 21 }
+      ],
       "mutableProperties": ["caption"],
-      "events": ["OnEditComplete"],
+      "events": [
+        {
+          "name": "OnEditComplete",
+          "handlerSuffix": "_OnEditComplete",
+          "controlMutations": [{ "property": "caption", "valueSource": "value" }]
+        }
+      ],
       "capabilities": ["text-input", "layout", "focus", "accessibility-label"],
-      "fallback": "reject-undeclared",
+      "undeclared": "reject",
       "diagnostic": null
     },
     {
@@ -49,11 +77,26 @@
       "sourceTags": ["BUTTON"],
       "semanticFamilies": ["CtlButton"],
       "normalizedType": "Button",
-      "properties": ["name", "caption", "enable", "fgcolor", "bgcolor", "fontsize", "bordersize", "ly_vert"],
+      "properties": [
+        { "name": "name", "policy": "identifier", "required": true, "default": null, "maxBytes": 128 },
+        { "name": "caption", "policy": "text", "required": true, "default": null, "maxBytes": 2048 },
+        { "name": "enable", "policy": "enabled", "required": false, "default": "enabled", "maxBytes": 1 },
+        { "name": "fgcolor", "policy": "encoded-color", "required": true, "default": null, "maxBytes": 13 },
+        { "name": "bgcolor", "policy": "encoded-color", "required": false, "default": "native-default", "maxBytes": 13 },
+        { "name": "fontsize", "policy": "font-size", "required": true, "default": null, "maxBytes": 3 },
+        { "name": "bordersize", "policy": "border-size", "required": false, "default": "zero", "maxBytes": 3 },
+        { "name": "ly_vert", "policy": "layout", "required": true, "default": null, "maxBytes": 21 }
+      ],
       "mutableProperties": ["border", "dfgcolor", "enable"],
-      "events": ["OnClick"],
+      "events": [
+        {
+          "name": "OnClick",
+          "handlerSuffix": "_OnClick",
+          "controlMutations": []
+        }
+      ],
       "capabilities": ["press", "enabled-state", "SetRadius", "layout", "accessibility-button"],
-      "fallback": "missing-enable-is-enabled;reject-undeclared",
+      "undeclared": "reject",
       "diagnostic": null
     },
     {
@@ -66,8 +109,24 @@
       "mutableProperties": [],
       "events": [],
       "capabilities": [],
-      "fallback": "reject",
+      "undeclared": "reject",
       "diagnostic": "UNSUPPORTED_CONTROL_TYPE"
     }
+  ],
+  "policies": [
+    { "id": "identifier", "coercion": "identifier", "projection": "data", "unsupported": "reject", "warning": null },
+    { "id": "text", "coercion": "bounded-text", "projection": "data", "unsupported": "reject", "warning": null },
+    { "id": "layout", "coercion": "layout-rect", "projection": "logical-pixels", "unsupported": "reject", "warning": null },
+    { "id": "enabled", "coercion": "zero-one-boolean", "projection": "enabled", "unsupported": "reject", "warning": null },
+    { "id": "max-length", "coercion": "canonical-decimal-1-262144", "projection": "max-length", "unsupported": "reject", "warning": null },
+    { "id": "padding", "coercion": "padding-quad-0-1024", "projection": "logical-pixels", "unsupported": "reject", "warning": null },
+    { "id": "input-mode", "coercion": "exact-zero", "projection": "native-default", "unsupported": "reject", "warning": null },
+    { "id": "lead-height", "coercion": "exact-zero", "projection": "native-default", "unsupported": "reject", "warning": null },
+    { "id": "encoded-color", "coercion": "encoded-rgb", "projection": "rgb", "unsupported": "reject", "warning": null },
+    { "id": "border-size", "coercion": "canonical-decimal-0-255", "projection": "logical-pixels", "unsupported": "reject", "warning": null },
+    { "id": "font-size", "coercion": "ascii-digits-1-3", "projection": "omit", "unsupported": "omit-with-warning", "warning": "UNSUPPORTED_PRESENTATION_CODE" },
+    { "id": "font-style", "coercion": "two-bits", "projection": "omit", "unsupported": "omit-with-warning", "warning": "UNSUPPORTED_PRESENTATION_CODE" },
+    { "id": "runtime-border", "coercion": "runtime-border-token", "projection": "logical-pixels", "unsupported": "reject", "warning": null },
+    { "id": "runtime-disabled-color", "coercion": "runtime-color-token", "projection": "rgb-or-token", "unsupported": "reject", "warning": null }
   ]
 }

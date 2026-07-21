@@ -17,7 +17,21 @@ Pod::Spec.new do |s|
   s.static_framework = true
   s.dependency 'ExpoModulesCore'
   lua_sources = manifest['compiledSources'].map { |path| File.join('vendor', 'lua-5.1.5', path) }
-  s.source_files = ['shared/*.{c,cpp,h}', 'vendor/lua-5.1.5/src/*.h', 'ios/*.{c,h,mm,swift}'] + lua_sources
+  production_sources = [
+    'shared/allnewmts_runtime*.{c,cpp,h}',
+    'shared/resource_bundle.{c,h}',
+    'shared/sha256.{c,h}',
+    'vendor/lua-5.1.5/src/*.h',
+    'ios/AllNewMTSRuntime*.{h,mm,swift}',
+    'ios/allnewmts_runtime_ios_adapter.c'
+  ]
+  verification_sources = ENV['EXPO_PUBLIC_G002_NATIVE_HARNESS'] == '1' ? [
+    'shared/allnewmts_lua.{c,h}',
+    'shared/allnewmts_lua_adapters.h',
+    'ios/AllNewMTSLua*.{h,mm,swift}',
+    'ios/allnewmts_lua_ios_adapter.c'
+  ] : []
+  s.source_files = production_sources + verification_sources + lua_sources
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
     'CLANG_CXX_LANGUAGE_STANDARD' => 'c++17',

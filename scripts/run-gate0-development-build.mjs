@@ -276,6 +276,11 @@ function androidIdentityFromApk(apk) {
 
 export async function runGate0DevelopmentBuild(temp) {
   for (const directory of ['ios', 'android']) assert.equal(fs.existsSync(path.join(root, directory)), false, `refusing to replace existing ${directory}/`);
+  const moduleConfigPath = path.join(root, 'modules/allnewmts-lua/expo-module.config.json');
+  const productionModuleConfig = fs.readFileSync(moduleConfigPath, 'utf8');
+  const verificationModuleConfig = JSON.parse(productionModuleConfig);
+  verificationModuleConfig.apple.modules.unshift('AllNewMTSLuaModule');
+  verificationModuleConfig.android.modules.unshift('com.allnewmts.lua.AllNewMTSLuaModule');
   const apple = appleTarget();
   const android = androidTargets();
   let metro;
@@ -292,6 +297,7 @@ export async function runGate0DevelopmentBuild(temp) {
   let androidSerial;
   let primaryError;
   try {
+    fs.writeFileSync(moduleConfigPath, `${JSON.stringify(verificationModuleConfig, null, 2)}\n`);
     metroReservation = await reserveMetroPort();
     metroPort = metroReservation.port;
     runEnv.RCT_METRO_PORT = String(metroPort);
@@ -416,6 +422,10 @@ export async function runGate0DevelopmentBuild(temp) {
       if (!iosBootedByRunner) return;
       const shutdown = spawnSync('xcrun', ['simctl', 'shutdown', apple.udid], { encoding: 'utf8' });
       assert.equal(shutdown.status, 0, `failed to restore simulator shutdown state: ${shutdown.stderr}`);
+    });
+    await cleanup('verification-only module registration', () => {
+      fs.writeFileSync(moduleConfigPath, productionModuleConfig);
+      assert.equal(fs.readFileSync(moduleConfigPath, 'utf8'), productionModuleConfig, 'production module registration was not restored');
     });
     await cleanup('generated native directories', () => {
       fs.rmSync(path.join(root, 'ios'), { recursive: true, force: true });

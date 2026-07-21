@@ -67,12 +67,25 @@ typedef struct {
   size_t pending_events;
   size_t pending_bytes;
   size_t outstanding_tokens;
+  size_t outstanding_token_bytes;
+  size_t last_staged_bytes;
+  size_t token_commit_copied_bytes;
 } AllNewMTSRuntimeTestCounters;
 int allnewmts_runtime_test_counters(uint64_t runtime_id,
                                     AllNewMTSRuntimeTestCounters *counters);
 void allnewmts_runtime_test_next_lua_allocator_limit(size_t bytes);
 int allnewmts_runtime_test_lua_allocator_limit(uint64_t runtime_id,
                                                size_t bytes);
+int allnewmts_runtime_test_fail_next_native_allocation(uint64_t runtime_id,
+                                                       uint32_t phase);
+int allnewmts_runtime_test_instruction_limit_exceeded(uint64_t instructions);
+int allnewmts_runtime_test_stage_charge(size_t charged, size_t bytes,
+                                        size_t *result);
+void allnewmts_runtime_test_set_next_runtime_id(uint64_t next_id);
+void allnewmts_runtime_test_set_next_token_id(uint64_t next_id);
+int allnewmts_runtime_test_pause_next_request(uint64_t runtime_id);
+int allnewmts_runtime_test_wait_request_prepared(uint64_t runtime_id);
+int allnewmts_runtime_test_resume_request(uint64_t runtime_id);
 #endif
 
 #ifdef __cplusplus

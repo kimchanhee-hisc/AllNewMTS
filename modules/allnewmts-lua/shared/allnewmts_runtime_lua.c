@@ -7,6 +7,36 @@
 #include <string.h>
 
 static char runtime_key;
+static char globals_key;
+static char form_key;
+static char form_members_key;
+static char form_metatable_key;
+static char datamanager_key;
+static char datamanager_members_key;
+static char datamanager_metatable_key;
+static char trim_key;
+static char dofile_key;
+static char control_metatable_key;
+static char controls_key;
+static char protected_metatable_marker;
+
+static int absolute_index(lua_State *state, int index) {
+  return index > 0 || index <= LUA_REGISTRYINDEX
+      ? index
+      : lua_gettop(state) + index + 1;
+}
+
+static void save_registry(lua_State *state, void *key, int index) {
+  index = absolute_index(state, index);
+  lua_pushlightuserdata(state, key);
+  lua_pushvalue(state, index);
+  lua_rawset(state, LUA_REGISTRYINDEX);
+}
+
+static void push_registry(lua_State *state, void *key) {
+  lua_pushlightuserdata(state, key);
+  lua_rawget(state, LUA_REGISTRYINDEX);
+}
 
 void *allnewmts_lua_runtime(lua_State *state) {
   void *runtime;
@@ -61,23 +91,26 @@ static int host_trim(lua_State *state) { return host(state, ALLNEWMTS_LUA_TRIM);
 static int host_request(lua_State *state) {
   const char *transaction = NULL;
   size_t transaction_size = 0;
+  uint64_t request_token = 0;
   int status = allnewmts_runtime_lua_prepare_request(
-      allnewmts_lua_runtime(state), state, &transaction, &transaction_size);
+      allnewmts_lua_runtime(state), state, &transaction, &transaction_size,
+      &request_token);
   if (status != ALLNEWMTS_LUA_OK) return fail(state, status);
-  lua_settop(state, 0);
   lua_getglobal(state, "DATAMANAGER_OnSendTranBefore");
   if (!lua_isfunction(state, -1)) {
     lua_pop(state, 1);
     status = ALLNEWMTS_LUA_LOOKUP;
   } else {
-    lua_pushlstring(state, transaction, transaction_size);
+    lua_pushvalue(state, 1);
     status = lua_pcall(state, 1, 0, 0) == 0 ? ALLNEWMTS_LUA_OK : ALLNEWMTS_LUA_RAISE;
   }
   status = allnewmts_runtime_lua_finish_request(allnewmts_lua_runtime(state),
                                                 transaction, transaction_size,
+                                                request_token,
                                                 status);
   if (status == ALLNEWMTS_LUA_RAISE) return lua_error(state);
   if (status != ALLNEWMTS_LUA_OK) return fail(state, status);
+  lua_settop(state, 0);
   return 0;
 }
 
@@ -113,8 +146,32 @@ static void clear_global(lua_State *state, const char *name) {
   lua_setglobal(state, name);
 }
 
+static void protect_metatable(lua_State *state) {
+  lua_pushlightuserdata(state, &protected_metatable_marker);
+  lua_setfield(state, -2, "__metatable");
+}
+
+static void save_members(lua_State *state, int table_index,
+                         const char *const *names, size_t count, void *key) {
+  size_t index;
+  table_index = absolute_index(state, table_index);
+  lua_newtable(state);
+  for (index = 0; index < count; ++index) {
+    lua_pushstring(state, names[index]);
+    lua_rawget(state, table_index);
+    lua_setfield(state, -2, names[index]);
+  }
+  save_registry(state, key, -1);
+  lua_pop(state, 1);
+}
+
 static int install_frame(lua_State *state) {
   void *runtime = lua_touserdata(state, 1);
+  static const char *const form_members[] = {
+      "GetOpenLinkData", "GetSharedData", "GetItemCodeInfo", "MsgBoxEx",
+      "Toast", "SendReturnToParent", "CloseForm"};
+  static const char *const datamanager_members[] = {
+      "RequestTranData", "SetDataValue", "GetDataCount", "GetDataValue"};
   size_t index, count;
   lua_pushlightuserdata(state, &runtime_key);
   lua_pushlightuserdata(state, runtime);
@@ -123,9 +180,14 @@ static int install_frame(lua_State *state) {
   luaopen_table(state); lua_settop(state, 1);
   luaopen_string(state); lua_settop(state, 1);
   luaopen_math(state); lua_settop(state, 1);
+  lua_pushvalue(state, LUA_GLOBALSINDEX);
+  save_registry(state, &globals_key, -1);
+  lua_pop(state, 1);
   clear_global(state, "loadfile"); clear_global(state, "package");
   clear_global(state, "io"); clear_global(state, "os"); clear_global(state, "debug");
-  lua_pushcfunction(state, host_trim); lua_setglobal(state, "Trim");
+  lua_pushcfunction(state, host_trim);
+  save_registry(state, &trim_key, -1);
+  lua_setglobal(state, "Trim");
 
   lua_newtable(state);
   set_function(state, "GetOpenLinkData", host_get_open);
@@ -135,8 +197,14 @@ static int install_frame(lua_State *state) {
   set_function(state, "Toast", host_toast);
   set_function(state, "SendReturnToParent", host_return);
   set_function(state, "CloseForm", host_close);
+  save_members(state, -1, form_members,
+               sizeof(form_members) / sizeof(form_members[0]),
+               &form_members_key);
   lua_newtable(state); set_function(state, "__index", deny_member);
-  set_function(state, "__newindex", deny_member); lua_setmetatable(state, -2);
+  set_function(state, "__newindex", deny_member); protect_metatable(state);
+  save_registry(state, &form_metatable_key, -1);
+  lua_setmetatable(state, -2);
+  save_registry(state, &form_key, -1);
   lua_setglobal(state, "Form");
 
   lua_newtable(state);
@@ -144,14 +212,28 @@ static int install_frame(lua_State *state) {
   set_function(state, "SetDataValue", host_set_data);
   set_function(state, "GetDataCount", host_get_count);
   set_function(state, "GetDataValue", host_get_value);
+  save_members(state, -1, datamanager_members,
+               sizeof(datamanager_members) / sizeof(datamanager_members[0]),
+               &datamanager_members_key);
   lua_newtable(state); set_function(state, "__index", deny_member);
-  set_function(state, "__newindex", deny_member); lua_setmetatable(state, -2);
+  set_function(state, "__newindex", deny_member); protect_metatable(state);
+  save_registry(state, &datamanager_metatable_key, -1);
+  lua_setmetatable(state, -2);
+  save_registry(state, &datamanager_key, -1);
   lua_setglobal(state, "DATAMANAGER");
 
-  lua_pushcfunction(state, runtime_dofile); lua_setglobal(state, "dofile");
+  lua_pushcfunction(state, runtime_dofile);
+  save_registry(state, &dofile_key, -1);
+  lua_setglobal(state, "dofile");
   luaL_newmetatable(state, "AllNewMTS.Control");
   set_function(state, "__index", control_index);
   set_function(state, "__newindex", control_newindex);
+  protect_metatable(state);
+  save_registry(state, &control_metatable_key, -1);
+  lua_pop(state, 1);
+
+  lua_newtable(state);
+  save_registry(state, &controls_key, -1);
   lua_pop(state, 1);
 
   count = allnewmts_runtime_lua_control_count(runtime);
@@ -169,9 +251,17 @@ static int install_frame(lua_State *state) {
     control->runtime = runtime; control->id = id; control->id_size = id_size;
     luaL_getmetatable(state, "AllNewMTS.Control");
     lua_setmetatable(state, -2);
+
+    push_registry(state, &controls_key);
     lua_pushlstring(state, id, id_size);
-    lua_insert(state, -2);
-    lua_settable(state, LUA_GLOBALSINDEX);
+    lua_pushvalue(state, -3);
+    lua_rawset(state, -3);
+    lua_pop(state, 1);
+
+    lua_pushlstring(state, id, id_size);
+    lua_pushvalue(state, -2);
+    lua_rawset(state, LUA_GLOBALSINDEX);
+    lua_pop(state, 1);
   }
   return 0;
 }
@@ -189,6 +279,7 @@ static int runtime_dofile(lua_State *state) {
   if (luaL_loadbuffer(state, (const char *)resource->bytes, resource->size,
                       lua_tostring(state, -1)) != 0)
     return lua_error(state);
+  lua_remove(state, -2);
   lua_remove(state, 1);
   if (lua_pcall(state, 0, LUA_MULTRET, 0) != 0) return lua_error(state);
   return lua_gettop(state);
@@ -196,6 +287,126 @@ static int runtime_dofile(lua_State *state) {
 
 int allnewmts_lua_install(lua_State *state, void *runtime) {
   return lua_cpcall(state, install_frame, runtime);
+}
+
+static int raw_global_matches_registry(lua_State *state, const char *name,
+                                       void *key) {
+  int equal;
+  lua_pushstring(state, name);
+  lua_rawget(state, LUA_GLOBALSINDEX);
+  push_registry(state, key);
+  equal = lua_rawequal(state, -1, -2);
+  lua_pop(state, 2);
+  return equal;
+}
+
+static size_t raw_table_count(lua_State *state, int table_index) {
+  size_t count = 0;
+  table_index = absolute_index(state, table_index);
+  lua_pushnil(state);
+  while (lua_next(state, table_index) != 0) {
+    ++count;
+    lua_pop(state, 1);
+  }
+  return count;
+}
+
+static int raw_members_match(lua_State *state, int table_index, void *key) {
+  int expected_index;
+  table_index = absolute_index(state, table_index);
+  push_registry(state, key);
+  expected_index = lua_gettop(state);
+  if (!lua_istable(state, expected_index) ||
+      raw_table_count(state, table_index) != raw_table_count(state, expected_index)) {
+    lua_pop(state, 1);
+    return 0;
+  }
+  lua_pushnil(state);
+  while (lua_next(state, expected_index) != 0) {
+    int equal;
+    lua_pushvalue(state, -2);
+    lua_rawget(state, table_index);
+    equal = lua_rawequal(state, -1, -2);
+    lua_pop(state, 2);
+    if (!equal) {
+      lua_pop(state, 2);
+      return 0;
+    }
+  }
+  lua_pop(state, 1);
+  return 1;
+}
+
+static int metatable_matches(lua_State *state, int value_index, void *key) {
+  int equal;
+  value_index = absolute_index(state, value_index);
+  if (!lua_getmetatable(state, value_index)) return 0;
+  push_registry(state, key);
+  equal = lua_rawequal(state, -1, -2);
+  lua_pop(state, 2);
+  return equal;
+}
+
+static int host_table_valid(lua_State *state, const char *name, void *table_key,
+                            void *members_key, void *metatable_key) {
+  int valid;
+  if (!raw_global_matches_registry(state, name, table_key)) return 0;
+  lua_pushstring(state, name);
+  lua_rawget(state, LUA_GLOBALSINDEX);
+  valid = lua_istable(state, -1) &&
+          raw_members_match(state, -1, members_key) &&
+          metatable_matches(state, -1, metatable_key);
+  lua_pop(state, 1);
+  return valid;
+}
+
+static int validate_boundary_frame(lua_State *state) {
+  void *runtime = lua_touserdata(state, 1);
+  const char *absent[] = {"loadfile", "package", "io", "os", "debug"};
+  size_t index, count;
+  if (lua_getmetatable(state, LUA_GLOBALSINDEX))
+    return luaL_error(state, "HOST_LOOKUP_MISS");
+  if (!raw_global_matches_registry(state, "_G", &globals_key) ||
+      !host_table_valid(state, "Form", &form_key, &form_members_key,
+                        &form_metatable_key) ||
+      !host_table_valid(state, "DATAMANAGER", &datamanager_key,
+                        &datamanager_members_key,
+                        &datamanager_metatable_key) ||
+      !raw_global_matches_registry(state, "Trim", &trim_key) ||
+      !raw_global_matches_registry(state, "dofile", &dofile_key))
+    return luaL_error(state, "HOST_LOOKUP_MISS");
+  for (index = 0; index < sizeof(absent) / sizeof(absent[0]); ++index) {
+    lua_pushstring(state, absent[index]);
+    lua_rawget(state, LUA_GLOBALSINDEX);
+    if (!lua_isnil(state, -1)) return luaL_error(state, "HOST_LOOKUP_MISS");
+    lua_pop(state, 1);
+  }
+  count = allnewmts_runtime_lua_control_count(runtime);
+  for (index = 0; index < count; ++index) {
+    const char *id = NULL;
+    size_t id_size = 0;
+    AllNewMTSLuaControlRef *control;
+    if (!allnewmts_runtime_lua_control(runtime, index, &id, &id_size))
+      return luaL_error(state, "RESOURCE_LIMIT");
+    push_registry(state, &controls_key);
+    lua_pushlstring(state, id, id_size);
+    lua_rawget(state, -2);
+    lua_pushlstring(state, id, id_size);
+    lua_rawget(state, LUA_GLOBALSINDEX);
+    control = (AllNewMTSLuaControlRef *)lua_touserdata(state, -1);
+    if (!lua_rawequal(state, -1, -2) || lua_type(state, -1) != LUA_TUSERDATA ||
+        lua_objlen(state, -1) != sizeof(*control) || !control ||
+        control->runtime != runtime || control->id_size != id_size ||
+        memcmp(control->id, id, id_size) != 0 ||
+        !metatable_matches(state, -1, &control_metatable_key))
+      return luaL_error(state, "HOST_LOOKUP_MISS");
+    lua_pop(state, 3);
+  }
+  return 0;
+}
+
+int allnewmts_lua_validate_boundary(lua_State *state, void *runtime) {
+  return lua_cpcall(state, validate_boundary_frame, runtime);
 }
 
 typedef struct {

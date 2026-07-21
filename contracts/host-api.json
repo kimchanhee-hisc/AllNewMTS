@@ -877,7 +877,7 @@
       ],
       "returns": [
         {
-          "type": "string",
+          "type": "string-or-number",
           "count": "1"
         }
       ],

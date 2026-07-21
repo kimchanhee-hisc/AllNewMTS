@@ -223,20 +223,26 @@
       "command": "npm run verify:ui",
       "argv": [
         "node",
-        "scripts/verify-foundation.mjs",
-        "deferred",
-        "ui"
+        "scripts/verify-ui.mjs"
       ],
       "owner": "G004-build-generic-xmf-ui-path",
-      "activation": "deferred",
+      "activation": "active",
       "risk": "ui",
       "inputs": [
-        "future shared renderer"
+        "approved original, frozen synthetic, and temporary unseen XMF bytes",
+        "closed XMF grammar and control registry policies",
+        "generic parser, renderer, runtime client, App composition, and generated asset",
+        "production Swift/Kotlin module bodies through verification-only stubs",
+        "exact-version cached React Native dependency and Hermes V1 artifacts",
+        "one offline iOS simulator Development Build"
       ],
       "outputs": [
-        "DEFERRED(G004-build-generic-xmf-ui-path)"
+        "five targeted phase diagnostics and independent contract/policy evidence",
+        "module parity and bounded Development Build composition evidence",
+        "read-only exact Pod cache preflight and runner-owned local artifact evidence",
+        "PID-scoped sampled network and owned cleanup evidence"
       ],
-      "budgetSeconds": 30
+      "budgetSeconds": 1200
     },
     {
       "id": "package",
@@ -293,7 +299,7 @@
     },
     {
       "id": "G004-build-generic-xmf-ui-path",
-      "activation": "deferred",
+      "activation": "active",
       "checks": [
         "ui"
       ],
@@ -344,7 +350,8 @@
         "fixtures",
         "provenance",
         "native",
-        "runtime"
+        "runtime",
+        "ui"
       ],
       "budgetSeconds": 2700,
       "readinessClaim": "milestone"
@@ -373,7 +380,7 @@
     },
     {
       "id": "ui",
-      "status": "deferred",
+      "status": "active",
       "owner": "G004-build-generic-xmf-ui-path",
       "requiredForMilestone": true
     },
@@ -399,15 +406,15 @@
     },
     {
       "path": "docs/specs/xmf-lua-runtime.md",
-      "sha256": "15c85b6d42ccf67631a87fccc939eb184b1ebdc78b71508b6d54da7eb30465b1"
+      "sha256": "aa25920a84f227f52f478c5bc56f5dad2d0c2485f60ad884d59826e4d302d0fc"
     },
     {
       "path": "docs/specs/runtime-contract.md",
-      "sha256": "4962270109002476e6ed5993cdf0e7e36bf5e9798cf92244b754e72fb39381cd"
+      "sha256": "4b220751c723309b86dcd56872eb05325152f50974b3a7d56a0fec30f9ff7080"
     },
     {
       "path": "docs/testing.md",
-      "sha256": "929aa4248bc29aed773eaa4f97edd584225caed6fa6e3d65d9246dd34e3a6bc8"
+      "sha256": "9c06dd19a021d4c8f69c06d4061a34896a5a77749c5d72c9aa27b367dfd8075a"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
@@ -415,27 +422,27 @@
     },
     {
       "path": "contracts/host-api.json",
-      "sha256": "ec5b6ee875451ec42aefcc2f764f487a4f6a72e3b6f54675d76fd28eedcfc34b"
+      "sha256": "c6bfaed6207225dfb40e90406eb22d6a5a1b1f08aea9d0db77dccc8cb0fc9b18"
     },
     {
       "path": "contracts/host-api.schema.json",
-      "sha256": "d15f18d2cc17e725c598f1affdc322bec2bf018a121b6686211b071e50bc182c"
+      "sha256": "35f1361204fe2f3436d6f0d2aa8277ce1a5262322127e17924775566b70a6fc5"
     },
     {
       "path": "contracts/runtime-result.schema.json",
-      "sha256": "e105ae7191fae6e460038bf8c39fee4dd962db89d4f7ee171c86c55ce8adb43e"
+      "sha256": "9cc7358ae4eecb07e0fbf27eb775e287ba7a633b361fb90bfe29ad018084874f"
     },
     {
       "path": "contracts/control-registry.json",
-      "sha256": "424f1a6307448bd2052e66c50f44e8d61e39c3710a604eb5baadce5fa7482639"
+      "sha256": "1f337e7c6fc006f0634b79eb92631a04c4c2762c203aa08d4c65b61b8ac6464d"
     },
     {
       "path": "contracts/control-registry.schema.json",
-      "sha256": "9b9315bb7c657727144a8f147f1479f19b28ec093e4794d51a2980951dd35157"
+      "sha256": "eadd0af03901750ffebc6f49f514a80084e62b7075cbb0232f137e98dbac71f3"
     },
     {
       "path": "native/lua-source-manifest.json",
-      "sha256": "d7d3f1d46204d91b94e18b58a7a0d84e5dd0d8f202992ef7f6c99f71531255df"
+      "sha256": "6353c0a748d7a74b177912d9c3d6655303c3eee09d7bf3820bdcdf5865959a97"
     },
     {
       "path": "native/lua-source-manifest.schema.json",
@@ -447,31 +454,51 @@
     },
     {
       "path": "package.json",
-      "sha256": "b8c3a0d71ec89743764621d8f6d3bd018180376670813b88c93181008232ecaa"
+      "sha256": "8e896e0281fe997f15c09670f45346b057641cda78a79e914982d440782f404d"
+    },
+    {
+      "path": "scripts/generate-g004-assets.mjs",
+      "sha256": "54743900ea6b3a1273d91e20cd107efdc14e6a06e001c808c5923e27ad80c26b"
     },
     {
       "path": "scripts/generate-native-assets.mjs",
       "sha256": "9a787aa15ed9906680a6d9dafda7096a06c868c2d030df3be8ddea125c450751"
     },
     {
+      "path": "scripts/run-g004-development-build.mjs",
+      "sha256": "b73a233c539eda69ac4a96b9c566be3782283d0110471f7df5fe2f709aa8efb1"
+    },
+    {
       "path": "scripts/run-gate0-development-build.mjs",
-      "sha256": "7d58aa68de3b1dbace8661459aa9555bc019f904797c088e8fc59a294d95ba89"
+      "sha256": "e9a96ca971a584ac9d1854fc48ded66436c891cc06c5d32bb8343d7dc5cb2b1e"
     },
     {
       "path": "scripts/verify-foundation.mjs",
-      "sha256": "9ce3a4440bb0360cb878a1ccbe848c377cc8282225d7ccbd8138fb8ec60b6baf"
+      "sha256": "438fa7037b7154265591409c04052bf7a93c516002e1302aaca8c632c131e21d"
     },
     {
       "path": "scripts/verify-native.mjs",
-      "sha256": "0474264e64d5e87280e4be7edbda07458f9436112b4a6c000c50c68b9d267d2c"
+      "sha256": "b5443dd1702dc0a9163249b8fc55f6d92df834c0f1ea21e102e35e91b22b9993"
     },
     {
       "path": "scripts/verify-runtime.mjs",
-      "sha256": "eacc0182e0be7acdad7248f752c4e18ddacdf2b6461bb2d8d618ae626869c05c"
+      "sha256": "2198f593dcd8de88c518295d8066bd54914e0a284c3ab3cddbd935883eb5719d"
+    },
+    {
+      "path": "scripts/verify-ui.mjs",
+      "sha256": "f09f7c5507979c29ecae1f516ee6699f2fbadcb04283c91749dec6e533206092"
     },
     {
       "path": "test/foundation.test.mjs",
-      "sha256": "8386916869e8c9c342d616caf25c9e29e9799c80306de45697101813bfc54be4"
+      "sha256": "cee82c7634f13450a0b809f0f22029b730d4cf2f63082150087a455b254b7ebb"
+    },
+    {
+      "path": "test/g004/g003-baseline.json",
+      "sha256": "2a3f4491ed72c4b0891ed033a3dec1630b4f2dd4a6c2d7ba41ae02dec26b1dd9"
+    },
+    {
+      "path": "test/g004/runtime-client-golden.json",
+      "sha256": "a138134dff80e97af580f1101d6daa3d3cd78d9eb66e2e949238a10332f37075"
     }
   ]
 }

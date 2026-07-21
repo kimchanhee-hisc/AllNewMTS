@@ -252,7 +252,8 @@
             "lua-values",
             "none",
             "number",
-            "string"
+            "string",
+            "string-or-number"
           ]
         },
         "count": {

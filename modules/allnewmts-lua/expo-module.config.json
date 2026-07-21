@@ -5,14 +5,12 @@
   ],
   "apple": {
     "modules": [
-      "AllNewMTSLuaModule",
       "AllNewMTSRuntimeModule"
     ],
     "podspecPath": "AllNewMTSLua.podspec"
   },
   "android": {
     "modules": [
-      "com.allnewmts.lua.AllNewMTSLuaModule",
       "com.allnewmts.lua.AllNewMTSRuntimeModule"
     ]
   }

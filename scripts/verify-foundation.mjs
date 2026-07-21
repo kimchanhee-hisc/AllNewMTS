@@ -42,11 +42,34 @@ function hasType(value, expected) {
 }
 
 export function validateSchema(schema, value, label = '$', document = schema) {
+  if (schema === true) return;
+  if (schema === false) assert.fail(`${label}: boolean schema rejected value`);
   if (schema.$ref) {
     assert.ok(schema.$ref.startsWith('#/$defs/'), `${label}: unsupported schema reference`);
     return validateSchema(document.$defs[schema.$ref.slice('#/$defs/'.length)], value, label, document);
   }
   for (const child of schema.allOf ?? []) validateSchema(child, value, label, document);
+  if (schema.not) {
+    let matches = true;
+    try {
+      validateSchema(schema.not, value, label, document);
+    } catch {
+      matches = false;
+    }
+    assert.equal(matches, false, `${label}: matched forbidden schema`);
+  }
+  if (schema.oneOf) {
+    let matches = 0;
+    for (const child of schema.oneOf) {
+      try {
+        validateSchema(child, value, label, document);
+        matches += 1;
+      } catch {
+        // A oneOf branch is allowed to reject; exactly one branch must accept.
+      }
+    }
+    assert.equal(matches, 1, `${label}: expected exactly one oneOf match`);
+  }
   if (schema.if) {
     let matches = true;
     try {
@@ -64,17 +87,41 @@ export function validateSchema(schema, value, label = '$', document = schema) {
   if ('const' in schema) assert.deepEqual(value, schema.const, `${label}: const mismatch`);
   if (schema.enum) assert.ok(schema.enum.includes(value), `${label}: value is not in enum`);
   if (schema.minLength !== undefined) assert.ok(value.length >= schema.minLength, `${label}: too short`);
+  if (schema.maxLength !== undefined) assert.ok(value.length <= schema.maxLength, `${label}: too long`);
   if (schema.minimum !== undefined) assert.ok(value >= schema.minimum, `${label}: below minimum`);
   if (schema.pattern) assert.match(value, new RegExp(schema.pattern), `${label}: pattern mismatch`);
   if (Array.isArray(value)) {
     if (schema.minItems !== undefined) assert.ok(value.length >= schema.minItems, `${label}: too few items`);
+    if (schema.maxItems !== undefined) assert.ok(value.length <= schema.maxItems, `${label}: too many items`);
     if (schema.uniqueItems) assert.equal(new Set(value.map((item) => JSON.stringify(item))).size, value.length, `${label}: duplicate items`);
-    if (schema.items) value.forEach((item, index) => validateSchema(schema.items, item, `${label}[${index}]`, document));
+    const prefixLength = schema.prefixItems?.length ?? 0;
+    schema.prefixItems?.forEach((child, index) => {
+      if (index < value.length) validateSchema(child, value[index], `${label}[${index}]`, document);
+    });
+    if (schema.items === false) assert.ok(value.length <= prefixLength, `${label}: unexpected trailing items`);
+    else if (schema.items) value.slice(prefixLength).forEach((item, offset) => validateSchema(schema.items, item, `${label}[${prefixLength + offset}]`, document));
+    if (schema.contains) {
+      let matches = 0;
+      for (const [index, item] of value.entries()) {
+        try {
+          validateSchema(schema.contains, item, `${label}[${index}]`, document);
+          matches += 1;
+        } catch {
+          // Non-matching array members are permitted outside the contains count.
+        }
+      }
+      assert.ok(matches >= (schema.minContains ?? 1), `${label}: too few matching items`);
+      if (schema.maxContains !== undefined) assert.ok(matches <= schema.maxContains, `${label}: too many matching items`);
+    }
   }
   if (hasType(value, 'object')) {
     for (const key of schema.required ?? []) assert.ok(Object.hasOwn(value, key), `${label}: missing ${key}`);
     if (schema.additionalProperties === false) {
       for (const key of Object.keys(value)) assert.ok(Object.hasOwn(schema.properties ?? {}, key), `${label}: unknown ${key}`);
+    } else if (schema.additionalProperties && typeof schema.additionalProperties === 'object') {
+      for (const [key, child] of Object.entries(value)) {
+        if (!Object.hasOwn(schema.properties ?? {}, key)) validateSchema(schema.additionalProperties, child, `${label}.${key}`, document);
+      }
     }
     for (const [key, child] of Object.entries(schema.properties ?? {})) {
       if (Object.hasOwn(value, key)) validateSchema(child, value[key], `${label}.${key}`, document);
@@ -84,7 +131,7 @@ export function validateSchema(schema, value, label = '$', document = schema) {
 
 function allCandidateFiles() {
   const output = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], { cwd: root });
-  return output.toString().split('\0').filter(Boolean);
+  return output.toString().split('\0').filter((file) => file && fs.existsSync(path.join(root, file)));
 }
 
 function foundationFiles() {
@@ -105,12 +152,17 @@ function foundationFiles() {
     'native/lua-source-manifest.schema.json',
     'verification/manifest.json',
     'verification/manifest.schema.json',
+    'scripts/generate-g004-assets.mjs',
     'scripts/generate-native-assets.mjs',
+    'scripts/run-g004-development-build.mjs',
     'scripts/run-gate0-development-build.mjs',
     'scripts/verify-foundation.mjs',
     'scripts/verify-native.mjs',
     'scripts/verify-runtime.mjs',
+    'scripts/verify-ui.mjs',
     'test/foundation.test.mjs',
+    'test/g004/g003-baseline.json',
+    'test/g004/runtime-client-golden.json',
     'package.json'
   ];
 }
@@ -132,12 +184,17 @@ export const expectedIntegrityPaths = [
   'native/lua-source-manifest.schema.json',
   'verification/manifest.schema.json',
   'package.json',
+  'scripts/generate-g004-assets.mjs',
   'scripts/generate-native-assets.mjs',
+  'scripts/run-g004-development-build.mjs',
   'scripts/run-gate0-development-build.mjs',
   'scripts/verify-foundation.mjs',
   'scripts/verify-native.mjs',
   'scripts/verify-runtime.mjs',
-  'test/foundation.test.mjs'
+  'scripts/verify-ui.mjs',
+  'test/foundation.test.mjs',
+  'test/g004/g003-baseline.json',
+  'test/g004/runtime-client-golden.json'
 ];
 
 function verifyFormat() {
@@ -189,6 +246,25 @@ export function verifyFocusedCommands(manifest, packageJson) {
     assert.equal(check.command, `npm run ${check.packageScript}`, `docs contract: command drift for ${check.id}`);
     assert.equal(packageJson.scripts[check.packageScript], check.argv.join(' '), `docs contract: executable drift for ${check.id}`);
   }
+}
+
+export function verifyActiveVerifierPaths(manifest, readVerifier = read) {
+  const verifierScripts = [...new Set(manifest.focusedChecks
+    .filter(({ activation }) => activation === 'active')
+    .flatMap(({ argv }) => argv.filter((argument) => /^scripts\/.+\.mjs$/.test(argument))))];
+  const sources = new Map();
+  for (const verifier of verifierScripts) {
+    safeRepoFile(verifier, `active verifier ${verifier}`);
+    const source = readVerifier(verifier);
+    sources.set(verifier, source);
+    for (const match of source.matchAll(/\b(?:read|safeRepoFile)\(\s*(['"])([^'"`]+)\1/g)) {
+      safeRepoFile(match[2], `literal repository input in active verifier ${verifier}`);
+    }
+  }
+  const native = sources.get('scripts/verify-native.mjs');
+  assert.ok(native, 'active G002 verifier source is missing');
+  assert.match(native, /modules\/allnewmts-lua\/android\/src\/g002\/java\/com\/allnewmts\/lua\/AllNewMTSLuaModule\.kt/, 'active G002 verifier must read the flag-gated Kotlin source set');
+  assert.doesNotMatch(native, /modules\/allnewmts-lua\/android\/src\/main\/java\/com\/allnewmts\/lua\/AllNewMTSLuaModule\.kt/, 'active G002 verifier must not reference the production Kotlin source set for the harness');
 }
 
 export function verifyContractInventories(host, controls) {
@@ -249,6 +325,7 @@ function verifyDocs() {
 
   const packageJson = json('package.json');
   verifyFocusedCommands(manifest, packageJson);
+  verifyActiveVerifierPaths(manifest);
   assert.equal(packageJson.scripts['verify:ci'], 'npm run verify:milestone', 'docs contract: verify:ci must delegate to milestone once; rerun npm run verify:docs');
   for (const name of ['verify:fast', 'verify:story', 'verify:milestone', 'verify:ci']) {
     assert.ok(read('docs/testing.md').includes(`npm run ${name}`), `docs contract: docs/testing.md omits ${name}; rerun npm run verify:docs`);
@@ -287,7 +364,7 @@ function verifyDocs() {
 const jsTsFile = (file) => /\.(?:js|jsx|mjs|cjs|ts|tsx)$/i.test(file);
 const behaviorFile = (file) => jsTsFile(file) && !/^(?:scripts|test|contracts|verification)\//.test(file) && !file.startsWith('.omx/');
 const buildConfigFile = (file) => /(?:^|\/)(?:CMakeLists\.txt|Makefile|Podfile)$|\.(?:cmake|podspec|gradle|kts|pbxproj|xcconfig|xml|json|plist|properties|entitlements|mk)$/i.test(file);
-const textPolicyFile = (file) => jsTsFile(file) || buildConfigFile(file) || /\.(?:c|cc|cpp|cxx|h|hpp|m|mm|swift|java|kt|lua|sh|bash|zsh|ya?ml|toml|txt|source|qry|xmf_)$/i.test(file);
+const textPolicyFile = (file) => !file.startsWith('.omx/') && (jsTsFile(file) || buildConfigFile(file) || /\.(?:c|cc|cpp|cxx|h|hpp|m|mm|swift|java|kt|lua|sh|bash|zsh|ya?ml|toml|txt|source|qry|xmf_)$/i.test(file));
 const forbiddenArtifact = /(?:^|[/'"_-])(?:mvigsengine|legacy-engine)(?:[/'"_.-]|$)/i;
 const forbiddenReference = /\b(?:mvigsengine|legacy-engine)\b/i;
 const remoteProtocol = /\b(?:s?ftp):\/\//i;
