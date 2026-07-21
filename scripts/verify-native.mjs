@@ -268,6 +268,11 @@ function verifyAutolinking() {
 
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'allnewmts-g002-'));
 try {
+  const developmentBuildSource = read('scripts/run-gate0-development-build.mjs').toString('utf8');
+  assert.doesNotMatch(developmentBuildSource, /command\(android\.adb, \['-s', androidSerial, 'shell', 'pm', 'path', androidPackageId\]\)/, 'Android absence preflight must preserve adb pm path status');
+  assert.match(developmentBuildSource, /spawnSync\(android\.adb, \['-s', androidSerial, 'shell', 'pm', 'path', androidPackageId\], \{ encoding: 'utf8', env: runEnv \}\)/, 'Android absence preflight must capture adb pm path directly');
+  assert.match(developmentBuildSource, /androidInstallPreflight\.status === 0 \|\| androidInstallPreflight\.status === 1/, 'Android absence preflight must accept only documented absent-package statuses');
+  assert.match(developmentBuildSource, /assert\.equal\(androidInstallPreflight\.stdout\.trim\(\), '', `refusing to replace pre-existing Android app \$\{androidPackageId\}`\)/, 'Android absence preflight must reject installed packages for either status');
   const forgedRuntime = { status: 'PASS', cycles: 3, golden: read(manifest.adapterFixture.golden).toString('utf8').trim() };
   const forgedPass = {
     status: 'PASS',

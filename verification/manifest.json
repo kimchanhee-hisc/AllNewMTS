@@ -425,7 +425,7 @@
     },
     {
       "path": "scripts/run-gate0-development-build.mjs",
-      "sha256": "e03d6beefab54c225f5c9c79245e4829ec2a8e8dd145c7cb48ad28dc61a7e7ae"
+      "sha256": "caa5afe66e1fdcf0f572302e2f7bf952e52d94c0da4d8e7df6aaa2f9706613a5"
     },
     {
       "path": "scripts/verify-foundation.mjs",
@@ -433,7 +433,7 @@
     },
     {
       "path": "scripts/verify-native.mjs",
-      "sha256": "4333f9e17d307b4e88843a1c1dd0e0b22b186a0dcb0284cf5d9d686ab6cb7228"
+      "sha256": "61a4e4786be128dbd929dc8f3c83c4ac3bf93cac602420916ef56123857a7a68"
     },
     {
       "path": "test/foundation.test.mjs",

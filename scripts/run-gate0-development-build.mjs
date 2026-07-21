@@ -302,8 +302,11 @@ export async function runGate0DevelopmentBuild(temp) {
     if (!android.serials.length) return validateDevelopmentBuildResult({ status: 'BLOCKED', criterion: 'G0.2/G0.10 Android Expo adapter runtime', reason: 'adb reports zero emulator/device targets after the real Android Development Build compiled and was package-inspected', ios: { runtime: iosResult, package: { bundleId: iosPackage.bundleId, luaProviderCount: 1 } }, android: { build: 'PASS', package: androidPackage } });
     androidSerial = android.serials[0];
     androidPackageId = packageIdFromApk(apk);
-    const installedAndroid = command(android.adb, ['-s', androidSerial, 'shell', 'pm', 'path', androidPackageId]).trim();
-    assert.equal(installedAndroid, '', `refusing to replace pre-existing Android app ${androidPackageId}`);
+    const androidInstallPreflight = spawnSync(android.adb, ['-s', androidSerial, 'shell', 'pm', 'path', androidPackageId], { encoding: 'utf8', env: runEnv });
+    assert.equal(androidInstallPreflight.error, undefined, `adb package preflight could not start: ${androidInstallPreflight.error?.message}`);
+    const androidInstallDiagnostic = `${androidInstallPreflight.stdout ?? ''}${androidInstallPreflight.stderr ?? ''}`;
+    assert.ok(androidInstallPreflight.status === 0 || androidInstallPreflight.status === 1, `adb package preflight failed:\n${androidInstallDiagnostic.slice(-20000)}`);
+    assert.equal(androidInstallPreflight.stdout.trim(), '', `refusing to replace pre-existing Android app ${androidPackageId}`);
     const reverseRule = `tcp:${metroPort}`;
     assert.equal(command(android.adb, ['-s', androidSerial, 'reverse', '--list']).includes(reverseRule), false, `refusing to replace pre-existing adb reverse ${reverseRule}`);
     command(android.adb, ['-s', androidSerial, 'reverse', reverseRule, reverseRule]);
