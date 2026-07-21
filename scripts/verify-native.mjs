@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { safeRepoFile, validateSchema } from './verify-foundation.mjs';
 import { generateNativeAssets } from './generate-native-assets.mjs';
-import { runGate0DevelopmentBuild, validateDevelopmentBuildResult } from './run-gate0-development-build.mjs';
+import * as developmentBuildRunner from './run-gate0-development-build.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifest = JSON.parse(fs.readFileSync(safeRepoFile('native/lua-source-manifest.json'), 'utf8'));
@@ -262,14 +262,21 @@ function verifyAutolinking() {
 
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'allnewmts-g002-'));
 try {
+  const forgedRuntime = { status: 'PASS', cycles: 3, golden: read(manifest.adapterFixture.golden).toString('utf8').trim() };
+  const forgedPass = {
+    status: 'PASS',
+    ios: { runtime: forgedRuntime, package: { luaProviderCount: 1 } },
+    android: { runtime: forgedRuntime, package: { luaProviderCount: 1 } }
+  };
+  assert.deepEqual(Object.keys(developmentBuildRunner), ['runGate0DevelopmentBuild'], 'Development Build runner must expose only real execution');
+  assert.throws(() => developmentBuildRunner.validateDevelopmentBuildResult(forgedPass), 'complete synthetic PASS evidence must not have a public approval path');
   verifyUpstream(temp);
   verifyContracts();
   compileHost(temp);
   compileApple(temp);
   compileAndroid(temp);
   verifyAutolinking();
-  assert.throws(() => validateDevelopmentBuildResult({ status: 'PASS' }), 'synthetic availability/result must never pass runtime validation');
-  const runtime = await runGate0DevelopmentBuild(temp);
+  const runtime = await developmentBuildRunner.runGate0DevelopmentBuild(temp);
   if (runtime.status === 'BLOCKED') {
     console.error(JSON.stringify(runtime));
     process.exitCode = 2;

@@ -45,6 +45,15 @@ function inventory(directory) {
 const productionExtensions = /(?:^|\.)(?:c|cc|cxx|cpp|h|hh|hpp|m|mm|swift|java|kt|kts|js|jsx|ts|tsx|lua|gradle|xml|json|properties|plist|pbxproj|xcconfig|cmake|mk|ya?ml|toml|cfg|conf|ini|txt|xmf_)$/i;
 const productionNames = /(?:^|\/)(?:CMakeLists\.txt|Podfile|Makefile|AndroidManifest\.xml)$/;
 assert.equal(luaSourceManifest.vendoredRoot, 'modules/allnewmts-lua/vendor/lua-5.1.5');
+const pinnedInventory = luaSourceManifest.inventory.map(({ path: file }) => `${luaSourceManifest.vendoredRoot}/${file}`).sort();
+assert.deepEqual(inventory(luaSourceManifest.vendoredRoot), pinnedInventory, 'pinned Lua vendor inventory drift');
+for (const entry of luaSourceManifest.inventory) {
+  assert.match(entry.sha256, /^[a-f0-9]{64}$/);
+  assert.ok(Number.isInteger(entry.bytes) && entry.bytes >= 0);
+  const bytes = read(`${luaSourceManifest.vendoredRoot}/${entry.path}`);
+  assert.equal(bytes.length, entry.bytes, `pinned Lua vendor byte drift: ${entry.path}`);
+  assert.equal(sha256(bytes), entry.sha256, `pinned Lua vendor hash drift: ${entry.path}`);
+}
 const pinnedThirdPartyRoot = `${luaSourceManifest.vendoredRoot}/`;
 const integrityMetadataFiles = new Set(['native/lua-source-manifest.json', 'verification/manifest.json']);
 function isProductBehavioralFile(mode, file) {

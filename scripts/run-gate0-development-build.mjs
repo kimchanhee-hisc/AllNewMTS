@@ -371,7 +371,7 @@ export async function runGate0DevelopmentBuild(temp) {
   }
 }
 
-export function validateDevelopmentBuildResult(result) {
+function validateDevelopmentBuildResult(result) {
   const runtime = { status: 'PASS', cycles: 3, golden: expected };
   assert.ok(result && (result.status === 'PASS' || result.status === 'BLOCKED'), 'invalid Development Build result status');
   assert.deepEqual(result.ios?.runtime, runtime, 'genuine iOS runtime marker evidence is required');
