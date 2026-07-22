@@ -414,7 +414,7 @@
     },
     {
       "path": "docs/testing.md",
-      "sha256": "606317b96cec786b3220b2e4179237b1fdbd165e751fe32315cb28336dc3e435"
+      "sha256": "e27525ea190560947dc95003d52ccf08d2e43c0a61b698faeb01a1aabf4a24cb"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
@@ -466,7 +466,7 @@
     },
     {
       "path": "scripts/run-g004-development-build.mjs",
-      "sha256": "6b5577472f16835024ac804b04a56898cdb341a0636d41f8e783a91917a91221"
+      "sha256": "676f833b2119891a94d207cb1f8d22a5902a85ec1637ab8299b5e46f930ce89e"
     },
     {
       "path": "scripts/run-gate0-development-build.mjs",
@@ -486,11 +486,11 @@
     },
     {
       "path": "scripts/verify-ui.mjs",
-      "sha256": "dd1e915b0560b1031245f95d4dc237a72a59c2f07610fdae7417687f08982141"
+      "sha256": "fb0e5b74e4332f6f3b5292e1ae2454b88dd48a3c20a59a75a558263dcbb39558"
     },
     {
       "path": "test/foundation.test.mjs",
-      "sha256": "cdc9177e7b3ce7e3359c87b163f68de2e9ddd997fff925d41b186f228bff72ca"
+      "sha256": "6cc77a50504bb5a50cb3ee7a783a7a1d95f42d75d7fcdbcc79321c5d5ea98492"
     },
     {
       "path": "test/g004/g003-baseline.json",

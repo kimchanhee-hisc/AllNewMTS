@@ -27,6 +27,23 @@ const buildFailureForwardSchema = 'allnewmts.g004.build-failure-forward.v1';
 const buildFailureEvidenceCap = 524_288;
 const genericFailureEvidenceCap = 1024;
 const buildFailureSuffixCap = 524_512;
+const genericFailurePhases = Object.freeze([
+  'development-build',
+  'package-custodian',
+  'environment-selection',
+  'offline-dependencies',
+  'prebuild',
+  'pods',
+  'nested-swiftpm',
+  'build-settings',
+  'compiled-build',
+  'simulator-boot',
+  'metro',
+  'app-install',
+  'app-launch',
+  'runtime-marker',
+  'cleanup'
+]);
 
 function canonicalize(value) {
   if (Array.isArray(value)) return value.map(canonicalize);
@@ -60,7 +77,7 @@ function validBuildFailureSuffix(suffix) {
     if (envelope.buildFailureEvidence.code !== 'RUNNER_PRIMARY_ERROR') return false;
     if (!['ERR_ASSERTION', 'UNCLASSIFIED'].includes(envelope.buildFailureEvidence.errorCode)) return false;
     if (!['AggregateError', 'AssertionError', 'Error'].includes(envelope.buildFailureEvidence.errorName)) return false;
-    if (envelope.buildFailureEvidence.phase !== 'development-build') return false;
+    if (!genericFailurePhases.includes(envelope.buildFailureEvidence.phase)) return false;
   } else if (envelope.buildFailureEvidence?.schema !== buildFailureEvidenceSchema) {
     return false;
   }
@@ -166,7 +183,23 @@ function forwardingRegressionEvidence() {
   assert.doesNotMatch(genericMarkers[0], /G004_GENERIC_CHILD_SECRET/);
   const genericWriterLine = String(genericChild.stderr ?? '').split(/\r?\n/).find((line) => line.startsWith('G004_GENERIC_FAILURE_WRITER_REGRESSION='));
   assert.ok(genericWriterLine, 'generic failure marker child emitted no writer-failure evidence');
-  const genericWriterFailure = JSON.parse(genericWriterLine.slice('G004_GENERIC_FAILURE_WRITER_REGRESSION='.length));
+  const genericWriterRegression = JSON.parse(genericWriterLine.slice('G004_GENERIC_FAILURE_WRITER_REGRESSION='.length));
+  const { phaseMarkers, ...genericWriterFailure } = genericWriterRegression;
+  assert.deepEqual(genericWriterFailure.productionPhases, genericFailurePhases);
+  assert.equal(phaseMarkers.length, genericFailurePhases.length);
+  const forwardedPhases = phaseMarkers.map((marker, index) => {
+    const phase = genericFailurePhases[index];
+    assert.equal(validBuildFailureSuffix(marker.slice(buildFailurePrefix.length)), true, phase);
+    const emitted = [];
+    assert.throws(
+      () => assertSuccessfulRun('node', ['scripts/run-g004-development-build.mjs'], { status: 1, signal: null, stdout: marker, stderr: '' }, (line) => emitted.push(line)),
+      (error) => error?.message === `${buildFailureCommand} failed; bounded evidence forwarded`,
+      phase
+    );
+    assert.deepEqual(emitted, [marker], phase);
+    return JSON.parse(marker.slice(buildFailurePrefix.length)).buildFailureEvidence.phase;
+  });
+  assert.deepEqual(forwardedPhases, genericFailurePhases);
   const genericForwarded = [];
   assert.throws(
     () => assertSuccessfulRun('node', ['scripts/run-g004-development-build.mjs'], genericChild, (line) => genericForwarded.push(line)),
@@ -205,6 +238,7 @@ function forwardingRegressionEvidence() {
     ['generic-unknown-schema', `${buildFailurePrefix}${envelopeForEvidence({ ...genericEvidence, schema: 'allnewmts.g004.unknown.v1' })}`],
     ['generic-extra-key', `${buildFailurePrefix}${envelopeForEvidence({ ...genericEvidence, secret })}`],
     ['generic-invalid-code', `${buildFailurePrefix}${envelopeForEvidence({ ...genericEvidence, errorCode: 'G004_FORWARDING_PLANTED_SECRET' })}`],
+    ['generic-unknown-phase', `${buildFailurePrefix}${envelopeForEvidence({ ...genericEvidence, phase: 'unknown-phase' })}`],
     ['generic-oversize', `${buildFailurePrefix}${envelopeForEvidence({ ...genericEvidence, errorName: 'A'.repeat(genericFailureEvidenceCap + 1) })}`]
   ];
   for (const [name, stdout] of cases) {
@@ -238,6 +272,8 @@ function forwardingRegressionEvidence() {
       markersForwarded: genericForwarded.length,
       producerPrefixes: genericMarkers.length,
       schema: genericEnvelope.buildFailureEvidence.schema,
+      forwardedPhases,
+      parentPhases: genericFailurePhases,
       writerFailure: genericWriterFailure
     },
     producerPrefixes: producerMarkers.length,

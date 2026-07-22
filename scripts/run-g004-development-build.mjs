@@ -2014,6 +2014,23 @@ const buildFailurePrefix = 'ALLNEWMTS_G004_BUILD_FAILURE=';
 const buildFailureSchema = 'allnewmts.g004.build-failure-evidence.v1';
 const genericFailureSchema = 'allnewmts.g004.generic-failure-evidence.v1';
 const genericFailureEvidenceBytes = 1024;
+const genericFailurePhases = Object.freeze([
+  'development-build',
+  'package-custodian',
+  'environment-selection',
+  'offline-dependencies',
+  'prebuild',
+  'pods',
+  'nested-swiftpm',
+  'build-settings',
+  'compiled-build',
+  'simulator-boot',
+  'metro',
+  'app-install',
+  'app-launch',
+  'runtime-marker',
+  'cleanup'
+]);
 const compiledBuildFailureErrors = new WeakSet();
 const emittedBuildFailureErrors = new WeakSet();
 const genericFailureEvidenceByError = new WeakMap();
@@ -2354,7 +2371,7 @@ function genericFailureEvidence(error, phase = 'development-build') {
     code: 'RUNNER_PRIMARY_ERROR',
     errorCode: assertion ? 'ERR_ASSERTION' : 'UNCLASSIFIED',
     errorName: error instanceof AggregateError ? 'AggregateError' : assertion ? 'AssertionError' : 'Error',
-    phase: ['development-build', 'transport-regression'].includes(phase) ? phase : 'development-build',
+    phase: genericFailurePhases.includes(phase) ? phase : 'development-build',
     schema: genericFailureSchema
   });
   assert.ok(canonicalBytes(evidence).length <= genericFailureEvidenceBytes, 'generic failure evidence exceeded cap');
@@ -2408,8 +2425,8 @@ function genericMarkerWriterRegression() {
   const markers = [];
   let first;
   let second;
-  try { throwAfterBuildFailureEmission(primary, cleanupErrors, (marker) => markers.push(marker), 'transport-regression'); } catch (error) { first = error; }
-  try { throwAfterBuildFailureEmission(primary, cleanupErrors, (marker) => markers.push(marker), 'transport-regression'); } catch (error) { second = error; }
+  try { throwAfterBuildFailureEmission(primary, cleanupErrors, (marker) => markers.push(marker), 'runtime-marker'); } catch (error) { first = error; }
+  try { throwAfterBuildFailureEmission(primary, cleanupErrors, (marker) => markers.push(marker), 'runtime-marker'); } catch (error) { second = error; }
   assert.equal(first, primary);
   assert.equal(second, primary);
   assert.deepEqual(primary.cleanupErrors, [existingCleanup]);
@@ -2418,7 +2435,7 @@ function genericMarkerWriterRegression() {
   const envelope = JSON.parse(suffix);
   assert.equal(envelope.buildFailureEvidence.schema, genericFailureSchema);
   assert.equal(envelope.buildFailureEvidence.errorCode, 'UNCLASSIFIED');
-  assert.equal(envelope.buildFailureEvidence.phase, 'transport-regression');
+  assert.equal(envelope.buildFailureEvidence.phase, 'runtime-marker');
   assert.ok(canonicalBytes(envelope.buildFailureEvidence).length <= genericFailureEvidenceBytes);
   assert.doesNotMatch(markers[0], /G004_GENERIC_PLANTED_SECRET|G004_GENERIC_CODE_SECRET|allnewmts\.g004\.forged/);
 
@@ -2429,7 +2446,7 @@ function genericMarkerWriterRegression() {
   let writerCaught;
   let writerCalls = 0;
   try {
-    throwAfterBuildFailureEmission(writerPrimary, writerCleanup, () => { writerCalls += 1; throw writerError; }, 'transport-regression');
+    throwAfterBuildFailureEmission(writerPrimary, writerCleanup, () => { writerCalls += 1; throw writerError; }, 'cleanup');
   } catch (error) {
     writerCaught = error;
   }
@@ -2437,8 +2454,20 @@ function genericMarkerWriterRegression() {
   assert.deepEqual(writerPrimary.cleanupErrors, [writerExisting, writerError]);
   assert.equal(writerPrimary.errors, writerPrimary.cleanupErrors);
   assert.equal(writerCalls, 1);
+  const phaseMarkers = genericFailurePhases.map((phase) => {
+    const phaseError = new Error('redacted');
+    return `${buildFailurePrefix}${stableJson(buildFailureEnvelope(phaseError, 0, phase))}`;
+  });
+  assert.deepEqual(phaseMarkers.map((marker) => JSON.parse(marker.slice(buildFailurePrefix.length)).buildFailureEvidence.phase), genericFailurePhases);
+  assert.equal(genericFailureEvidence(new Error('redacted'), 'unknown-phase').evidence.phase, 'development-build');
+  let capturedPhase = 'app-launch';
+  const primaryFailurePhase = capturedPhase;
+  capturedPhase = 'cleanup';
+  assert.equal(genericFailureEvidence(new Error('redacted'), primaryFailurePhase).evidence.phase, 'app-launch');
+  assert.equal(genericFailureEvidence(cleanupOnlyPrimary([]), capturedPhase).evidence.phase, 'cleanup');
   return {
     marker: markers[0],
+    phaseMarkers,
     summary: {
       byteCap: genericFailureEvidenceBytes,
       aggregateErrorsOrdered: true,
@@ -2449,8 +2478,12 @@ function genericMarkerWriterRegression() {
       markersEmitted: markers.length,
       redacted: true,
       preseededEvidenceIgnored: true,
+      primaryPhasePreservedAcrossCleanup: true,
+      productionPhases: genericFailurePhases,
       samePrimary: true,
       schema: envelope.buildFailureEvidence.schema,
+      cleanupOnlyPhase: 'cleanup',
+      unknownPhaseFallback: 'development-build',
       writerCalls,
       writerErrorOrdered: true
     }
@@ -2466,7 +2499,7 @@ function cleanupOnlyPrimary(cleanupErrors, appMetroSettings) {
 
 function genericFailureMarkerTransportChild() {
   const regression = genericMarkerWriterRegression();
-  fs.writeSync(process.stderr.fd, `G004_GENERIC_FAILURE_WRITER_REGRESSION=${stableJson(regression.summary)}\n`);
+  fs.writeSync(process.stderr.fd, `G004_GENERIC_FAILURE_WRITER_REGRESSION=${stableJson({ ...regression.summary, phaseMarkers: regression.phaseMarkers })}\n`);
   const primary = new assert.AssertionError({ actual: 1, expected: 0, message: `G004_GENERIC_CHILD_SECRET_${'x'.repeat(20_000)}`, operator: 'strictEqual' });
   const cleanupErrors = [];
   primary.cleanupErrors = cleanupErrors;
@@ -2509,6 +2542,7 @@ function markerWriterFailureRegression() {
   assert.equal(Object.isFrozen(primary.buildFailureEvidence), true);
   assert.deepEqual(primary.cleanupErrors, [existingCleanup, writerError]);
   const published = stableJson(buildFailureEnvelope(primary, primary.cleanupErrors.length));
+  assert.equal(stableJson(buildFailureEnvelope(primary, primary.cleanupErrors.length, 'cleanup')), published);
   assert.doesNotMatch(published, /G011_EXISTING_CLEANUP_ERROR|G011_MARKER_WRITE_ERROR/);
   assert.equal(emitterCalls, 1);
   return {
@@ -2516,6 +2550,7 @@ function markerWriterFailureRegression() {
     emitterCalls,
     evidenceHashPreserved: true,
     evidenceIdentityPreserved: true,
+    genericPhaseIgnored: true,
     existingCleanupPreserved: true,
     markersEmitted: 0,
     retries: 0,
@@ -3620,6 +3655,8 @@ async function waitForMarker(stdoutFile, stderrFile, pid, port) {
 async function developmentBuild() {
   await preflight();
   const baseline = run('git', ['status', '--porcelain=v1', '-z']);
+  let failurePhase = 'development-build';
+  let primaryFailurePhase;
   const activeProbes = new Set();
   let nofollow;
   let packageBackedUp = false;
@@ -3644,24 +3681,32 @@ async function developmentBuild() {
   let result;
   let primaryError;
   try {
+    failurePhase = 'package-custodian';
     temp = fs.mkdtempSync(path.join(os.tmpdir(), 'allnewmts-g004-development-build-'));
     nofollow = await startNoFollowSession();
     packageBaseline = nofollow.ready.baseline;
     packageBackedUp = true;
+    failurePhase = 'environment-selection';
     simulator = availableSimulator();
     const selected = await selectGuardedPort(temp, activeProbes);
     ({ port, portGuard, env, profiles } = selected);
     env.CP_CACHE_DIR = path.join(temp, 'cocoapods-cache');
     fs.mkdirSync(env.CP_CACHE_DIR);
+    failurePhase = 'offline-dependencies';
     offlineAppleDependencies = prepareLocalAppleDependencies(temp, env);
     const sandbox = (args) => run('/usr/bin/sandbox-exec', ['-f', profiles.deny, ...args], { env });
+    failurePhase = 'package-custodian';
     await nofollow.request({ op: 'arm' });
     packageMutationArmed = true;
+    failurePhase = 'prebuild';
     sandbox([path.join(root, 'node_modules/.bin/expo'), 'prebuild', '--no-install', '--platform', 'ios']);
+    failurePhase = 'pods';
     sandbox(['pod', 'install', '--no-repo-update', '--project-directory=ios']);
+    failurePhase = 'nested-swiftpm';
     const swiftPm = await prepareNestedSwiftPm(nofollow, profiles, env);
     nestedSwiftPm = swiftPm.evidence;
     env.PATH = swiftPm.envPath;
+    failurePhase = 'build-settings';
     const generatedSettings = generatedMetroSettings();
     const destination = `id=${simulator.udid}`;
     const appShow = sandbox([swiftPm.useXcodebuild(), '-workspace', 'ios/AllNewMTS.xcworkspace', '-scheme', 'AllNewMTS', '-configuration', 'Debug', '-sdk', 'iphonesimulator', '-destination', destination, `RCT_METRO_PORT=${port}`, '-showBuildSettings']);
@@ -3669,14 +3714,17 @@ async function developmentBuild() {
     appMetroSettings = assertMetroSettings(port, appShow, podShow);
     const buildArgs = [swiftPm.useXcodebuild(), '-quiet', '-workspace', 'ios/AllNewMTS.xcworkspace', '-scheme', 'AllNewMTS', '-configuration', 'Debug', '-sdk', 'iphonesimulator', '-destination', destination, '-derivedDataPath', path.join(temp, 'ios-derived'), 'CODE_SIGNING_ALLOWED=NO', `RCT_METRO_PORT=${port}`, 'build'];
     assertBuildArgv(port, buildArgs);
+    failurePhase = 'compiled-build';
     const compiled = runCompiledBuild('/usr/bin/sandbox-exec', ['-f', profiles.deny, ...buildArgs], { env });
     const compiledOutput = `${compiled.stdout?.toString('utf8') ?? ''}${compiled.stderr?.toString('utf8') ?? ''}`;
     nestedSwiftPm.mainCompiledBuildOutputCounts = assertNestedSwiftPmCacheOutput(compiledOutput, 'main compiled build');
+    failurePhase = 'simulator-boot';
     if (simulator.state !== 'Booted') {
       run('xcrun', ['simctl', 'boot', simulator.udid], { env });
       simulatorBootedByRunner = true;
     }
     run('xcrun', ['simctl', 'bootstatus', simulator.udid, '-b'], { env });
+    failurePhase = 'metro';
     const metroFile = '/usr/bin/sandbox-exec';
     const metroArgs = ['-f', profiles.metro, path.join(root, 'node_modules/.bin/expo'), 'start', '--offline', '--localhost', '--port', String(port)];
     assertExpoArgv(port, metroArgs);
@@ -3698,18 +3746,21 @@ async function developmentBuild() {
     assert.equal(Number(group.stdout.trim()), metroPgid, 'detached Metro launcher did not own its process group');
     await waitForMetro(port, metro, metroPgid);
     const readinessNetwork = await assertMetroNetwork(port, metro, metroPgid);
+    failurePhase = 'app-install';
     const app = path.join(temp, 'ios-derived/Build/Products/Debug-iphonesimulator/AllNewMTS.app');
     assert.ok(fs.existsSync(app), 'built iOS app is missing');
     const existing = spawnSync('xcrun', ['simctl', 'get_app_container', simulator.udid, bundleId], { cwd: root, encoding: 'utf8', env });
     assert.notEqual(existing.status, 0, `refusing to replace pre-existing ${bundleId}`);
     run('xcrun', ['simctl', 'install', simulator.udid, app], { env });
     appInstalled = true;
+    failurePhase = 'app-launch';
     const stdoutFile = path.join(temp, 'ios-runtime.stdout.log');
     const stderrFile = path.join(temp, 'ios-runtime.stderr.log');
     const prelaunchNetwork = await assertMetroNetwork(port, metro, metroPgid);
     const launch = run('xcrun', ['simctl', 'launch', '--terminate-running-process', `--stdout=${stdoutFile}`, `--stderr=${stderrFile}`, simulator.udid, bundleId], { env });
     appPid = Number(launch.trim().match(/:\s*([0-9]+)$/)?.[1]);
     assert.ok(Number.isSafeInteger(appPid) && appPid > 0, `could not parse App PID: ${launch.trim()}`);
+    failurePhase = 'runtime-marker';
     const observed = await waitForMarker(stdoutFile, stderrFile, appPid, port);
     const finalNetwork = await assertMetroNetwork(port, metro, metroPgid);
     result = {
@@ -3734,7 +3785,9 @@ async function developmentBuild() {
     appMetroSettings = error.appMetroSettings ?? appMetroSettings;
     if (appMetroSettings) error.appMetroSettings = appMetroSettings;
     primaryError = error;
+    primaryFailurePhase = failurePhase;
   }
+  failurePhase = 'cleanup';
   const cleanupErrors = [];
   const attempt = async (work) => { try { await work(); } catch (error) { cleanupErrors.push(error); } };
   await attempt(async () => { if (appPid && simulator) run('xcrun', ['simctl', 'terminate', simulator.udid, bundleId], { env }); });
@@ -3774,11 +3827,11 @@ async function developmentBuild() {
   await attempt(async () => assert.equal(run('git', ['status', '--porcelain=v1', '-z']), baseline, 'cleanup did not restore the working-tree baseline'));
   if (primaryError) {
     primaryError.cleanupErrors = cleanupErrors;
-    throwAfterBuildFailureEmission(primaryError, cleanupErrors, undefined, 'development-build');
+    throwAfterBuildFailureEmission(primaryError, cleanupErrors, undefined, primaryFailurePhase);
   }
   if (cleanupErrors.length) {
     const error = cleanupOnlyPrimary(cleanupErrors, appMetroSettings);
-    throwAfterBuildFailureEmission(error, cleanupErrors, undefined, 'development-build');
+    throwAfterBuildFailureEmission(error, cleanupErrors, undefined, failurePhase);
   }
   return result;
 }

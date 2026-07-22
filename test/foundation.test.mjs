@@ -259,13 +259,13 @@ test('G004 runner and verifier keep hostile evidence and cleanup fail-closed', (
   assert.match(runner, /function preflightSnapshot[\s\S]+status', '--porcelain=v1', '-z'[\s\S]+nativeDirectories[\s\S]+allnewmts-g004-[\s\S]+cacheFiles[\s\S]+createHash\('sha256'\)[\s\S]+if \(reservation\) await reservation\.release\(\);[\s\S]+assert\.deepEqual\(preflightSnapshot\(podCaches\), before[\s\S]+mutatedFiles: false/, 'read-only preflight evidence must derive from an after-release repository/temp/cache snapshot');
   assert.match(runner, /local tcp "localhost:\$\{port\}"[\s\S]+remote tcp "localhost:\$\{port\}"/, 'sandbox profile must use the supported exact localhost/port syntax');
   assert.doesNotMatch(runner, /(?:local|remote) tcp "127\.0\.0\.1:/, 'macOS sandbox network addresses cannot use a numeric host');
-  assert.match(runner, /const attempt = async[\s\S]+primaryError\.cleanupErrors = cleanupErrors;\s+throwAfterBuildFailureEmission\(primaryError, cleanupErrors, undefined, 'development-build'\);/);
+  assert.match(runner, /const attempt = async[\s\S]+primaryError\.cleanupErrors = cleanupErrors;\s+throwAfterBuildFailureEmission\(primaryError, cleanupErrors, undefined, primaryFailurePhase\);/);
   const markerChild = runner.match(/function buildFailureMarkerTransportChild\(\) \{[\s\S]*?\n\}/)?.[0] ?? '';
   assert.match(markerChild, /primaryError\.cleanupErrors = cleanupErrors;\s+throwAfterBuildFailureEmission\(primaryError, cleanupErrors\);/, 'private marker child must emit then immediately throw the same primary');
   assert.doesNotMatch(markerChild, /await|Promise|setTimeout|setInterval|process\.exit(?:Code)?/, 'private marker child must not add a drain or exit path');
   assert.match(runner, /function throwAfterBuildFailureEmission[\s\S]+emitBuildFailureEnvelope[\s\S]+cleanupErrors\.push\(error\)[\s\S]+throw primaryError;/, 'marker writer failure must remain secondary to the original Xcode primary');
-  assert.match(runner, /function cleanupOnlyPrimary[\s\S]+new AggregateError[\s\S]+error\.errors = error\.cleanupErrors = cleanupErrors[\s\S]+if \(cleanupErrors\.length\) \{\s+const error = cleanupOnlyPrimary\(cleanupErrors, appMetroSettings\);\s+throwAfterBuildFailureEmission\(error, cleanupErrors, undefined, 'development-build'\);/);
-  assert.match(runner, /const baseline = run[\s\S]+let nofollow;[\s\S]+let temp;[\s\S]+try \{\s+temp = fs\.mkdtempSync\(path\.join\(os\.tmpdir\(\), 'allnewmts-g004-development-build-'\)\);\s+nofollow = await startNoFollowSession\(\);[\s\S]+simulator = availableSimulator\(\);[\s\S]+selected = await selectGuardedPort\(temp, activeProbes\);/, 'established G004 operational temp and G011 recovery root must be separately cleanup-owned');
+  assert.match(runner, /function cleanupOnlyPrimary[\s\S]+new AggregateError[\s\S]+error\.errors = error\.cleanupErrors = cleanupErrors[\s\S]+if \(cleanupErrors\.length\) \{\s+const error = cleanupOnlyPrimary\(cleanupErrors, appMetroSettings\);\s+throwAfterBuildFailureEmission\(error, cleanupErrors, undefined, failurePhase\);/);
+  assert.match(runner, /const baseline = run[\s\S]+let nofollow;[\s\S]+let temp;[\s\S]+try \{\s+failurePhase = 'package-custodian';\s+temp = fs\.mkdtempSync\(path\.join\(os\.tmpdir\(\), 'allnewmts-g004-development-build-'\)\);\s+nofollow = await startNoFollowSession\(\);[\s\S]+simulator = availableSimulator\(\);[\s\S]+selected = await selectGuardedPort\(temp, activeProbes\);/, 'established G004 operational temp and G011 recovery root must be separately cleanup-owned');
   assert.match(runner, /net\.createServer[\s\S]+acceptedSockets\.add[\s\S]+socket\.once\('error'[\s\S]+server\.close[\s\S]+for \(const socket of acceptedSockets\) socket\.destroy/, 'the loopback guard must own accepted sockets and close them during bounded release');
   assert.match(runner, /let simulatorBootedByRunner = false;[\s\S]+if \(simulator\.state !== 'Booted'\) \{[\s\S]+simctl', 'boot'[\s\S]+simulatorBootedByRunner = true;[\s\S]+if \(simulatorBootedByRunner\)[\s\S]+simctl', 'shutdown'/, 'simulator shutdown must require a successful runner-owned boot');
   assert.match(runner, /if \(portGuard\) await portGuard\.release\(\)[\s\S]+for \(const probe of \[\.\.\.activeProbes\]\)[\s\S]+stopProbe[\s\S]+stopProcessGroup[\s\S]+closeFd[\s\S]+assertPortReusable[\s\S]+activeProbes\.size[\s\S]+if \(simulatorBootedByRunner\)[\s\S]+restore_package[\s\S]+closeNoFollowSession\(nofollow\)/, 'cleanup must terminate remaining probes and close the guard, process group, FDs, port, simulator transition, restored package, and repository-owned runner');
@@ -315,6 +315,35 @@ test('G004 runner and verifier keep hostile evidence and cleanup fail-closed', (
   assert.match(verifier, /invocationPids\.developmentBuild\.size/);
   assert.match(verifier, /ordinary-package-entry[\s\S]+AllNewMTSRuntime[\s\S]+AllNewMTSLua[\s\S]+defaultEqualsNamed[\s\S]+RuntimeResultEvent/, 'ordinary entry smoke must prove native request and value/type exports');
   assert.match(verifier, /g003-baseline\.json[\s\S]+expectedChanged[\s\S]+sharedBaselines[\s\S]+contentHashes[\s\S]+protectedCheckpointPaths/);
+});
+
+test('G014 generic failure phases are closed and statically bound to production intervals', () => {
+  const runner = fs.readFileSync(new URL('../scripts/run-g004-development-build.mjs', import.meta.url), 'utf8');
+  const verifier = fs.readFileSync(new URL('../scripts/verify-ui.mjs', import.meta.url), 'utf8');
+  const expected = ['development-build', 'package-custodian', 'environment-selection', 'offline-dependencies', 'prebuild', 'pods', 'nested-swiftpm', 'build-settings', 'compiled-build', 'simulator-boot', 'metro', 'app-install', 'app-launch', 'runtime-marker', 'cleanup'];
+  const phases = (source) => [...source.match(/const genericFailurePhases = Object\.freeze\(\[([\s\S]*?)\]\);/)?.[1].matchAll(/'([^']+)'/g) ?? []].map((match) => match[1]);
+  assert.deepEqual(phases(runner), expected);
+  assert.deepEqual(phases(verifier), expected);
+  const build = runner.match(/async function developmentBuild\(\) \{[\s\S]*?\n\}/)?.[0] ?? '';
+  assert.ok(build.indexOf('await preflight();') < build.indexOf("const baseline = run('git', ['status', '--porcelain=v1', '-z']);"));
+  assert.ok(build.indexOf("const baseline = run('git', ['status', '--porcelain=v1', '-z']);") < build.indexOf("let failurePhase = 'development-build';"));
+  assert.ok(build.indexOf("let failurePhase = 'development-build';") < build.indexOf('try {'));
+  assert.match(build, /failurePhase = 'package-custodian';\s+temp = fs\.mkdtempSync[\s\S]+nofollow = await startNoFollowSession\(\)/);
+  assert.match(build, /failurePhase = 'environment-selection';\s+simulator = availableSimulator\(\);[\s\S]+selectGuardedPort[\s\S]+env\.CP_CACHE_DIR[\s\S]+fs\.mkdirSync\(env\.CP_CACHE_DIR\)/);
+  assert.match(build, /failurePhase = 'offline-dependencies';\s+offlineAppleDependencies = prepareLocalAppleDependencies/);
+  assert.match(build, /failurePhase = 'package-custodian';\s+await nofollow\.request\(\{ op: 'arm' \}\);\s+packageMutationArmed = true;/);
+  assert.match(build, /failurePhase = 'prebuild';\s+sandbox\(\[path\.join\(root, 'node_modules\/\.bin\/expo'\), 'prebuild'/);
+  assert.match(build, /failurePhase = 'pods';\s+sandbox\(\['pod', 'install', '--no-repo-update', '--project-directory=ios'\]\)/);
+  assert.match(build, /failurePhase = 'nested-swiftpm';\s+const swiftPm = await prepareNestedSwiftPm/);
+  assert.match(build, /failurePhase = 'build-settings';\s+const generatedSettings = generatedMetroSettings\(\);[\s\S]+appShow = sandbox[\s\S]+podShow = sandbox[\s\S]+assertMetroSettings[\s\S]+const buildArgs[\s\S]+assertBuildArgv/);
+  assert.match(build, /failurePhase = 'compiled-build';\s+const compiled = runCompiledBuild[\s\S]+mainCompiledBuildOutputCounts = assertNestedSwiftPmCacheOutput/);
+  assert.match(build, /failurePhase = 'simulator-boot';\s+if \(simulator\.state !== 'Booted'\)[\s\S]+simctl', 'bootstatus'/);
+  assert.match(build, /failurePhase = 'metro';\s+const metroFile[\s\S]+assertExpoArgv[\s\S]+metroStdoutFd[\s\S]+await portGuard\.release\(\);\s+metro = spawn[\s\S]+const readinessNetwork = await assertMetroNetwork/);
+  assert.match(build, /failurePhase = 'app-install';\s+const app =[\s\S]+fs\.existsSync\(app\)[\s\S]+get_app_container[\s\S]+simctl', 'install'/);
+  assert.match(build, /failurePhase = 'app-launch';\s+const stdoutFile[\s\S]+const prelaunchNetwork[\s\S]+simctl', 'launch'[\s\S]+could not parse App PID/);
+  assert.match(build, /failurePhase = 'runtime-marker';\s+const observed = await waitForMarker[\s\S]+const finalNetwork[\s\S]+result = \{[\s\S]+toolchain: toolchainProvenance\(\)/);
+  assert.match(build, /catch \(error\) \{[\s\S]+primaryError = error;\s+primaryFailurePhase = failurePhase;\s+\}\s+failurePhase = 'cleanup';/);
+  assert.match(build, /throwAfterBuildFailureEmission\(primaryError, cleanupErrors, undefined, primaryFailurePhase\)[\s\S]+throwAfterBuildFailureEmission\(error, cleanupErrors, undefined, failurePhase\)/);
 });
 
 test('G004 Metro evidence accepts only exact generated, resolved, and argv records', () => {
@@ -397,7 +426,7 @@ test('G004 UI wrapper forwards only canonical bounded build-failure evidence thr
   assert.equal(summary.evidenceCanonicalBytes, Buffer.byteLength(canonicalEvidence));
   assert.ok(summary.trailingDiagnosticBytes > 20_000);
   assert.equal(summary.validMarkersForwarded, 1);
-  const { evidenceCanonicalBytes, ...genericFailure } = summary.genericFailure;
+  const { evidenceCanonicalBytes, forwardedPhases, parentPhases, ...genericFailure } = summary.genericFailure;
   assert.deepEqual(genericFailure, {
     markerByteIdentity: true,
     markersForwarded: 1,
@@ -412,16 +441,21 @@ test('G004 UI wrapper forwards only canonical bounded build-failure evidence thr
       errorCode: 'UNCLASSIFIED',
       markersEmitted: 1,
       preseededEvidenceIgnored: true,
+      primaryPhasePreservedAcrossCleanup: true,
+      productionPhases: ['development-build', 'package-custodian', 'environment-selection', 'offline-dependencies', 'prebuild', 'pods', 'nested-swiftpm', 'build-settings', 'compiled-build', 'simulator-boot', 'metro', 'app-install', 'app-launch', 'runtime-marker', 'cleanup'],
       redacted: true,
       samePrimary: true,
       schema: 'allnewmts.g004.generic-failure-evidence.v1',
+      cleanupOnlyPhase: 'cleanup',
+      unknownPhaseFallback: 'development-build',
       writerCalls: 1,
       writerErrorOrdered: true
     }
   });
+  assert.deepEqual(forwardedPhases, parentPhases);
   assert.ok(Number.isSafeInteger(evidenceCanonicalBytes));
   assert.ok(evidenceCanonicalBytes <= 1024);
-  assert.deepEqual(summary.fallbackCases, ['absent', 'duplicate', 'malformed', 'noncanonical', 'oversize', 'hash-mismatch', 'generic-unknown-schema', 'generic-extra-key', 'generic-invalid-code', 'generic-oversize']);
+  assert.deepEqual(summary.fallbackCases, ['absent', 'duplicate', 'malformed', 'noncanonical', 'oversize', 'hash-mismatch', 'generic-unknown-schema', 'generic-extra-key', 'generic-invalid-code', 'generic-unknown-phase', 'generic-oversize']);
   assert.equal(summary.fallbackMaxBytes, 1024);
   assert.equal(summary.unrelatedTailPreserved, true);
   assert.deepEqual(summary.writerFailure, {
@@ -430,6 +464,7 @@ test('G004 UI wrapper forwards only canonical bounded build-failure evidence thr
     evidenceHashPreserved: true,
     evidenceIdentityPreserved: true,
     existingCleanupPreserved: true,
+    genericPhaseIgnored: true,
     markersEmitted: 0,
     retries: 0,
     samePrimary: true,
