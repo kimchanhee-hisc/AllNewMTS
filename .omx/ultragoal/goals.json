@@ -1,7 +1,7 @@
 {
   "version": 1,
   "createdAt": "2026-07-20T09:21:44.122Z",
-  "updatedAt": "2026-07-22T05:22:21.517Z",
+  "updatedAt": "2026-07-22T05:24:54.378Z",
   "briefPath": ".omx/ultragoal/brief.md",
   "goalsPath": ".omx/ultragoal/goals.json",
   "ledgerPath": ".omx/ultragoal/ledger.jsonl",
@@ -11,12 +11,14 @@
       "id": "G013-complete-g004-with-user-authorized-f",
       "title": "Complete G004 with user-authorized final retry",
       "objective": "Use the already reviewed G012 generic failure transport and unchanged accepted G004 implementation. Run preflight diagnostics without raw G004/full verify:ui/story, then run exactly one canonical G004 story attempt 11 authorized by the user on 2026-07-22. Do not use alternate story/UI commands or rerun on failure. If it passes, obtain independent exact-byte APPROVE/CLEAR and checkpoint G004 closure before G010; if it fails, preserve exact bounded evidence and stop dependent progression. Never connect to product production servers, live services, or the product CDN.",
-      "status": "in_progress",
+      "status": "failed",
       "attempt": 1,
       "createdAt": "2026-07-22T05:21:49.691Z",
-      "updatedAt": "2026-07-22T05:22:21.517Z",
+      "updatedAt": "2026-07-22T05:24:54.378Z",
       "evidence": "User explicit directive: 추가 1회 재시도. This supersedes only the attempt-10 no-retry count by one exact attempt; all original G004 scope, validation order, cleanup, security, production-server/CDN, MVigsEngine, and G004-before-G005 constraints remain.",
-      "startedAt": "2026-07-22T05:22:21.517Z"
+      "startedAt": "2026-07-22T05:22:21.517Z",
+      "failedAt": "2026-07-22T05:24:54.378Z",
+      "failureReason": "User-authorized attempt 11 consumed exactly once. Canonical G004 story log .omx/handoff/g004-story-acceptance-attempt-11.log SHA256 b004c6be5f68b8f74103439ef50ee0565f1f9ac6d65e68fb0d711373b535f326: six phases PASS; development-build emitted exactly one canonical redacted generic ERR_ASSERTION envelope evidence hash cff66cf273457dc818b6c4c89ad9d4c9566f2e383a708879eced75b07163d604, cleanupErrorCount=0, then story exit 1. Failure handoff .omx/handoff/g013-attempt11-failure.md; ios/android absent; zero G011 temp roots; no retry, alternate UI/story, G010 progression, product server/live service/CDN, or MVigsEngine action."
     },
     {
       "id": "G006-verify-first-milestone",
@@ -178,6 +180,5 @@
       "evidence": "G001 independently APPROVE/CLEAR at commit 260c28750fbd4c716106f3959e02367f29b71c7a; report .omx/handoff/g001-independent-verification-iteration-4.md SHA256 04aa68d58cac0cd73165c5546881e914414a818fa5c448286cac03aa7686e6ba; fresh iteration-4 reviews reran verify:g001 and TypeScript successfully; aggregate Codex goal is active after explicit user clear/resume."
     }
   ],
-  "codexObjective": "Complete the durable ultragoal plan in .omx/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .omx/ultragoal/ledger.jsonl as the audit trail.",
-  "activeGoalId": "G013-complete-g004-with-user-authorized-f"
+  "codexObjective": "Complete the durable ultragoal plan in .omx/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .omx/ultragoal/ledger.jsonl as the audit trail."
 }

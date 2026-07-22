@@ -414,7 +414,7 @@
     },
     {
       "path": "docs/testing.md",
-      "sha256": "2eff1048a096e0e4ec9b7770d557ba0ad918ce0d81ce97894a16a7623440a28c"
+      "sha256": "606317b96cec786b3220b2e4179237b1fdbd165e751fe32315cb28336dc3e435"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
