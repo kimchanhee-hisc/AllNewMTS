@@ -1,25 +1,23 @@
 {
   "version": 1,
   "createdAt": "2026-07-20T09:21:44.122Z",
-  "updatedAt": "2026-07-21T22:39:25.883Z",
+  "updatedAt": "2026-07-22T05:08:54.981Z",
   "briefPath": ".omx/ultragoal/brief.md",
   "goalsPath": ".omx/ultragoal/goals.json",
   "ledgerPath": ".omx/ultragoal/ledger.jsonl",
   "codexGoalMode": "aggregate",
   "goals": [
     {
-      "id": "G011-complete-g004-after-build-failure-tr",
-      "title": "Complete G004 after build-failure transport repair",
-      "objective": "Preserve the accepted G004 generic XMF UI implementation and product scope; replace the producer's asynchronous large failure-marker emission with the existing synchronous chunked stdout pattern, prove the actual runner-to-parent transport with one focused regression, rerun fast verification, obtain independent exact-byte approval, then run exactly one fresh G004 story acceptance attempt and complete G004 only if all gates pass.",
-      "status": "in_progress",
+      "id": "G012-repair-generic-g004-runner-failure-t",
+      "title": "Repair generic G004 runner failure transport without rerun",
+      "objective": "Without running raw G004, verify:ui, or any story, extend the existing synchronous bounded stdout marker path so every ordinary G004 runner primary error—not only XcodeBuildError—emits exactly one redacted generic failure envelope while preserving the original primary object and ordered cleanup errors. Add one focused transport-only regression covering ordinary assertion failure, writer failure, duplicate-marker prevention, byte cap, and parent forwarding; run verify:fast; obtain independent exact-byte Code Reviewer APPROVE and Architect CLEAR. This Goal does not authorize another G004 execution and cannot complete G004/G011.",
+      "status": "complete",
       "attempt": 1,
-      "createdAt": "2026-07-21T22:39:19.975Z",
-      "updatedAt": "2026-07-21T22:39:25.883Z",
-      "evidence": ".omx/handoff/g004-story-acceptance-attempt-8.log sha256 f9c9d0192cb13fb7d13fcaa7cfe655d5ca49bde150ffb6eadf0c185decbe9c05: six phases passed; development-build returned one truncated marker with stdoutByteCount=65536. The runner uses console.log immediately before rethrow while the reviewed parent already has a synchronous chunked writer.",
-      "supersedes": [
-        "G004-build-generic-xmf-ui-path"
-      ],
-      "startedAt": "2026-07-21T22:39:25.883Z"
+      "createdAt": "2026-07-22T04:42:24.316Z",
+      "updatedAt": "2026-07-22T05:08:54.981Z",
+      "evidence": "G012 repaired generic G004 primary failure transport without raw G004/full verify:ui/story: current owner hashes runner 6b5577472f16835024ac804b04a56898cdb341a0636d41f8e783a91917a91221, verifier dd1e915b0560b1031245f95d4dc237a72a59c2f07610fdae7417687f08982141, test cdc9177e7b3ce7e3359c87b163f68de2e9ddd997fff925d41b186f228bff72ca, docs 2eff1048a096e0e4ec9b7770d557ba0ad918ce0d81ce97894a16a7623440a28c, manifest 5d8ba53facd609ad66f3f9b3adfafb2ba0c4cce694ed5a4f49e10561ab5e91ce; targeted PASS 2/2 log 84774b8282a75f84b0f631ebd3c78200d5a0c0ae7faf3dacda493e851ac6b3d0; verify:fast PASS 7/7 log 09cbb432de49b699d23e206a95ade6067f4db77fe2d4eeb49d9c40e6c63988c5; independent Code Reviewer APPROVE 453d2d4004c0f45d48554962de1c3a38cae402d19763943b86f732d1e1939791 and Architect CLEAR 8605501f05d6daf167908f132ab85767464cf0b7986d8c1fb1d60dd6996f170d; ios/android absent and zero G011 tmp roots.",
+      "startedAt": "2026-07-22T04:42:54.143Z",
+      "completedAt": "2026-07-22T05:08:54.981Z"
     },
     {
       "id": "G010-complete-hs1200p08-fixture-path",
@@ -66,6 +64,22 @@
       "evidence": "User directive 2026-07-22: persist the full permitted mts_screen/Plus migration as the top-level durable objective; recheck source coverage after each Goal and prevent aggregate completion while any allowed case lacks implementation/evidence or an explicit owned blocker.",
       "steeringEvidence": "Binding user steering 2026-07-22 defines the exact G009 completion gate, platform conflict/exception policy, secret handling, manifest/story activation, matrix reconciliation, and G009-last ordering invariant.",
       "steeringRationale": "A terminal fail-closed Goal prevents the aggregate pointer from completing while any permitted functionality or evidence remains missing, without changing active G004."
+    },
+    {
+      "id": "G011-complete-g004-after-build-failure-tr",
+      "title": "Complete G004 after build-failure transport repair",
+      "objective": "Preserve the accepted G004 generic XMF UI implementation and product scope; replace the producer's asynchronous large failure-marker emission with the existing synchronous chunked stdout pattern, prove the actual runner-to-parent transport with one focused regression, rerun fast verification, obtain independent exact-byte approval, then run exactly one fresh G004 story acceptance attempt and complete G004 only if all gates pass.",
+      "status": "failed",
+      "attempt": 1,
+      "createdAt": "2026-07-21T22:39:19.975Z",
+      "updatedAt": "2026-07-22T04:39:24.660Z",
+      "evidence": ".omx/handoff/g004-story-acceptance-attempt-8.log sha256 f9c9d0192cb13fb7d13fcaa7cfe655d5ca49bde150ffb6eadf0c185decbe9c05: six phases passed; development-build returned one truncated marker with stdoutByteCount=65536. The runner uses console.log immediately before rethrow while the reviewed parent already has a synchronous chunked writer.",
+      "supersedes": [
+        "G004-build-generic-xmf-ui-path"
+      ],
+      "startedAt": "2026-07-21T22:39:25.883Z",
+      "failedAt": "2026-07-22T04:39:24.660Z",
+      "failureReason": "Attempt 10 consumed/no retry: six phases passed; development-build failed with BUILD_FAILURE_EVIDENCE_FORWARD_ERROR markerCount=0 stdoutByteCount=0 stderrByteCount=4190 childStatus=1. Log .omx/handoff/g004-story-acceptance-attempt-10.log SHA256 3890cbd5308b115da28687e4a295cf7f0d9c9769139152d5ae26c0a8eeeb7f0e; failure audit .omx/handoff/g011-story-attempt-10-failure.md SHA256 05b7df9ab64761aa2946dd75939203920ade33030af60c655c8beda8788111e7. No retry; G005/G010 and dependent progression blocked."
     },
     {
       "id": "G005-complete-hs1200p08-fixture-path",
@@ -150,6 +164,5 @@
       "evidence": "G001 independently APPROVE/CLEAR at commit 260c28750fbd4c716106f3959e02367f29b71c7a; report .omx/handoff/g001-independent-verification-iteration-4.md SHA256 04aa68d58cac0cd73165c5546881e914414a818fa5c448286cac03aa7686e6ba; fresh iteration-4 reviews reran verify:g001 and TypeScript successfully; aggregate Codex goal is active after explicit user clear/resume."
     }
   ],
-  "codexObjective": "Complete the durable ultragoal plan in .omx/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .omx/ultragoal/ledger.jsonl as the audit trail.",
-  "activeGoalId": "G011-complete-g004-after-build-failure-tr"
+  "codexObjective": "Complete the durable ultragoal plan in .omx/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .omx/ultragoal/ledger.jsonl as the audit trail."
 }

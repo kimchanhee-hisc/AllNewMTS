@@ -21,8 +21,11 @@ const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 const buildFailurePrefix = 'ALLNEWMTS_G004_BUILD_FAILURE=';
 const buildFailureCommand = 'node scripts/run-g004-development-build.mjs';
 const buildFailureEnvelopeSchema = 'allnewmts.g004.build-failure-envelope.v1';
+const buildFailureEvidenceSchema = 'allnewmts.g004.build-failure-evidence.v1';
+const genericFailureEvidenceSchema = 'allnewmts.g004.generic-failure-evidence.v1';
 const buildFailureForwardSchema = 'allnewmts.g004.build-failure-forward.v1';
 const buildFailureEvidenceCap = 524_288;
+const genericFailureEvidenceCap = 1024;
 const buildFailureSuffixCap = 524_512;
 
 function canonicalize(value) {
@@ -51,6 +54,16 @@ function validBuildFailureSuffix(suffix) {
   if (!/^[0-9a-f]{64}$/.test(envelope.buildFailureEvidenceSha256)) return false;
   const evidence = canonicalJson(envelope.buildFailureEvidence);
   if (Buffer.byteLength(evidence) > buildFailureEvidenceCap) return false;
+  if (envelope.buildFailureEvidence?.schema === genericFailureEvidenceSchema) {
+    if (Buffer.byteLength(evidence) > genericFailureEvidenceCap) return false;
+    if (!exactKeys(envelope.buildFailureEvidence, ['code', 'errorCode', 'errorName', 'phase', 'schema'])) return false;
+    if (envelope.buildFailureEvidence.code !== 'RUNNER_PRIMARY_ERROR') return false;
+    if (!['ERR_ASSERTION', 'UNCLASSIFIED'].includes(envelope.buildFailureEvidence.errorCode)) return false;
+    if (!['AggregateError', 'AssertionError', 'Error'].includes(envelope.buildFailureEvidence.errorName)) return false;
+    if (envelope.buildFailureEvidence.phase !== 'development-build') return false;
+  } else if (envelope.buildFailureEvidence?.schema !== buildFailureEvidenceSchema) {
+    return false;
+  }
   if (sha256(evidence) !== envelope.buildFailureEvidenceSha256) return false;
   return canonicalJson(envelope) === suffix;
 }
@@ -133,6 +146,33 @@ function forwardingRegressionEvidence() {
   const writerLine = String(child.stderr ?? '').split(/\r?\n/).find((line) => line.startsWith('G004_BUILD_FAILURE_WRITER_REGRESSION='));
   assert.ok(writerLine, 'build-failure marker child emitted no writer-failure evidence');
   const writerFailure = JSON.parse(writerLine.slice('G004_BUILD_FAILURE_WRITER_REGRESSION='.length));
+  const genericChild = spawnSync('node', ['scripts/run-g004-development-build.mjs', '--generic-failure-marker-transport-child'], {
+    cwd: root,
+    encoding: 'utf8',
+    maxBuffer: 100 * 1024 * 1024
+  });
+  assert.equal(genericChild.error, undefined, `generic failure marker child could not start: ${genericChild.error?.message}`);
+  assert.notEqual(genericChild.status, 0, 'generic failure marker child must preserve failure');
+  const genericMarkers = buildFailureMarkerLines(genericChild.stdout);
+  assert.equal(genericMarkers.length, 1);
+  const genericSuffix = genericMarkers[0].slice(buildFailurePrefix.length);
+  assert.equal(validBuildFailureSuffix(genericSuffix), true);
+  const genericEnvelope = JSON.parse(genericSuffix);
+  const genericEvidenceCanonicalBytes = Buffer.byteLength(canonicalJson(genericEnvelope.buildFailureEvidence));
+  assert.ok(genericEvidenceCanonicalBytes <= genericFailureEvidenceCap);
+  assert.equal(genericEnvelope.buildFailureEvidence.schema, genericFailureEvidenceSchema);
+  assert.equal(genericEnvelope.buildFailureEvidence.errorCode, 'ERR_ASSERTION');
+  assert.equal(genericEnvelope.buildFailureEvidence.phase, 'development-build');
+  assert.doesNotMatch(genericMarkers[0], /G004_GENERIC_CHILD_SECRET/);
+  const genericWriterLine = String(genericChild.stderr ?? '').split(/\r?\n/).find((line) => line.startsWith('G004_GENERIC_FAILURE_WRITER_REGRESSION='));
+  assert.ok(genericWriterLine, 'generic failure marker child emitted no writer-failure evidence');
+  const genericWriterFailure = JSON.parse(genericWriterLine.slice('G004_GENERIC_FAILURE_WRITER_REGRESSION='.length));
+  const genericForwarded = [];
+  assert.throws(
+    () => assertSuccessfulRun('node', ['scripts/run-g004-development-build.mjs'], genericChild, (line) => genericForwarded.push(line)),
+    (error) => error?.message === `${buildFailureCommand} failed; bounded evidence forwarded`
+  );
+  assert.deepEqual(genericForwarded, genericMarkers);
   const forwarded = [];
   assert.throws(
     () => assertSuccessfulRun('node', ['scripts/run-g004-development-build.mjs'], child, (line) => {
@@ -143,15 +183,29 @@ function forwardingRegressionEvidence() {
   );
   assert.deepEqual(forwarded, [producerMarker]);
   const secret = 'G004_FORWARDING_PLANTED_SECRET';
+  const envelopeForEvidence = (buildFailureEvidence) => {
+    const evidenceJson = canonicalJson(buildFailureEvidence);
+    return canonicalJson({
+      buildFailureEvidence,
+      buildFailureEvidenceSha256: sha256(evidenceJson),
+      cleanupErrorCount: 0,
+      schema: buildFailureEnvelopeSchema
+    });
+  };
 
   const mismatch = canonicalJson({ ...envelope, buildFailureEvidenceSha256: '0'.repeat(64) });
+  const genericEvidence = genericEnvelope.buildFailureEvidence;
   const cases = [
     ['absent', 'ordinary output'],
     ['duplicate', `${buildFailurePrefix}${suffix}\n${buildFailurePrefix}${suffix}`],
     ['malformed', `${buildFailurePrefix}{`],
     ['noncanonical', `${buildFailurePrefix} ${suffix}`],
     ['oversize', `${buildFailurePrefix}${'x'.repeat(buildFailureSuffixCap + 1)}`],
-    ['hash-mismatch', `${buildFailurePrefix}${mismatch}`]
+    ['hash-mismatch', `${buildFailurePrefix}${mismatch}`],
+    ['generic-unknown-schema', `${buildFailurePrefix}${envelopeForEvidence({ ...genericEvidence, schema: 'allnewmts.g004.unknown.v1' })}`],
+    ['generic-extra-key', `${buildFailurePrefix}${envelopeForEvidence({ ...genericEvidence, secret })}`],
+    ['generic-invalid-code', `${buildFailurePrefix}${envelopeForEvidence({ ...genericEvidence, errorCode: 'G004_FORWARDING_PLANTED_SECRET' })}`],
+    ['generic-oversize', `${buildFailurePrefix}${envelopeForEvidence({ ...genericEvidence, errorName: 'A'.repeat(genericFailureEvidenceCap + 1) })}`]
   ];
   for (const [name, stdout] of cases) {
     const emitted = [];
@@ -178,6 +232,14 @@ function forwardingRegressionEvidence() {
     status: 'PASS',
     immediateSamePrimaryThrow: true,
     markerByteIdentity: true,
+    genericFailure: {
+      evidenceCanonicalBytes: genericEvidenceCanonicalBytes,
+      markerByteIdentity: genericForwarded[0] === genericMarkers[0],
+      markersForwarded: genericForwarded.length,
+      producerPrefixes: genericMarkers.length,
+      schema: genericEnvelope.buildFailureEvidence.schema,
+      writerFailure: genericWriterFailure
+    },
     producerPrefixes: producerMarkers.length,
     producerMarkerSha256: sha256(producerMarker),
     realChildTransport: true,

@@ -128,7 +128,7 @@
       "outputs": [
         "TAP"
       ],
-      "budgetSeconds": 30
+      "budgetSeconds": 60
     },
     {
       "id": "fixtures",
@@ -414,7 +414,7 @@
     },
     {
       "path": "docs/testing.md",
-      "sha256": "9c06dd19a021d4c8f69c06d4061a34896a5a77749c5d72c9aa27b367dfd8075a"
+      "sha256": "2eff1048a096e0e4ec9b7770d557ba0ad918ce0d81ce97894a16a7623440a28c"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
@@ -466,7 +466,7 @@
     },
     {
       "path": "scripts/run-g004-development-build.mjs",
-      "sha256": "b73a233c539eda69ac4a96b9c566be3782283d0110471f7df5fe2f709aa8efb1"
+      "sha256": "6b5577472f16835024ac804b04a56898cdb341a0636d41f8e783a91917a91221"
     },
     {
       "path": "scripts/run-gate0-development-build.mjs",
@@ -486,11 +486,11 @@
     },
     {
       "path": "scripts/verify-ui.mjs",
-      "sha256": "f09f7c5507979c29ecae1f516ee6699f2fbadcb04283c91749dec6e533206092"
+      "sha256": "dd1e915b0560b1031245f95d4dc237a72a59c2f07610fdae7417687f08982141"
     },
     {
       "path": "test/foundation.test.mjs",
-      "sha256": "cee82c7634f13450a0b809f0f22029b730d4cf2f63082150087a455b254b7ebb"
+      "sha256": "cdc9177e7b3ce7e3359c87b163f68de2e9ddd997fff925d41b186f228bff72ca"
     },
     {
       "path": "test/g004/g003-baseline.json",
