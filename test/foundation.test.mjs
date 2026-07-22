@@ -680,6 +680,8 @@ test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe
   assert.match(runner, /\["arm64","x86_64"\][\s\S]+lipo[\s\S]+install_name_tool[\s\S]+dsymutil[\s\S]+dwarfdump/);
   const shimSource = runner.match(/function swiftPmShimSource\(config\) \{[\s\S]*?\n\}/)?.[0] ?? '';
   assert.doesNotMatch(shimSource, /pathlib|shutil|copyfile|write_bytes|\.mkdir\(/, 'the shim must not copy or promote runner-owned module/header outputs');
+  assert.match(shimSource, /args=\["swift","build"[\s\S]+subprocess\.run\(args,executable=tool\("swift"\)/, 'the verified physical Swift executable must retain Swift driver argv[0] semantics');
+  assert.doesNotMatch(shimSource, /args=\[tool\("swift"\),"build"/, 'the realpath-resolved swift-frontend target cannot be used as argv[0]');
   assert.match(runner, /def promote_swiftpm\(\):[\s\S]+copy_named[\s\S]+module staging shape mismatch[\s\S]+header staging shape mismatch/);
   assert.match(runner, /ALLNEWMTS_G011_PROMOTE=1[\s\S]+promote_swiftpm[\s\S]+PROMOTED/);
   assert.match(runner, /open_chain_bound[\s\S]+recheck_chain\(package_chain\)[\s\S]+inventory_root_bound[\s\S]+backup inventory mismatch[\s\S]+remove_at_bound[\s\S]+root restoration mismatch/);
