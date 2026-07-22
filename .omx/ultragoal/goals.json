@@ -1,36 +1,22 @@
 {
   "version": 1,
   "createdAt": "2026-07-20T09:21:44.122Z",
-  "updatedAt": "2026-07-22T05:08:54.981Z",
+  "updatedAt": "2026-07-22T05:22:21.517Z",
   "briefPath": ".omx/ultragoal/brief.md",
   "goalsPath": ".omx/ultragoal/goals.json",
   "ledgerPath": ".omx/ultragoal/ledger.jsonl",
   "codexGoalMode": "aggregate",
   "goals": [
     {
-      "id": "G012-repair-generic-g004-runner-failure-t",
-      "title": "Repair generic G004 runner failure transport without rerun",
-      "objective": "Without running raw G004, verify:ui, or any story, extend the existing synchronous bounded stdout marker path so every ordinary G004 runner primary error—not only XcodeBuildError—emits exactly one redacted generic failure envelope while preserving the original primary object and ordered cleanup errors. Add one focused transport-only regression covering ordinary assertion failure, writer failure, duplicate-marker prevention, byte cap, and parent forwarding; run verify:fast; obtain independent exact-byte Code Reviewer APPROVE and Architect CLEAR. This Goal does not authorize another G004 execution and cannot complete G004/G011.",
-      "status": "complete",
+      "id": "G013-complete-g004-with-user-authorized-f",
+      "title": "Complete G004 with user-authorized final retry",
+      "objective": "Use the already reviewed G012 generic failure transport and unchanged accepted G004 implementation. Run preflight diagnostics without raw G004/full verify:ui/story, then run exactly one canonical G004 story attempt 11 authorized by the user on 2026-07-22. Do not use alternate story/UI commands or rerun on failure. If it passes, obtain independent exact-byte APPROVE/CLEAR and checkpoint G004 closure before G010; if it fails, preserve exact bounded evidence and stop dependent progression. Never connect to product production servers, live services, or the product CDN.",
+      "status": "in_progress",
       "attempt": 1,
-      "createdAt": "2026-07-22T04:42:24.316Z",
-      "updatedAt": "2026-07-22T05:08:54.981Z",
-      "evidence": "G012 repaired generic G004 primary failure transport without raw G004/full verify:ui/story: current owner hashes runner 6b5577472f16835024ac804b04a56898cdb341a0636d41f8e783a91917a91221, verifier dd1e915b0560b1031245f95d4dc237a72a59c2f07610fdae7417687f08982141, test cdc9177e7b3ce7e3359c87b163f68de2e9ddd997fff925d41b186f228bff72ca, docs 2eff1048a096e0e4ec9b7770d557ba0ad918ce0d81ce97894a16a7623440a28c, manifest 5d8ba53facd609ad66f3f9b3adfafb2ba0c4cce694ed5a4f49e10561ab5e91ce; targeted PASS 2/2 log 84774b8282a75f84b0f631ebd3c78200d5a0c0ae7faf3dacda493e851ac6b3d0; verify:fast PASS 7/7 log 09cbb432de49b699d23e206a95ade6067f4db77fe2d4eeb49d9c40e6c63988c5; independent Code Reviewer APPROVE 453d2d4004c0f45d48554962de1c3a38cae402d19763943b86f732d1e1939791 and Architect CLEAR 8605501f05d6daf167908f132ab85767464cf0b7986d8c1fb1d60dd6996f170d; ios/android absent and zero G011 tmp roots.",
-      "startedAt": "2026-07-22T04:42:54.143Z",
-      "completedAt": "2026-07-22T05:08:54.981Z"
-    },
-    {
-      "id": "G010-complete-hs1200p08-fixture-path",
-      "title": "Complete HS1200P08 fixture path",
-      "objective": "Run original HS1200P08 and common Lua unchanged; implement only its transitive Host API ledger and deterministic CCS20000/CCS20001 flows matching frozen golden traces.",
-      "status": "pending",
-      "attempt": 0,
-      "createdAt": "2026-07-21T22:38:59.265Z",
-      "updatedAt": "2026-07-21T22:38:59.265Z",
-      "evidence": "The retry-failed scheduler activated G005 while G004 remained failed, contrary to the binding G004-before-G005 sequence. No G005 implementation or verification command ran.",
-      "supersedes": [
-        "G005-complete-hs1200p08-fixture-path"
-      ]
+      "createdAt": "2026-07-22T05:21:49.691Z",
+      "updatedAt": "2026-07-22T05:22:21.517Z",
+      "evidence": "User explicit directive: 추가 1회 재시도. This supersedes only the attempt-10 no-retry count by one exact attempt; all original G004 scope, validation order, cleanup, security, production-server/CDN, MVigsEngine, and G004-before-G005 constraints remain.",
+      "startedAt": "2026-07-22T05:22:21.517Z"
     },
     {
       "id": "G006-verify-first-milestone",
@@ -64,6 +50,34 @@
       "evidence": "User directive 2026-07-22: persist the full permitted mts_screen/Plus migration as the top-level durable objective; recheck source coverage after each Goal and prevent aggregate completion while any allowed case lacks implementation/evidence or an explicit owned blocker.",
       "steeringEvidence": "Binding user steering 2026-07-22 defines the exact G009 completion gate, platform conflict/exception policy, secret handling, manifest/story activation, matrix reconciliation, and G009-last ordering invariant.",
       "steeringRationale": "A terminal fail-closed Goal prevents the aggregate pointer from completing while any permitted functionality or evidence remains missing, without changing active G004."
+    },
+    {
+      "id": "G012-repair-generic-g004-runner-failure-t",
+      "title": "Repair generic G004 runner failure transport without rerun",
+      "objective": "Without running raw G004, verify:ui, or any story, extend the existing synchronous bounded stdout marker path so every ordinary G004 runner primary error—not only XcodeBuildError—emits exactly one redacted generic failure envelope while preserving the original primary object and ordered cleanup errors. Add one focused transport-only regression covering ordinary assertion failure, writer failure, duplicate-marker prevention, byte cap, and parent forwarding; run verify:fast; obtain independent exact-byte Code Reviewer APPROVE and Architect CLEAR. This Goal does not authorize another G004 execution and cannot complete G004/G011.",
+      "status": "complete",
+      "attempt": 1,
+      "createdAt": "2026-07-22T04:42:24.316Z",
+      "updatedAt": "2026-07-22T05:08:54.981Z",
+      "evidence": "G012 repaired generic G004 primary failure transport without raw G004/full verify:ui/story: current owner hashes runner 6b5577472f16835024ac804b04a56898cdb341a0636d41f8e783a91917a91221, verifier dd1e915b0560b1031245f95d4dc237a72a59c2f07610fdae7417687f08982141, test cdc9177e7b3ce7e3359c87b163f68de2e9ddd997fff925d41b186f228bff72ca, docs 2eff1048a096e0e4ec9b7770d557ba0ad918ce0d81ce97894a16a7623440a28c, manifest 5d8ba53facd609ad66f3f9b3adfafb2ba0c4cce694ed5a4f49e10561ab5e91ce; targeted PASS 2/2 log 84774b8282a75f84b0f631ebd3c78200d5a0c0ae7faf3dacda493e851ac6b3d0; verify:fast PASS 7/7 log 09cbb432de49b699d23e206a95ade6067f4db77fe2d4eeb49d9c40e6c63988c5; independent Code Reviewer APPROVE 453d2d4004c0f45d48554962de1c3a38cae402d19763943b86f732d1e1939791 and Architect CLEAR 8605501f05d6daf167908f132ab85767464cf0b7986d8c1fb1d60dd6996f170d; ios/android absent and zero G011 tmp roots.",
+      "startedAt": "2026-07-22T04:42:54.143Z",
+      "completedAt": "2026-07-22T05:08:54.981Z"
+    },
+    {
+      "id": "G010-complete-hs1200p08-fixture-path",
+      "title": "Complete HS1200P08 fixture path",
+      "objective": "Run original HS1200P08 and common Lua unchanged; implement only its transitive Host API ledger and deterministic CCS20000/CCS20001 flows matching frozen golden traces.",
+      "status": "failed",
+      "attempt": 1,
+      "createdAt": "2026-07-21T22:38:59.265Z",
+      "updatedAt": "2026-07-22T05:22:21.215Z",
+      "evidence": "The retry-failed scheduler activated G005 while G004 remained failed, contrary to the binding G004-before-G005 sequence. No G005 implementation or verification command ran.",
+      "supersedes": [
+        "G005-complete-hs1200p08-fixture-path"
+      ],
+      "startedAt": "2026-07-22T05:21:58.756Z",
+      "failedAt": "2026-07-22T05:22:21.215Z",
+      "failureReason": "Scheduler-only misactivation at 2026-07-22T05:21:58.756Z after a rejected reorder directive; no G010 implementation, original HS1200P08/Lua execution, verification, story, build, simulator, network, product-server/CDN/live-service, or MVigsEngine action ran. G013 must complete before G010 retry under the binding G004-before-G005 sequence."
     },
     {
       "id": "G011-complete-g004-after-build-failure-tr",
@@ -164,5 +178,6 @@
       "evidence": "G001 independently APPROVE/CLEAR at commit 260c28750fbd4c716106f3959e02367f29b71c7a; report .omx/handoff/g001-independent-verification-iteration-4.md SHA256 04aa68d58cac0cd73165c5546881e914414a818fa5c448286cac03aa7686e6ba; fresh iteration-4 reviews reran verify:g001 and TypeScript successfully; aggregate Codex goal is active after explicit user clear/resume."
     }
   ],
-  "codexObjective": "Complete the durable ultragoal plan in .omx/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .omx/ultragoal/ledger.jsonl as the audit trail."
+  "codexObjective": "Complete the durable ultragoal plan in .omx/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .omx/ultragoal/ledger.jsonl as the audit trail.",
+  "activeGoalId": "G013-complete-g004-with-user-authorized-f"
 }
