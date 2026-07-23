@@ -236,6 +236,7 @@ test('G004 runner and verifier keep hostile evidence and cleanup fail-closed', (
   fs.rmSync(integrityOutside, { recursive: true, force: true });
 
   const runner = fs.readFileSync(new URL('../scripts/run-g004-development-build.mjs', import.meta.url), 'utf8');
+  assert.match(runner, /import http from 'node:http';/, 'Metro readiness must import its HTTP client');
   assert.match(runner, /metro-owned-port\.sb/);
   assert.doesNotMatch(runner, /metro-loopback\.sb/);
   assert.match(runner, /const maximumSelectionAttempts = 3;/, 'port selection and truth-suite retry must be bounded to three whole attempts');
@@ -247,6 +248,8 @@ test('G004 runner and verifier keep hostile evidence and cleanup fail-closed', (
   assert.match(runner, /metro\.once\('error',[\s\S]+spawnError[\s\S]+metroPgid = metro\.pid[\s\S]+assert\.equal\(Number\(group\.stdout\.trim\(\)\), metroPgid/, 'detached spawn failures must be observed and cleanup-safe PGID ownership must be validated');
   assert.match(runner, /assertMetroOwned[\s\S]+lsof[\s\S]+127\.0\.0\.1[\s\S]+metroPgid/, 'Metro-owned must require exact listener and PGID attribution');
   assert.match(runner, /readinessNetwork[\s\S]+prelaunchNetwork[\s\S]+finalNetwork/, 'listener and connection checks must repeat at readiness, prelaunch, and final');
+  assert.match(runner, /log', 'stream', '--level', 'info', '--style', 'compact'[\s\S]+com\.facebook\.react\.log[\s\S]+category == "javascript"[\s\S]+waitForMarker\(stdoutFile, stderrFile, unifiedLogFile/, 'readiness must capture the exact React Native JavaScript marker from the owned simulator unified-log stream');
+  assert.match(runner, /filter\(\(line\) => line\.includes\(`\$\{markerPrefix\}\{`\)\)/, 'readiness must ignore the unified-log predicate header and accept only a JSON marker');
   assert.match(runner, /bounded unowned truth-probe and spawn handoffs[\s\S]+no uninterrupted exclusive ownership or SBPL interface-enforcement claim/, 'evidence must preserve both explicit non-claims');
   assert.match(runner, /function generatedMetroSettings[\s\S]+Target Support Files\/React-Core[\s\S]+endsWith\('\.xcconfig'\)[\s\S]+assertGeneratedMetroRecords/);
   assert.doesNotMatch(runner, /Pods\.xcodeproj\/project\.pbxproj/, 'generated Metro evidence must not inspect PBX serialization');
@@ -259,6 +262,8 @@ test('G004 runner and verifier keep hostile evidence and cleanup fail-closed', (
   assert.match(runner, /function preflightSnapshot[\s\S]+status', '--porcelain=v1', '-z'[\s\S]+nativeDirectories[\s\S]+allnewmts-g004-[\s\S]+cacheFiles[\s\S]+createHash\('sha256'\)[\s\S]+if \(reservation\) await reservation\.release\(\);[\s\S]+assert\.deepEqual\(preflightSnapshot\(podCaches\), before[\s\S]+mutatedFiles: false/, 'read-only preflight evidence must derive from an after-release repository/temp/cache snapshot');
   assert.match(runner, /local tcp "localhost:\$\{port\}"[\s\S]+remote tcp "localhost:\$\{port\}"/, 'sandbox profile must use the supported exact localhost/port syntax');
   assert.doesNotMatch(runner, /(?:local|remote) tcp "127\.0\.0\.1:/, 'macOS sandbox network addresses cannot use a numeric host');
+  assert.match(runner, /EXPO_OFFLINE: '1'[\s\S]+NODE_OPTIONS: '--dns-result-order=ipv4first'[\s\S]+const metroArgs = \['-f', profiles\.metro, path\.join\(root, 'node_modules\/\.bin\/expo'\), 'start', '--localhost', '--port'/, 'Metro must use environment-only offline mode and deterministic IPv4 localhost resolution with the exact host selector');
+  assert.doesNotMatch(runner, /const metroArgs = \[[^\n]*'--offline'/, 'Expo rejects simultaneous --offline and --localhost flags');
   assert.match(runner, /const attempt = async[\s\S]+primaryError\.cleanupErrors = cleanupErrors;\s+throwAfterBuildFailureEmission\(primaryError, cleanupErrors, undefined, primaryFailurePhase\);/);
   const markerChild = runner.match(/function buildFailureMarkerTransportChild\(\) \{[\s\S]*?\n\}/)?.[0] ?? '';
   assert.match(markerChild, /primaryError\.cleanupErrors = cleanupErrors;\s+throwAfterBuildFailureEmission\(primaryError, cleanupErrors\);/, 'private marker child must emit then immediately throw the same primary');
@@ -267,8 +272,9 @@ test('G004 runner and verifier keep hostile evidence and cleanup fail-closed', (
   assert.match(runner, /function cleanupOnlyPrimary[\s\S]+new AggregateError[\s\S]+error\.errors = error\.cleanupErrors = cleanupErrors[\s\S]+if \(cleanupErrors\.length\) \{\s+const error = cleanupOnlyPrimary\(cleanupErrors, appMetroSettings\);\s+throwAfterBuildFailureEmission\(error, cleanupErrors, undefined, failurePhase\);/);
   assert.match(runner, /const baseline = run[\s\S]+let nofollow;[\s\S]+let temp;[\s\S]+try \{\s+failurePhase = 'package-custodian';\s+temp = fs\.mkdtempSync\(path\.join\(os\.tmpdir\(\), 'allnewmts-g004-development-build-'\)\);\s+nofollow = await startNoFollowSession\(\);[\s\S]+simulator = availableSimulator\(\);[\s\S]+selected = await selectGuardedPort\(temp, activeProbes\);/, 'established G004 operational temp and G011 recovery root must be separately cleanup-owned');
   assert.match(runner, /net\.createServer[\s\S]+acceptedSockets\.add[\s\S]+socket\.once\('error'[\s\S]+server\.close[\s\S]+for \(const socket of acceptedSockets\) socket\.destroy/, 'the loopback guard must own accepted sockets and close them during bounded release');
-  assert.match(runner, /let simulatorBootedByRunner = false;[\s\S]+if \(simulator\.state !== 'Booted'\) \{[\s\S]+simctl', 'boot'[\s\S]+simulatorBootedByRunner = true;[\s\S]+if \(simulatorBootedByRunner\)[\s\S]+simctl', 'shutdown'/, 'simulator shutdown must require a successful runner-owned boot');
-  assert.match(runner, /if \(portGuard\) await portGuard\.release\(\)[\s\S]+for \(const probe of \[\.\.\.activeProbes\]\)[\s\S]+stopProbe[\s\S]+stopProcessGroup[\s\S]+closeFd[\s\S]+assertPortReusable[\s\S]+activeProbes\.size[\s\S]+if \(simulatorBootedByRunner\)[\s\S]+restore_package[\s\S]+closeNoFollowSession\(nofollow\)/, 'cleanup must terminate remaining probes and close the guard, process group, FDs, port, simulator transition, restored package, and repository-owned runner');
+  assert.match(runner, /let simulatorBootedByRunner = false;[\s\S]+if \(simulator\.state !== 'Booted'\) \{[\s\S]+simctl', 'boot'[\s\S]+simulatorBootedByRunner = true;[\s\S]+if \(!simulatorBootedByRunner\) return;[\s\S]+simctl', 'shutdown'/, 'simulator shutdown must require a successful runner-owned boot');
+  assert.match(runner, /simctl', 'terminate'[\s\S]+ps', \['-p'[\s\S]+simctl', 'uninstall'[\s\S]+simctl', 'get_app_container'[\s\S]+if \(portGuard\) await portGuard\.release\(\)[\s\S]+for \(const probe of \[\.\.\.activeProbes\]\)[\s\S]+stopProbe[\s\S]+runtimeLog\.kill\('SIGTERM'\)[\s\S]+reapChild\(runtimeLog\)[\s\S]+stopProcessGroup[\s\S]+closeFd[\s\S]+assertPortReusable[\s\S]+activeProbes\.size[\s\S]+simulatorBootedByRunner[\s\S]+simctl', 'shutdown'[\s\S]+restore_package[\s\S]+closeNoFollowSession\(nofollow\)/, 'cleanup must prove the App terminated and unregistered, terminate remaining probes and log/Metro children, then close FDs, port, simulator transition, restored package, and repository-owned runner');
+  assert.match(runner, /post-cleanup simulator App registration survived reboot/, 'runner-owned simulator cleanup must reject registration that reappears after shutdown and boot');
 
   const network = spawnSync(process.execPath, [fileURLToPath(new URL('../scripts/run-g004-development-build.mjs', import.meta.url)), '--network-regression'], {
     cwd: fileURLToPath(new URL('..', import.meta.url)),
@@ -362,6 +368,9 @@ test('G004 Metro evidence accepts only exact generated, resolved, and argv recor
     quotedGeneratedRejected: true,
     malformedGeneratedRecordsRejected: true,
     malformedNumericEvidenceRejected: true,
+    offlineHostConflictRejected: true,
+    ipv4LocalhostResolutionPinned: true,
+    httpReadinessClientAvailable: true,
     appRawMatches: 2,
     appCommandLineMatches: 1,
     appResolvedMatches: 1,
@@ -471,6 +480,25 @@ test('G004 UI wrapper forwards only canonical bounded build-failure evidence thr
     secondaryLocation: 'primaryError.cleanupErrors[1]',
     statusSignalPreserved: true
   });
+});
+
+test('ExpoModulesCore Xcode 26.3 compatibility patch is exact and idempotent', () => {
+  const repoRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
+  const patcher = path.join(repoRoot, 'scripts/patch-expo-modules-core.mjs');
+  const apply = spawnSync(process.execPath, [patcher], { cwd: repoRoot, encoding: 'utf8' });
+  assert.equal(apply.status, 0, `${apply.stdout}${apply.stderr}`);
+  const check = spawnSync(process.execPath, [patcher, '--check'], { cwd: repoRoot, encoding: 'utf8' });
+  assert.equal(check.status, 0, `${check.stdout}${check.stderr}`);
+
+  const source = fs.readFileSync(path.join(repoRoot, 'node_modules/expo-modules-core/ios/Core/Events/EventEmitter.swift'));
+  assert.equal(createHash('sha256').update(source).digest('hex'), '425a0e5c5b26fbee0ef668b620ca9d3686aa3bcd0ff770dfd7f897bc3ac761ce');
+  assert.equal(source.toString().split('let emitter = NonisolatedUnsafeWeakVar(self)').length - 1, 2);
+  assert.doesNotMatch(source.toString(), /nonisolated\(unsafe\) weak let emitter = self/);
+
+  const scripts = json('package.json').scripts;
+  assert.equal(scripts.postinstall, 'node scripts/patch-expo-modules-core.mjs');
+  assert.equal(scripts.preios, scripts.postinstall);
+  assert.equal(scripts['preverify:ui'], scripts.postinstall);
 });
 
 test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe', () => {
@@ -628,11 +656,11 @@ test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe
   assert.deepEqual(installedScript.environment, { developerDir: path.join(installedBase, 'developer'), home: path.join(installedBase, 'home'), path: `${path.join(installedBase, 'bin')}:/usr/bin:/bin`, podsRoot: path.join(installedBase, 'pods'), rnRoot: path.join(installedBase, 'react-native') });
   assert.deepEqual(installedScript.argv, ['build', '-scheme', 'ExpoModulesJSI', '-sdk', 'iphonesimulator', '-destination', 'generic/platform=iOS Simulator', '-derivedDataPath', path.join(installedBase, 'package/.DerivedData'), '-configuration', 'Release', '-quiet', '-disableAutomaticPackageResolution', '-skipPackagePluginValidation', '-skipMacroValidation', '-parallelizeTargets', 'BUILD_LIBRARY_FOR_DISTRIBUTION=YES', 'SKIP_INSTALL=NO', 'DEBUG_INFORMATION_FORMAT=dwarf-with-dsym', 'COMPILER_INDEX_STORE_ENABLE=NO', 'SWIFT_COMPILATION_MODE=wholemodule']);
   assert.deepEqual(evidence.integration.outputCounts, {
-    mainCompiledBuildOutputCounts: [1, 0, 0],
+    mainCompiledBuildOutputCounts: [0, 0, 0],
     rejected: ['second-installed-script-duplicate-cache', 'second-installed-script-shim', 'second-installed-script-simulator-build', 'main-compiled-build-duplicate-cache', 'main-compiled-build-shim', 'main-compiled-build-simulator-build'],
     secondInstalledScriptOutputCounts: [1, 0, 0]
   });
-  assert.deepEqual(evidence.integration.finalXcframework.rejected, ['extra-plist-key', 'missing-plist-key', 'missing-slice', 'extra-slice', 'wrong-target-entry', 'wrong-non-target-entry', 'extra-disk-slice', 'non-target-changed', 'wrong-arch', 'wrong-platform', 'wrong-minimum', 'wrong-install-name', 'uuid-mismatch', 'missing-module', 'extra-module', 'missing-header', 'extra-header', 'modulemap-mismatch', 'framework-plist', 'private-interface', 'package-interface', 'bad-build-hash']);
+  assert.deepEqual(evidence.integration.finalXcframework.rejected, ['extra-plist-key', 'missing-plist-key', 'missing-slice', 'extra-slice', 'wrong-target-entry', 'wrong-non-target-entry', 'extra-disk-slice', 'non-target-changed', 'wrong-arch', 'wrong-platform', 'wrong-minimum', 'wrong-install-name', 'uuid-mismatch', 'missing-module', 'extra-module', 'missing-header', 'extra-header', 'modulemap-mismatch', 'missing-framework-plist', 'extra-framework-plist', 'wrong-framework-plist', 'private-interface', 'package-interface', 'bad-build-hash']);
   assert.deepEqual(evidence.integration.finalXcframework.validated.diskSliceIdentifiers, ['ios-arm64', 'ios-arm64_x86_64-maccatalyst', 'ios-arm64_x86_64-simulator', 'macos-arm64_x86_64', 'tvos-arm64', 'tvos-arm64_x86_64-simulator']);
   assert.deepEqual(evidence.integration.finalXcframework.validated.plistLibraries, [
     { BinaryPath: 'ExpoModulesJSI.framework/ExpoModulesJSI', LibraryIdentifier: 'ios-arm64', LibraryPath: 'ExpoModulesJSI.framework', SupportedArchitectures: ['arm64'], SupportedPlatform: 'ios' },
@@ -643,6 +671,19 @@ test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe
     { BinaryPath: 'ExpoModulesJSI.framework/ExpoModulesJSI', LibraryIdentifier: 'tvos-arm64_x86_64-simulator', LibraryPath: 'ExpoModulesJSI.framework', SupportedArchitectures: ['arm64', 'x86_64'], SupportedPlatform: 'tvos', SupportedPlatformVariant: 'simulator' }
   ]);
   assert.deepEqual(evidence.integration.finalXcframework.validated.dsymUuids, evidence.integration.finalXcframework.validated.binaryUuids);
+  assert.deepEqual(evidence.integration.finalXcframework.validated.frameworkInfoPlist, {
+    CFBundleDevelopmentRegion: 'en',
+    CFBundleExecutable: 'ExpoModulesJSI',
+    CFBundleIdentifier: 'expo.modules.ExpoModulesJSI',
+    CFBundleInfoDictionaryVersion: '6.0',
+    CFBundleName: 'ExpoModulesJSI',
+    CFBundlePackageType: 'FMWK',
+    CFBundleShortVersionString: '1.0',
+    CFBundleSupportedPlatforms: ['iPhoneSimulator'],
+    CFBundleVersion: '1',
+    MinimumOSVersion: '16.4',
+    UIDeviceFamily: [1, 2]
+  });
   assert.equal(evidence.integration.finalXcframework.validated.moduleFiles.length, 10);
   assert.deepEqual(evidence.integration.finalXcframework.validated.nonTargetStreams.map(({ id }) => id), ['ios-arm64', 'ios-arm64_x86_64-maccatalyst', 'macos-arm64_x86_64', 'tvos-arm64', 'tvos-arm64_x86_64-simulator']);
   for (const value of evidence.integration.finalXcframework.validated.nonTargetStreams) { assert.match(value.sha256, /^[a-f0-9]{64}$/); assert.ok(Buffer.from(value.streamBase64, 'base64').length > 0); }
@@ -682,12 +723,12 @@ test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe
   assert.doesNotMatch(shimSource, /pathlib|shutil|copyfile|write_bytes|\.mkdir\(/, 'the shim must not copy or promote runner-owned module/header outputs');
   assert.match(shimSource, /args=\["swift","build"[\s\S]+subprocess\.run\(args,executable=tool\("swift"\)/, 'the verified physical Swift executable must retain Swift driver argv[0] semantics');
   assert.doesNotMatch(shimSource, /args=\[tool\("swift"\),"build"/, 'the realpath-resolved swift-frontend target cannot be used as argv[0]');
-  assert.match(runner, /def promote_swiftpm\(\):[\s\S]+copy_named[\s\S]+module staging shape mismatch[\s\S]+header staging shape mismatch/);
+  assert.match(runner, /def promote_swiftpm\(\):[\s\S]+write_owned\(\["Info\.plist"\],FRAMEWORK_INFO_PLIST,0o644,framework,framework_chain\)[\s\S]+\["ExpoModulesJSI","Info\.plist"\][\s\S]+module staging shape mismatch[\s\S]+header staging shape mismatch/);
   assert.match(runner, /ALLNEWMTS_G011_PROMOTE=1[\s\S]+promote_swiftpm[\s\S]+PROMOTED/);
   assert.match(runner, /open_chain_bound[\s\S]+recheck_chain\(package_chain\)[\s\S]+inventory_root_bound[\s\S]+backup inventory mismatch[\s\S]+remove_at_bound[\s\S]+root restoration mismatch/);
   assert.match(shimSource, /def load_contract[\s\S]+platform 7[\s\S]+minos 16\.4[\s\S]+install name mismatch[\s\S]+load_contract\(universal,arch/);
   assert.match(shimSource, /def sdk\(\):[\s\S]+--show-sdk-path[\s\S]+selected SDK identity changed[\s\S]+"--sdk",sdk\(\)/);
-  assert.match(runner, /secondInstalledScriptOutputCounts = assertNestedSwiftPmCacheOutput\(second,[\s\S]+mainCompiledBuildOutputCounts = assertNestedSwiftPmCacheOutput\(compiledOutput/);
+  assert.match(runner, /secondInstalledScriptOutputCounts = assertNestedSwiftPmCacheOutput\(second,[\s\S]+mainCompiledBuildOutputCounts = assertNestedSwiftPmCacheOutput\(compiledOutput, 'main compiled build', true\)/);
   assert.match(runner, /\/usr\/bin\/sandbox-exec/);
   assert.match(runner, /profiles\.deny/);
   assert.match(runner, /\/usr\/bin\/env/);

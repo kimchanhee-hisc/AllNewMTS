@@ -55,6 +55,7 @@
     "modules/allnewmts-lua/src/runtime.ts",
     "package.json",
     "scripts/generate-g004-assets.mjs",
+    "scripts/patch-expo-modules-core.mjs",
     "scripts/run-g004-development-build.mjs",
     "scripts/verify-foundation.mjs",
     "scripts/verify-ui.mjs",

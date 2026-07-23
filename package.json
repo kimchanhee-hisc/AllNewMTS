@@ -13,6 +13,10 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "patch:expo-modules-core": "node scripts/patch-expo-modules-core.mjs",
+    "postinstall": "node scripts/patch-expo-modules-core.mjs",
+    "preios": "node scripts/patch-expo-modules-core.mjs",
+    "preverify:ui": "node scripts/patch-expo-modules-core.mjs",
     "verify:g001": "node scripts/verify-g001.mjs",
     "verify:format": "node scripts/verify-foundation.mjs format",
     "verify:docs": "node scripts/verify-foundation.mjs docs",

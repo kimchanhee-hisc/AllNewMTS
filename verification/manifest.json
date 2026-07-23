@@ -414,7 +414,7 @@
     },
     {
       "path": "docs/testing.md",
-      "sha256": "cd9d5fcaa00234209894a81ff80c41eae9f6e4ec946edbd3f05de8715de58ebd"
+      "sha256": "1c69ff46828b7202d59465810d51f25feebf784298f19387faa524e9a7147d70"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
@@ -454,7 +454,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "8e896e0281fe997f15c09670f45346b057641cda78a79e914982d440782f404d"
+      "sha256": "df07631be1376e1708991247946333a1cb5048f5b586483c72fab003568de2c7"
     },
     {
       "path": "scripts/generate-g004-assets.mjs",
@@ -465,8 +465,12 @@
       "sha256": "9a787aa15ed9906680a6d9dafda7096a06c868c2d030df3be8ddea125c450751"
     },
     {
+      "path": "scripts/patch-expo-modules-core.mjs",
+      "sha256": "f708c2b672e7ba5c4974517716363282c5a2fcd5b9cf5fa67bed8714c0523cda"
+    },
+    {
       "path": "scripts/run-g004-development-build.mjs",
-      "sha256": "eb711b3b981e241d9185d407f05b1372e3d89172f535f5386a49c453e673467a"
+      "sha256": "e765365bddc2adef7b2ecab708c071761935d1697033e949b1fa649a7038543d"
     },
     {
       "path": "scripts/run-gate0-development-build.mjs",
@@ -474,7 +478,7 @@
     },
     {
       "path": "scripts/verify-foundation.mjs",
-      "sha256": "438fa7037b7154265591409c04052bf7a93c516002e1302aaca8c632c131e21d"
+      "sha256": "c302a30aad18dbcb3f737f788cb02f4078f3cb021231f27c7af54aff9570d2e5"
     },
     {
       "path": "scripts/verify-native.mjs",
@@ -486,15 +490,15 @@
     },
     {
       "path": "scripts/verify-ui.mjs",
-      "sha256": "fb0e5b74e4332f6f3b5292e1ae2454b88dd48a3c20a59a75a558263dcbb39558"
+      "sha256": "416f528d9b8605549e61e45b319f1e9ba04e298f1495dd93757d8968637cf2a6"
     },
     {
       "path": "test/foundation.test.mjs",
-      "sha256": "8d4c98cb597fe35124f62e4d2cc4b260e049072a8904ebdd96669e5dbeb5911b"
+      "sha256": "3f2eb17949b649cb38293f9195eb0d8835eb1254e3cc4439cedf41310e217f44"
     },
     {
       "path": "test/g004/g003-baseline.json",
-      "sha256": "2a3f4491ed72c4b0891ed033a3dec1630b4f2dd4a6c2d7ba41ae02dec26b1dd9"
+      "sha256": "f66bf54fca0d7f5b9a1b46fb1dc77f05ab522bf5ef4243551b1efcf77500d54c"
     },
     {
       "path": "test/g004/runtime-client-golden.json",

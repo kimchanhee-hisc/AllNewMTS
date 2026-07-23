@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
+import http from 'node:http';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
@@ -39,6 +40,54 @@ const run = (file, args, options = {}) => {
   return result.stdout ?? '';
 };
 
+const expoModulesJsiFrameworkInfo = {
+  CFBundleDevelopmentRegion: 'en',
+  CFBundleExecutable: 'ExpoModulesJSI',
+  CFBundleIdentifier: 'expo.modules.ExpoModulesJSI',
+  CFBundleInfoDictionaryVersion: '6.0',
+  CFBundleName: 'ExpoModulesJSI',
+  CFBundlePackageType: 'FMWK',
+  CFBundleShortVersionString: '1.0',
+  CFBundleSupportedPlatforms: ['iPhoneSimulator'],
+  CFBundleVersion: '1',
+  MinimumOSVersion: '16.4',
+  UIDeviceFamily: [1, 2]
+};
+const expoModulesJsiFrameworkInfoPlist = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>en</string>
+  <key>CFBundleExecutable</key>
+  <string>ExpoModulesJSI</string>
+  <key>CFBundleIdentifier</key>
+  <string>expo.modules.ExpoModulesJSI</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>ExpoModulesJSI</string>
+  <key>CFBundlePackageType</key>
+  <string>FMWK</string>
+  <key>CFBundleShortVersionString</key>
+  <string>1.0</string>
+  <key>CFBundleSupportedPlatforms</key>
+  <array>
+    <string>iPhoneSimulator</string>
+  </array>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+  <key>MinimumOSVersion</key>
+  <string>16.4</string>
+  <key>UIDeviceFamily</key>
+  <array>
+    <integer>1</integer>
+    <integer>2</integer>
+  </array>
+</dict>
+</plist>
+`;
+
 const nofollowHelperSource = String.raw`import base64, errno, hashlib, json, os, secrets, signal, socket, stat, subprocess, sys, time, traceback
 
 VERSION = "allnewmts-nofollow-v1"
@@ -60,6 +109,7 @@ created_tmp = os.environ.pop("ALLNEWMTS_CREATED_TMP", "0") == "1"
 baseline = None
 test_hook = None
 artifacts = {}
+FRAMEWORK_INFO_PLIST = base64.b64decode("${Buffer.from(expoModulesJsiFrameworkInfoPlist).toString('base64')}")
 
 class PrimarySentinel(RuntimeError): pass
 
@@ -499,6 +549,7 @@ def promote_swiftpm():
     modules_destination, modules_destination_chain, modules_destination_opened = mkdir_chain_bound(package,[".DerivedData","Build","Products","Release-iphonesimulator","ExpoModulesJSI.swiftmodule"],package_chain)
     maps, maps_chain, maps_opened = mkdir_chain_bound(package,[".DerivedData","Build","Intermediates.noindex","GeneratedModuleMaps-iphonesimulator"],package_chain)
     try:
+      framework_info = write_owned(["Info.plist"],FRAMEWORK_INFO_PLIST,0o644,framework,framework_chain)
       copy_named(staged,"ExpoModulesJSI",framework,"ExpoModulesJSI",staged_chain,framework_chain)
       for arch,extension,source,source_chain in expected_modules:
         copy_named(source,"ExpoModulesJSI."+extension,modules_destination,arch+"-apple-ios-simulator."+extension,source_chain,modules_destination_chain)
@@ -510,13 +561,13 @@ def promote_swiftpm():
       os.mkdir("ExpoModulesJSI.framework.dSYM",0o700,dir_fd=products); dsym_destination=open_dir(products,"ExpoModulesJSI.framework.dSYM")
       try: copy_tree(dsym_source,dsym_destination,staged_chain+[(staged,"ExpoModulesJSI.framework.dSYM",dsym_source)],products_chain+[(products,"ExpoModulesJSI.framework.dSYM",dsym_destination)]); os.fchmod(dsym_destination,os.fstat(dsym_source).st_mode & 0o7777)
       finally: os.close(dsym_source); os.close(dsym_destination); close_opened(products_opened)
-      if sorted(os.listdir(framework),key=lambda value:value.encode()) != ["ExpoModulesJSI"]: raise RuntimeError("framework staging shape mismatch")
+      if sorted(os.listdir(framework),key=lambda value:value.encode()) != ["ExpoModulesJSI","Info.plist"]: raise RuntimeError("framework staging shape mismatch")
       expected_names=sorted([arch+"-apple-ios-simulator."+extension for arch in ["arm64","x86_64"] for extension in ["abi.json","swiftdoc","swiftinterface","swiftmodule","swiftsourceinfo"]],key=lambda value:value.encode())
       if sorted(os.listdir(modules_destination),key=lambda value:value.encode()) != expected_names: raise RuntimeError("module staging shape mismatch")
       if sorted(os.listdir(maps),key=lambda value:value.encode()) != ["ExpoModulesJSI-Swift.h"]: raise RuntimeError("header staging shape mismatch")
       derived = inventory_root_bound(package,[".DerivedData"],package_chain)
       staged_inventory = inventory_root_bound(runner_fd,["staged"],runner_chain)
-      return {"derivedAggregate":derived["sha256"],"stagedAggregate":staged_inventory["sha256"],"moduleFiles":len(expected_names),"headerFiles":len(os.listdir(maps))}
+      return {"derivedAggregate":derived["sha256"],"stagedAggregate":staged_inventory["sha256"],"moduleFiles":len(expected_names),"headerFiles":len(os.listdir(maps)),"frameworkInfoPlist":framework_info}
     finally:
       close_opened(maps_opened); close_opened(modules_destination_opened); close_opened(framework_opened)
   finally:
@@ -1470,9 +1521,9 @@ async function closeNoFollowSession(session, options = {}) {
 
 const nestedSwiftPmOutputMarkers = ['xcframework slices up to date, skipping build', 'ALLNEWMTS_G011_SHIM_CALL=', 'Building framework slice for iphonesimulator'];
 
-function assertNestedSwiftPmCacheOutput(output, label) {
+function assertNestedSwiftPmCacheOutput(output, label, quiet = false) {
   const counts = nestedSwiftPmOutputMarkers.map((marker) => output.split(marker).length - 1);
-  assert.deepEqual(counts, [1, 0, 0], `${label} output must contain exactly one cache hit and no shim or simulator build`);
+  assert.ok((counts[0] === 1 || (quiet && counts[0] === 0)) && counts[1] === 0 && counts[2] === 0, `${label} output must contain at most one quietable cache hit and no shim or simulator build`);
   return counts;
 }
 
@@ -1486,9 +1537,9 @@ function nestedSwiftPmOutputFixture() {
     'main-compiled-build-shim': `${cacheHit}ALLNEWMTS_G011_SHIM_CALL=1\n`,
     'main-compiled-build-simulator-build': `${cacheHit}Building framework slice for iphonesimulator\n`
   };
-  for (const [label, output] of Object.entries(cases)) assert.throws(() => assertNestedSwiftPmCacheOutput(output, label));
+  for (const [label, output] of Object.entries(cases)) assert.throws(() => assertNestedSwiftPmCacheOutput(output, label, label.startsWith('main-compiled-build')));
   return {
-    mainCompiledBuildOutputCounts: assertNestedSwiftPmCacheOutput(cacheHit, 'main compiled build'),
+    mainCompiledBuildOutputCounts: assertNestedSwiftPmCacheOutput('', 'main compiled build', true),
     rejected: Object.keys(cases),
     secondInstalledScriptOutputCounts: assertNestedSwiftPmCacheOutput(cacheHit, 'second installed script')
   };
@@ -1726,6 +1777,7 @@ async function runNestedSwiftPmScript(args, session) {
   assert.equal(timedOut, false, 'nested SwiftPM script exceeded 600 second deadline');
   assert.equal(outcome.code, 0, `nested SwiftPM script failed (${outcome.code ?? outcome.signal}):\n${`${stdout}${stderr}`.slice(-20000)}`);
   assert.deepEqual([promotionEvidence?.moduleFiles, promotionEvidence?.headerFiles], [10, 1], 'nested SwiftPM script did not complete descriptor promotion');
+  assert.deepEqual([promotionEvidence?.frameworkInfoPlist?.mode, promotionEvidence?.frameworkInfoPlist?.size, promotionEvidence?.frameworkInfoPlist?.sha256, promotionEvidence?.frameworkInfoPlist?.type], ['0644', String(Buffer.byteLength(expoModulesJsiFrameworkInfoPlist)), sha256(expoModulesJsiFrameworkInfoPlist), 'file'], 'nested SwiftPM framework Info.plist promotion drifted');
   return { output: `${stdout}${stderr}`, promotion: promotionEvidence, shimMid };
 }
 
@@ -1825,19 +1877,20 @@ function validateFinalXcframeworkEvidence(evidence) {
   assert.deepEqual(evidence.dsymUuids, evidence.binaryUuids);
   assert.deepEqual(evidence.moduleFiles, finalModuleFiles);
   assert.deepEqual(evidence.forbiddenEntries, []);
-  assert.deepEqual(evidence.frameworkPlists, []);
+  assert.deepEqual(evidence.frameworkPlists, ['ExpoModulesJSI.framework/Info.plist']);
+  assert.deepEqual(evidence.frameworkInfoPlist, expoModulesJsiFrameworkInfo);
   assert.deepEqual(evidence.headers.actual, evidence.headers.expected);
   assert.deepEqual(evidence.modulemap.actual, evidence.modulemap.expected);
   assert.match(evidence.expectedHash, /^[a-f0-9]{64}$/);
   assert.equal(evidence.buildHash, `${evidence.expectedHash}\n`);
-  return { binaryUuids: evidence.binaryUuids, diskSliceIdentifiers: evidence.diskSliceIdentifiers, dsymUuids: evidence.dsymUuids, headers: evidence.headers.actual, moduleFiles: evidence.moduleFiles, modulemap: evidence.modulemap.actual, nonTargetStreams: evidence.nonTargetStreams.actual, plistLibraries: evidence.plist.AvailableLibraries };
+  return { binaryUuids: evidence.binaryUuids, diskSliceIdentifiers: evidence.diskSliceIdentifiers, dsymUuids: evidence.dsymUuids, frameworkInfoPlist: evidence.frameworkInfoPlist, headers: evidence.headers.actual, moduleFiles: evidence.moduleFiles, modulemap: evidence.modulemap.actual, nonTargetStreams: evidence.nonTargetStreams.actual, plistLibraries: evidence.plist.AvailableLibraries };
 }
 
 function finalXcframeworkValidatorFixture() {
   const plist = { AvailableLibraries: structuredClone(finalSliceEntries), CFBundlePackageType: 'XFWK', XCFrameworkFormatVersion: '1.0' };
   const bytes = Buffer.from('fixture').toString('base64');
   const nonTargetStreams = ['ios-arm64', 'ios-arm64_x86_64-maccatalyst', 'macos-arm64_x86_64', 'tvos-arm64', 'tvos-arm64_x86_64-simulator'].map((id) => { const stream = Buffer.from(`${JSON.stringify({ version: 'allnewmts-nofollow-v1', type: 'directory', pathUtf8Hex: '', mode: '0755' })}\n`); return { id, sha256: sha256(stream), streamBase64: stream.toString('base64') }; });
-  const positive = { architectures: ['arm64', 'x86_64'], binaryUuids: { arm64: 'A', x86_64: 'B' }, buildHash: `${'a'.repeat(64)}\n`, diskSliceIdentifiers: [...finalSliceIdentifiers], dsymUuids: { arm64: 'A', x86_64: 'B' }, expectedHash: 'a'.repeat(64), forbiddenEntries: [], frameworkPlists: [], headers: { actual: [{ name: 'ExpoModulesJSI-Swift.h', base64: bytes }, { name: 'NativeState.h', base64: bytes }], expected: [{ name: 'ExpoModulesJSI-Swift.h', base64: bytes }, { name: 'NativeState.h', base64: bytes }] }, installNames: { arm64: ['@rpath/ExpoModulesJSI.framework/ExpoModulesJSI'], x86_64: ['@rpath/ExpoModulesJSI.framework/ExpoModulesJSI'] }, minimums: { arm64: ['16.4'], x86_64: ['16.4'] }, moduleFiles: [...finalModuleFiles], modulemap: { actual: bytes, expected: bytes }, nonTargetStreams: { actual: structuredClone(nonTargetStreams), expected: structuredClone(nonTargetStreams) }, platforms: { arm64: ['7'], x86_64: ['7'] }, plist, targetEntries: ['.build-hash', 'ExpoModulesJSI.framework', 'ExpoModulesJSI.framework.dSYM'] };
+  const positive = { architectures: ['arm64', 'x86_64'], binaryUuids: { arm64: 'A', x86_64: 'B' }, buildHash: `${'a'.repeat(64)}\n`, diskSliceIdentifiers: [...finalSliceIdentifiers], dsymUuids: { arm64: 'A', x86_64: 'B' }, expectedHash: 'a'.repeat(64), forbiddenEntries: [], frameworkInfoPlist: structuredClone(expoModulesJsiFrameworkInfo), frameworkPlists: ['ExpoModulesJSI.framework/Info.plist'], headers: { actual: [{ name: 'ExpoModulesJSI-Swift.h', base64: bytes }, { name: 'NativeState.h', base64: bytes }], expected: [{ name: 'ExpoModulesJSI-Swift.h', base64: bytes }, { name: 'NativeState.h', base64: bytes }] }, installNames: { arm64: ['@rpath/ExpoModulesJSI.framework/ExpoModulesJSI'], x86_64: ['@rpath/ExpoModulesJSI.framework/ExpoModulesJSI'] }, minimums: { arm64: ['16.4'], x86_64: ['16.4'] }, moduleFiles: [...finalModuleFiles], modulemap: { actual: bytes, expected: bytes }, nonTargetStreams: { actual: structuredClone(nonTargetStreams), expected: structuredClone(nonTargetStreams) }, platforms: { arm64: ['7'], x86_64: ['7'] }, plist, targetEntries: ['.build-hash', 'ExpoModulesJSI.framework', 'ExpoModulesJSI.framework.dSYM'] };
   validateFinalXcframeworkEvidence(positive);
   const cases = {
     'extra-plist-key': (value) => { value.plist.Extra = true; },
@@ -1858,7 +1911,9 @@ function finalXcframeworkValidatorFixture() {
     'missing-header': (value) => { value.headers.actual.pop(); },
     'extra-header': (value) => { value.headers.actual.push({ name: 'extra.h', base64: bytes }); },
     'modulemap-mismatch': (value) => { value.modulemap.actual = Buffer.from('wrong').toString('base64'); },
-    'framework-plist': (value) => { value.frameworkPlists.push('ExpoModulesJSI.framework/Nested/Info.plist'); },
+    'missing-framework-plist': (value) => { value.frameworkPlists.pop(); },
+    'extra-framework-plist': (value) => { value.frameworkPlists.push('ExpoModulesJSI.framework/Nested/Info.plist'); },
+    'wrong-framework-plist': (value) => { value.frameworkInfoPlist.CFBundlePackageType = 'BNDL'; },
     'private-interface': (value) => { value.forbiddenEntries.push('x.private.swiftinterface'); },
     'package-interface': (value) => { value.forbiddenEntries.push('x.package.swiftinterface'); },
     'bad-build-hash': (value) => { value.buildHash = `${'b'.repeat(64)}\n`; }
@@ -1905,6 +1960,7 @@ function validateFinalExpoModulesJsiXcframework(packageRoot, useTool, expectedHa
     dsymUuids: uuid(path.join(target, 'ExpoModulesJSI.framework.dSYM')),
     expectedHash,
     forbiddenEntries: entries.filter((value) => /(?:private|package)\.swiftinterface$/.test(value) || /(?:^|\/)Project(?:\/|$)/.test(value)),
+    frameworkInfoPlist: JSON.parse(run('/usr/bin/plutil', ['-convert', 'json', '-o', '-', path.join(framework, 'Info.plist')])),
     frameworkPlists: entries.filter((value) => /^ExpoModulesJSI\.framework(?:\/.*)?\/Info\.plist$/.test(value)),
     headers: { actual: actualHeaders, expected: expectedHeaders },
     installNames,
@@ -2941,6 +2997,7 @@ function metroEnvironment(port) {
     COCOAPODS_DISABLE_STATS: 'true',
     EXPO_OFFLINE: '1',
     EXPO_PUBLIC_ALLNEWMTS_G004_OBSERVE: '1',
+    NODE_OPTIONS: '--dns-result-order=ipv4first',
     npm_config_offline: 'true',
     REACT_NATIVE_PACKAGER_HOSTNAME: '127.0.0.1',
     RCT_METRO_PORT: String(port)
@@ -3278,6 +3335,8 @@ function assertExpoArgv(port, args) {
   const flags = args.flatMap((argument, index) => argument === '--port' ? [index] : []);
   assert.equal(flags.length, 1, 'Expo argv must contain exactly one --port flag');
   assertSelectedPort(port, args[flags[0] + 1] ?? '', 'Expo --port');
+  assert.equal(args.filter((argument) => argument === '--localhost').length, 1, 'Expo argv must contain exactly one --localhost flag');
+  assert.equal(args.includes('--offline'), false, 'Expo offline mode must come only from EXPO_OFFLINE');
 }
 
 function buildFailureEvidenceRegression() {
@@ -3408,6 +3467,8 @@ function buildFailureEvidenceRegression() {
 
 function metroEvidenceRegression() {
   const port = 43210;
+  assert.equal(typeof http.get, 'function');
+  assert.deepEqual({ EXPO_OFFLINE: metroEnvironment(port).EXPO_OFFLINE, NODE_OPTIONS: metroEnvironment(port).NODE_OPTIONS }, { EXPO_OFFLINE: '1', NODE_OPTIONS: '--dns-result-order=ipv4first' });
   const exact = 'GCC_PREPROCESSOR_DEFINITIONS = $(inherited) RCT_METRO_PORT=${RCT_METRO_PORT}';
   const podspec = fs.readFileSync(path.join(root, 'node_modules/react-native/React-Core.podspec'), 'utf8');
   assert.deepEqual([...podspec.matchAll(/"GCC_PREPROCESSOR_DEFINITIONS"\s*=>\s*"([^"]*)"/g)].map((match) => match[1]), ['RCT_METRO_PORT=${RCT_METRO_PORT}']);
@@ -3485,8 +3546,8 @@ function metroEvidenceRegression() {
   for (const args of [[], ['RCT_METRO_PORT='], ['RCT_METRO_PORT=43211'], ['RCT_METRO_PORT=8081'], [`RCT_METRO_PORT=${port}`, `RCT_METRO_PORT=${port}`]]) {
     assert.throws(() => assertBuildArgv(port, args));
   }
-  assert.doesNotThrow(() => assertExpoArgv(port, ['start', '--sdk-version', '18.4', '--port', String(port), '8081']));
-  for (const args of [[], ['--port'], ['--port', '43211'], ['--port', '8081'], ['--port', String(port), '--port', String(port)], [`--port=${port}`]]) {
+  assert.doesNotThrow(() => assertExpoArgv(port, ['start', '--localhost', '--port', String(port)]));
+  for (const args of [[], ['--port'], ['--localhost', '--port', '43211'], ['--localhost', '--port', '8081'], ['--localhost', '--port', String(port), '--port', String(port)], [`--port=${port}`], ['--localhost', '--localhost', '--port', String(port)], ['--offline', '--localhost', '--port', String(port)]]) {
     assert.throws(() => assertExpoArgv(port, args));
   }
   const buildFailureEvidence = buildFailureEvidenceRegression();
@@ -3498,6 +3559,9 @@ function metroEvidenceRegression() {
     quotedGeneratedRejected: true,
     malformedGeneratedRecordsRejected: true,
     malformedNumericEvidenceRejected: true,
+    offlineHostConflictRejected: true,
+    ipv4LocalhostResolutionPinned: true,
+    httpReadinessClientAvailable: true,
     appRawMatches: 2,
     appCommandLineMatches: 1,
     appResolvedMatches: 1,
@@ -3622,15 +3686,15 @@ function parsedSockets(pid, port) {
   });
 }
 
-async function waitForMarker(stdoutFile, stderrFile, pid, port) {
+async function waitForMarker(stdoutFile, stderrFile, unifiedLogFile, pid, port) {
   const deadline = Date.now() + 90000;
   const samples = [];
   while (Date.now() < deadline) {
     samples.push(...parsedSockets(pid, port));
-    const lines = [stdoutFile, stderrFile]
+    const lines = [stdoutFile, stderrFile, unifiedLogFile]
       .filter(fs.existsSync)
       .flatMap((file) => fs.readFileSync(file, 'utf8').split(/\r?\n/))
-      .filter((line) => line.includes(markerPrefix));
+      .filter((line) => line.includes(`${markerPrefix}{`));
     assert.ok(lines.length <= 1, 'Development Build emitted duplicate readiness markers');
     if (lines.length === 1) {
       const payload = JSON.parse(lines[0].slice(lines[0].indexOf(markerPrefix) + markerPrefix.length));
@@ -3675,6 +3739,9 @@ async function developmentBuild() {
   let metroPgid;
   let metroStdoutFd;
   let metroStderrFd;
+  let runtimeLog;
+  let runtimeLogStdoutFd;
+  let runtimeLogStderrFd;
   let appMetroSettings;
   let nestedSwiftPm;
   let simulatorBootedByRunner = false;
@@ -3717,7 +3784,7 @@ async function developmentBuild() {
     failurePhase = 'compiled-build';
     const compiled = runCompiledBuild('/usr/bin/sandbox-exec', ['-f', profiles.deny, ...buildArgs], { env });
     const compiledOutput = `${compiled.stdout?.toString('utf8') ?? ''}${compiled.stderr?.toString('utf8') ?? ''}`;
-    nestedSwiftPm.mainCompiledBuildOutputCounts = assertNestedSwiftPmCacheOutput(compiledOutput, 'main compiled build');
+    nestedSwiftPm.mainCompiledBuildOutputCounts = assertNestedSwiftPmCacheOutput(compiledOutput, 'main compiled build', true);
     failurePhase = 'simulator-boot';
     if (simulator.state !== 'Booted') {
       run('xcrun', ['simctl', 'boot', simulator.udid], { env });
@@ -3726,7 +3793,7 @@ async function developmentBuild() {
     run('xcrun', ['simctl', 'bootstatus', simulator.udid, '-b'], { env });
     failurePhase = 'metro';
     const metroFile = '/usr/bin/sandbox-exec';
-    const metroArgs = ['-f', profiles.metro, path.join(root, 'node_modules/.bin/expo'), 'start', '--offline', '--localhost', '--port', String(port)];
+    const metroArgs = ['-f', profiles.metro, path.join(root, 'node_modules/.bin/expo'), 'start', '--localhost', '--port', String(port)];
     assertExpoArgv(port, metroArgs);
     metroStdoutFd = fs.openSync(path.join(temp, 'metro.stdout.log'), 'w');
     metroStderrFd = fs.openSync(path.join(temp, 'metro.stderr.log'), 'w');
@@ -3756,12 +3823,20 @@ async function developmentBuild() {
     failurePhase = 'app-launch';
     const stdoutFile = path.join(temp, 'ios-runtime.stdout.log');
     const stderrFile = path.join(temp, 'ios-runtime.stderr.log');
+    const unifiedLogFile = path.join(temp, 'ios-runtime.unified.log');
     const prelaunchNetwork = await assertMetroNetwork(port, metro, metroPgid);
+    runtimeLogStdoutFd = fs.openSync(unifiedLogFile, 'w');
+    runtimeLogStderrFd = fs.openSync(path.join(temp, 'ios-runtime.unified.stderr.log'), 'w');
+    runtimeLog = spawn('xcrun', ['simctl', 'spawn', simulator.udid, 'log', 'stream', '--level', 'info', '--style', 'compact', '--predicate', `subsystem == "com.facebook.react.log" AND category == "javascript" AND eventMessage CONTAINS "${markerPrefix}"`], { cwd: root, env, stdio: ['ignore', runtimeLogStdoutFd, runtimeLogStderrFd] });
+    runtimeLog.once('error', (error) => { runtimeLog.spawnError = error; });
+    await delay(250);
+    assert.equal(runtimeLog.spawnError, undefined, `simulator log stream failed: ${runtimeLog.spawnError?.message}`);
+    assert.ok(processIsLive(runtimeLog), 'simulator log stream exited before app launch');
     const launch = run('xcrun', ['simctl', 'launch', '--terminate-running-process', `--stdout=${stdoutFile}`, `--stderr=${stderrFile}`, simulator.udid, bundleId], { env });
     appPid = Number(launch.trim().match(/:\s*([0-9]+)$/)?.[1]);
     assert.ok(Number.isSafeInteger(appPid) && appPid > 0, `could not parse App PID: ${launch.trim()}`);
     failurePhase = 'runtime-marker';
-    const observed = await waitForMarker(stdoutFile, stderrFile, appPid, port);
+    const observed = await waitForMarker(stdoutFile, stderrFile, unifiedLogFile, appPid, port);
     const finalNetwork = await assertMetroNetwork(port, metro, metroPgid);
     result = {
       status: 'PASS',
@@ -3790,8 +3865,24 @@ async function developmentBuild() {
   failurePhase = 'cleanup';
   const cleanupErrors = [];
   const attempt = async (work) => { try { await work(); } catch (error) { cleanupErrors.push(error); } };
-  await attempt(async () => { if (appPid && simulator) run('xcrun', ['simctl', 'terminate', simulator.udid, bundleId], { env }); });
-  await attempt(async () => { if (appInstalled && simulator) run('xcrun', ['simctl', 'uninstall', simulator.udid, bundleId], { env }); });
+  await attempt(async () => {
+    if (!appPid || !simulator) return;
+    run('xcrun', ['simctl', 'terminate', simulator.udid, bundleId], { env });
+    for (let index = 0; index < 50; index += 1) {
+      if (spawnSync('ps', ['-p', String(appPid)]).status !== 0) return;
+      await delay(100);
+    }
+    assert.fail('owned simulator App did not terminate');
+  });
+  await attempt(async () => {
+    if (!appInstalled || !simulator) return;
+    run('xcrun', ['simctl', 'uninstall', simulator.udid, bundleId], { env });
+    for (let index = 0; index < 50; index += 1) {
+      if (spawnSync('xcrun', ['simctl', 'get_app_container', simulator.udid, bundleId], { env }).status !== 0) return;
+      await delay(100);
+    }
+    assert.fail(`cleanup left ${bundleId} registered`);
+  });
   await attempt(async () => { if (portGuard) await portGuard.release(); });
   for (const probe of [...activeProbes]) {
     await attempt(async () => {
@@ -3803,12 +3894,29 @@ async function developmentBuild() {
       }
     });
   }
+  await attempt(async () => { if (processIsLive(runtimeLog)) runtimeLog.kill('SIGTERM'); await reapChild(runtimeLog); });
   await attempt(() => stopProcessGroup(metro, metroPgid));
+  await attempt(async () => closeFd(runtimeLogStdoutFd));
+  await attempt(async () => closeFd(runtimeLogStderrFd));
   await attempt(async () => closeFd(metroStdoutFd));
   await attempt(async () => closeFd(metroStderrFd));
   await attempt(async () => { if (port) await assertPortReusable(port); });
   await attempt(async () => assert.equal(activeProbes.size, 0, 'cleanup left active truth probes'));
-  await attempt(async () => { if (simulatorBootedByRunner) run('xcrun', ['simctl', 'shutdown', simulator.udid], { env }); });
+  await attempt(async () => {
+    if (!simulatorBootedByRunner) return;
+    run('xcrun', ['simctl', 'shutdown', simulator.udid], { env });
+    let rebooted = false;
+    try {
+      run('xcrun', ['simctl', 'boot', simulator.udid], { env });
+      rebooted = true;
+      run('xcrun', ['simctl', 'bootstatus', simulator.udid, '-b'], { env });
+      const registration = spawnSync('xcrun', ['simctl', 'get_app_container', simulator.udid, bundleId], { env });
+      if (registration.status === 0) run('xcrun', ['simctl', 'uninstall', simulator.udid, bundleId], { env });
+      assert.notEqual(spawnSync('xcrun', ['simctl', 'get_app_container', simulator.udid, bundleId], { env }).status, 0, 'post-cleanup simulator App registration survived reboot');
+    } finally {
+      if (rebooted) run('xcrun', ['simctl', 'shutdown', simulator.udid], { env });
+    }
+  });
   await attempt(async () => {
     if (nofollow && packageBackedUp && packageMutationArmed) {
       const restoration = await nofollow.request({ op: 'restore_package' });

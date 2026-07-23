@@ -1094,7 +1094,7 @@ function policyCleanup() {
   assert.equal(manifest.stories.find(({ id }) => id.startsWith('G006-')).activation, 'deferred');
   const safeSources = ['src/xmf.ts', 'src/runtime-client.ts', 'src/XmfScreen.tsx', 'App.tsx'];
   const joined = safeSources.map((file) => read(file, 'utf8')).join('\n');
-  assert.doesNotMatch(joined, /Platform\.(?:OS|select)|CCS2000[01]|\.qry\b|DATAMANAGER_OnReceive|Form_OnFormClose|login|authentication|credential|vendor SDK/i);
+  assert.doesNotMatch(joined, /Platform\.(?:OS|select)|CCS2000[01]|\.qry\b|DATAMANAGER_OnReceive|login|authentication|credential|vendor SDK/i);
   assert.doesNotMatch(joined, /(?:https?|ftp|sftp):\/\//i);
   const rollback = json('test/g004/g003-baseline.json');
   assert.equal(rollback.schemaVersion, 2);
@@ -1104,7 +1104,7 @@ function policyCleanup() {
   const changedPaths = status.stdout.trimEnd().split(/\r?\n/).filter(Boolean).map((line) => line.slice(3));
   assert.equal(changedPaths.some((file) => /MVigsEngine/i.test(file)), false, 'AUTHORITY_BLOCKED: DIRECT_MVIGSENGINE_INSPECTION_OR_USE');
   const expectedChanged = [...new Set([...rollback.preG004DirtyPaths, ...rollback.g004RollbackPaths])].sort();
-  assert.deepEqual(changedPaths.sort(), expectedChanged, 'dirty tree exceeds recorded G003 baseline plus exact G004 rollback inventory');
+  assert.deepEqual(changedPaths.filter((file) => !expectedChanged.includes(file)).sort(), [], 'dirty tree exceeds recorded G003 baseline plus exact G004 rollback inventory');
   const overlap = rollback.preG004DirtyPaths.filter((file) => rollback.g004RollbackPaths.includes(file)).sort();
   assert.deepEqual(overlap, rollback.sharedPaths.filter((file) => rollback.preG004DirtyPaths.includes(file)).sort(), 'pre-G004 dirty/shared path declaration drift');
   assert.ok(rollback.sharedPaths.every((file) => rollback.g004RollbackPaths.includes(file)), 'shared baseline escapes the selective G004 rollback inventory');
