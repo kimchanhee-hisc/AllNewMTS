@@ -1,7 +1,7 @@
 {
   "version": 1,
   "createdAt": "2026-07-20T09:21:44.122Z",
-  "updatedAt": "2026-07-22T05:48:14.259Z",
+  "updatedAt": "2026-07-24T05:05:29.219Z",
   "briefPath": ".omx/ultragoal/brief.md",
   "goalsPath": ".omx/ultragoal/goals.json",
   "ledgerPath": ".omx/ultragoal/ledger.jsonl",
@@ -11,12 +11,13 @@
       "id": "G014-add-bounded-g004-coarse-failure-phas",
       "title": "Add bounded G004 coarse failure phases",
       "objective": "Without running raw G004, full verify:ui, any story, simulator, Metro, live/product services, or product CDN actions, extend only the existing generic five-key G004 failure envelope's phase value to a closed redacted production subphase domain. Keep preflight and Git baseline outside the marker/cleanup boundary; use development-build only as the in-boundary fallback after both succeed; snapshot runner-owned primaryFailurePhase before cleanup; cleanup must not overwrite the primary snapshot and cleanup-only aggregate failures must emit cleanup. Preserve byte-compatible private compiled Xcode evidence, exact one-envelope behavior, original primary error identity, ordered cleanup errors, no new schema key/dependency/identity branching. Add producer/parent independent exact allowlists, equality and forwarding regressions for every phase, unknown-phase fallback, static assignment assertions, docs/manifest updates, and run only syntax/focused static transport regressions plus npm run verify:fast and independent review.",
-      "status": "in_progress",
+      "status": "complete",
       "attempt": 1,
       "createdAt": "2026-07-22T05:47:48.759Z",
-      "updatedAt": "2026-07-22T05:48:14.259Z",
-      "evidence": ".omx/plans/ralplan-g013-coarse-failure-phase-revision-3.md plus fresh sequential Architect APPROVE 0fed56621f557191f3576e2015f7180fa3f73653fbdeb7774385e96895d64d90 and Critic APPROVE 5350e8c34377d5f4a5284b469c5a608006487a9aba3345bd0bfe155a01736ecf; attempt 11 exposed only development-build/ERR_ASSERTION and authorizes no rerun.",
-      "startedAt": "2026-07-22T05:48:14.259Z"
+      "updatedAt": "2026-07-24T05:05:29.219Z",
+      "evidence": ".omx/plans/ralplan-g013-coarse-failure-phase-revision-3.md plus fresh sequential Architect APPROVE 0fed56621f557191f3576e2015f7180fa3f73653fbdeb7774385e96895d64d90 and Critic APPROVE 5350e8c34377d5f4a5284b469c5a608006487a9aba3345bd0bfe155a01736ecf; attempt 11 exposed only development-build/ERR_ASSERTION and authorizes no rerun.; task-scoped implementation reconciled complete during user-authorized cleanup: focused static/transport/simulator-cleanup regressions, npm run verify:fast, Code Reviewer APPROVE, Architect CLEAR, and quality-gate PASS are recorded in .omx/handoff/g014-quality-gate.json.",
+      "startedAt": "2026-07-22T05:48:14.259Z",
+      "completedAt": "2026-07-24T05:05:29.219Z"
     },
     {
       "id": "G006-verify-first-milestone",
@@ -112,7 +113,7 @@
       "id": "G005-complete-hs1200p08-fixture-path",
       "title": "Complete HS1200P08 fixture path",
       "objective": "Run original HS1200P08 and common Lua unchanged; implement only its transitive Host API ledger and deterministic CCS20000/CCS20001 flows matching frozen golden traces.",
-      "status": "in_progress",
+      "status": "failed",
       "attempt": 1,
       "createdAt": "2026-07-20T09:21:44.122Z",
       "updatedAt": "2026-07-21T22:38:59.265Z",
@@ -122,7 +123,9 @@
         "G010-complete-hs1200p08-fixture-path"
       ],
       "steeringEvidence": "The retry-failed scheduler activated G005 while G004 remained failed, contrary to the binding G004-before-G005 sequence. No G005 implementation or verification command ran.",
-      "steeringRationale": "Supersede the prematurely activated shell state with an identical pending G005 replacement so the audited plan can restore G004 repair first without changing G005 scope."
+      "steeringRationale": "Supersede the prematurely activated shell state with an identical pending G005 replacement so the audited plan can restore G004 repair first without changing G005 scope.",
+      "failedAt": "2026-07-24T05:05:29.219Z",
+      "failureReason": "The retry-failed scheduler activated G005 while G004 remained failed, contrary to the binding G004-before-G005 sequence. No G005 implementation or verification command ran."
     },
     {
       "id": "G007-g001a-establish-ai-native-repository",
@@ -191,6 +194,5 @@
       "evidence": "G001 independently APPROVE/CLEAR at commit 260c28750fbd4c716106f3959e02367f29b71c7a; report .omx/handoff/g001-independent-verification-iteration-4.md SHA256 04aa68d58cac0cd73165c5546881e914414a818fa5c448286cac03aa7686e6ba; fresh iteration-4 reviews reran verify:g001 and TypeScript successfully; aggregate Codex goal is active after explicit user clear/resume."
     }
   ],
-  "codexObjective": "Complete the durable ultragoal plan in .omx/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .omx/ultragoal/ledger.jsonl as the audit trail.",
-  "activeGoalId": "G014-add-bounded-g004-coarse-failure-phas"
+  "codexObjective": "Complete the durable ultragoal plan in .omx/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .omx/ultragoal/ledger.jsonl as the audit trail."
 }
