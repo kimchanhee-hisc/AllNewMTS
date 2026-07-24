@@ -128,7 +128,7 @@
       "outputs": [
         "TAP"
       ],
-      "budgetSeconds": 60
+      "budgetSeconds": 120
     },
     {
       "id": "fixtures",
@@ -233,6 +233,8 @@
         "closed XMF grammar and control registry policies",
         "generic parser, renderer, runtime client, App composition, and generated asset",
         "production Swift/Kotlin module bodies through verification-only stubs",
+        "official Gradle 8.13 binary distribution in its exact SHA-256-verified local wrapper cache",
+        "official Android command-line tools 15859902 plus exact NDK 27.1.12297006 and API 36 platform in the local SDK cache",
         "exact-version cached React Native dependency and Hermes V1 artifacts",
         "one offline iOS simulator Development Build"
       ],
@@ -414,7 +416,7 @@
     },
     {
       "path": "docs/testing.md",
-      "sha256": "1c69ff46828b7202d59465810d51f25feebf784298f19387faa524e9a7147d70"
+      "sha256": "dc535b9b4d3f4338f137dfe9d79d2ad3d356a5da027d5bb8e3d1fc94e2dd68a0"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
@@ -470,7 +472,7 @@
     },
     {
       "path": "scripts/run-g004-development-build.mjs",
-      "sha256": "e765365bddc2adef7b2ecab708c071761935d1697033e949b1fa649a7038543d"
+      "sha256": "8588a69bc6d8ea4daa55dd7aac9d624bd7ab7971d86d9d50a7baa82a53688b43"
     },
     {
       "path": "scripts/run-gate0-development-build.mjs",
@@ -494,7 +496,7 @@
     },
     {
       "path": "test/foundation.test.mjs",
-      "sha256": "3f2eb17949b649cb38293f9195eb0d8835eb1254e3cc4439cedf41310e217f44"
+      "sha256": "df0ea0d4c455d3019881bedd96a3685c7915800821ac746cb0f83adb11f7b735"
     },
     {
       "path": "test/g004/g003-baseline.json",

@@ -15,9 +15,13 @@ const bundleId = 'com.anonymous.allnewmts';
 const maximumSelectionAttempts = 3;
 const portReleaseTimeoutMs = 1000;
 const truthProbeTimeoutMs = 5000;
-const allowedArguments = new Set(['', '--preflight', '--network-regression', '--pod-cache-regression', '--metro-evidence-regression', '--build-failure-marker-transport-child', '--generic-failure-marker-transport-child', '--nested-swiftpm-regression']);
+const simulatorCleanupStableSamples = 4;
+const simulatorCleanupSampleIntervalMs = 250;
+const simulatorCleanupTimeoutMs = 30000;
+const simulatorCommandTimeoutMs = 30000;
+const allowedArguments = new Set(['', '--preflight', '--network-regression', '--pod-cache-regression', '--metro-evidence-regression', '--simulator-cleanup-regression', '--build-failure-marker-transport-child', '--generic-failure-marker-transport-child', '--nested-swiftpm-regression']);
 const requestedMode = process.argv.slice(2).join(' ');
-assert.ok(allowedArguments.has(requestedMode), 'usage: node scripts/run-g004-development-build.mjs [--preflight|--network-regression|--pod-cache-regression|--metro-evidence-regression|--build-failure-marker-transport-child|--generic-failure-marker-transport-child|--nested-swiftpm-regression]');
+assert.ok(allowedArguments.has(requestedMode), 'usage: node scripts/run-g004-development-build.mjs [--preflight|--network-regression|--pod-cache-regression|--metro-evidence-regression|--simulator-cleanup-regression|--build-failure-marker-transport-child|--generic-failure-marker-transport-child|--nested-swiftpm-regression]');
 
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 const unrefDelay = (milliseconds, value = undefined) => new Promise((resolve) => { const timer = setTimeout(resolve, milliseconds, value); timer.unref(); });
@@ -1384,9 +1388,17 @@ function repositoryAnchorOracle() {
     throw new Error('OMX notification lock did not quiesce');
   };
   const identity = (target) => { const st=fs.lstatSync(target,{ bigint:true }); return { dev:String(st.dev),ino:String(st.ino),mode:Number(st.mode & 0o7777n).toString(8).padStart(4,'0'),type:st.isDirectory()?'directory':'other' }; };
+  const snapshotAnchor = (target, records) => {
+    let anchorIdentity;
+    try { anchorIdentity = identity(target); }
+    catch (error) {
+      if (error?.code === 'ENOENT') return { identity: null, inventory: [], present: false };
+      throw error;
+    }
+    return { identity: anchorIdentity, inventory: records ?? inventory(target), present: true };
+  };
   const omxInventory = stableOmxInventory();
-  const tmpInventory = inventory(tmp);
-  return { ambientTmp: process.env.TMPDIR ?? null, omx: { identity: identity(omx), inventory: omxInventory }, physicalRepository, repositoryTmp: tmp, tmp: { identity: identity(tmp), inventory: tmpInventory }, varAliasExcluded: !physicalRepository.startsWith('/var/') && !tmp.startsWith('/var/') };
+  return { ambientTmp: process.env.TMPDIR ?? null, omx: snapshotAnchor(omx, omxInventory), physicalRepository, repositoryTmp: tmp, tmp: snapshotAnchor(tmp), varAliasExcluded: !physicalRepository.startsWith('/var/') && !tmp.startsWith('/var/') };
 }
 
 async function startNoFollowSession(options = {}) {
@@ -1451,7 +1463,13 @@ async function rejectedSessionFixture(options) {
   const before = fs.existsSync(tmpRoot) ? fs.readdirSync(tmpRoot).sort() : [];
   const anchorsBefore = repositoryAnchorOracle();
   let attestation;
-  await assert.rejects(startNoFollowSession(options), (error) => { attestation = error.attestation; if (!attestation) throw new Error(`${options.bootstrapFailure}: missing precommit attestation after ${error.message}`); return true; });
+  let session;
+  const startSession = options.startSession ?? startNoFollowSession;
+  try {
+    await assert.rejects(startSession(options).then((started) => { session = started; return started; }), (error) => { attestation = error.attestation; if (!attestation) throw new Error(`${options.bootstrapFailure}: missing precommit attestation after ${error.message}`); return true; });
+  } finally {
+    if (session) await closeNoFollowSession(session);
+  }
   const after = fs.existsSync(tmpRoot) ? fs.readdirSync(tmpRoot).sort() : [];
   const anchorsAfter = repositoryAnchorOracle();
   assert.deepEqual(after, before); assert.deepEqual(anchorsAfter,anchorsBefore);
@@ -2693,6 +2711,212 @@ function availableSimulator() {
   return device;
 }
 
+const spawnSimulatorTool = (file, args, options = {}) => spawnSync(file, args, {
+  cwd: root,
+  encoding: 'utf8',
+  maxBuffer: 100 * 1024 * 1024,
+  ...options
+});
+
+function checkedSimulatorToolResult(result, operation, requireSuccess = true) {
+  assert.equal(result?.error, undefined, `${operation} could not start`);
+  assert.ok(Number.isInteger(result?.status), `${operation} did not exit normally`);
+  if (requireSuccess) assert.equal(result.status, 0, `${operation} failed`);
+  return result;
+}
+
+function simulatorToolTimeout(deadline, now, maximum = simulatorCommandTimeoutMs) {
+  const remaining = Math.floor(deadline - now());
+  assert.ok(remaining > 0, 'simulator cleanup deadline expired');
+  return Math.max(1, Math.min(maximum, remaining));
+}
+
+function simulatorAppRegistrationSnapshot(simulator, env, {
+  deadline = Date.now() + simulatorCommandTimeoutMs,
+  execute = spawnSimulatorTool,
+  now = Date.now
+} = {}) {
+  const container = execute('/usr/bin/xcrun', ['simctl', 'get_app_container', simulator.udid, bundleId], {
+    env,
+    timeout: simulatorToolTimeout(deadline, now)
+  });
+  checkedSimulatorToolResult(container, 'simulator App container query', false);
+  if (container.status !== 0) {
+    const diagnostic = String(container.stderr ?? '').trim();
+    assert.deepEqual(
+      [container.status, diagnostic, container.stdout ?? ''],
+      [1, 'No such file or directory', ''],
+      'simulator App container query returned an unexpected nonzero result'
+    );
+  }
+  const list = checkedSimulatorToolResult(execute('/usr/bin/xcrun', ['simctl', 'listapps', simulator.udid], {
+    env,
+    timeout: simulatorToolTimeout(deadline, now)
+  }), 'simulator LaunchServices query');
+  assert.equal(typeof list.stdout, 'string', 'simulator LaunchServices query returned no plist');
+  const converted = checkedSimulatorToolResult(execute('/usr/bin/plutil', ['-convert', 'json', '-o', '-', '--', '-'], {
+    encoding: 'utf8',
+    input: list.stdout,
+    timeout: simulatorToolTimeout(deadline, now)
+  }), 'simulator LaunchServices plist conversion');
+  assert.equal(typeof converted.stdout, 'string', 'simulator LaunchServices plist conversion returned no JSON');
+  let applications;
+  try {
+    applications = JSON.parse(converted.stdout);
+  } catch {
+    assert.fail('simulator LaunchServices plist conversion returned malformed JSON');
+  }
+  assert.ok(applications !== null && typeof applications === 'object' && !Array.isArray(applications), 'simulator LaunchServices plist root is not a dictionary');
+  return {
+    containerPresent: container.status === 0,
+    launchServicesRegistered: Object.prototype.hasOwnProperty.call(applications, bundleId)
+  };
+}
+
+async function uninstallOwnedSimulatorAppDurably(simulator, env, {
+  execute = spawnSimulatorTool,
+  intervalMs = simulatorCleanupSampleIntervalMs,
+  now = Date.now,
+  pause = delay,
+  stableSamples = simulatorCleanupStableSamples,
+  timeoutMs = simulatorCleanupTimeoutMs
+} = {}) {
+  assert.ok(Number.isSafeInteger(intervalMs) && intervalMs > 0, 'simulator cleanup interval must be positive');
+  assert.ok(Number.isSafeInteger(stableSamples) && stableSamples > 0, 'simulator cleanup stable sample count must be positive');
+  assert.ok(Number.isSafeInteger(timeoutMs) && timeoutMs > 0, 'simulator cleanup timeout must be positive');
+  const started = now();
+  assert.ok(Number.isFinite(started), 'simulator cleanup clock is invalid');
+  const deadline = started + timeoutMs;
+  let consecutiveAbsence = 0;
+  let samples = 0;
+  let uninstallAttempts = 0;
+  let uninstallStatus;
+  while (now() < deadline) {
+    const snapshot = simulatorAppRegistrationSnapshot(simulator, env, { deadline, execute, now });
+    samples += 1;
+    if (!snapshot.containerPresent && !snapshot.launchServicesRegistered) {
+      consecutiveAbsence += 1;
+      if (consecutiveAbsence === stableSamples && now() <= deadline) {
+        return {
+          nonzeroUninstallAccepted: uninstallStatus !== undefined && uninstallStatus !== 0,
+          samples,
+          stableSamples,
+          uninstallAttempts
+        };
+      }
+    } else {
+      consecutiveAbsence = 0;
+      if (uninstallAttempts === 0) {
+        const uninstall = checkedSimulatorToolResult(execute('/usr/bin/xcrun', ['simctl', 'uninstall', simulator.udid, bundleId], {
+          env,
+          timeout: simulatorToolTimeout(deadline, now)
+        }), 'owned simulator App uninstall', false);
+        uninstallStatus = uninstall.status;
+        uninstallAttempts += 1;
+      }
+    }
+    const remaining = deadline - now();
+    if (remaining <= 0) break;
+    await pause(Math.min(intervalMs, remaining));
+  }
+  assert.fail('owned simulator App did not reach durable container and LaunchServices absence');
+}
+
+function simulatorDeviceState(simulator, env, {
+  deadline = Date.now() + simulatorCommandTimeoutMs,
+  execute = spawnSimulatorTool,
+  now = Date.now
+} = {}) {
+  const result = checkedSimulatorToolResult(execute('/usr/bin/xcrun', ['simctl', 'list', 'devices', '--json'], {
+    env,
+    timeout: simulatorToolTimeout(deadline, now)
+  }), 'simulator state query');
+  let parsed;
+  try {
+    parsed = JSON.parse(result.stdout);
+  } catch {
+    assert.fail('simulator state query returned malformed JSON');
+  }
+  assert.ok(parsed !== null && typeof parsed === 'object' && parsed.devices !== null && typeof parsed.devices === 'object' && !Array.isArray(parsed.devices), 'simulator state query returned an invalid device dictionary');
+  const matches = Object.values(parsed.devices).flatMap((entries) => Array.isArray(entries) ? entries : [])
+    .filter((device) => device && device.udid === simulator.udid);
+  assert.equal(matches.length, 1, 'simulator state query did not return the exact owned device');
+  assert.equal(typeof matches[0].state, 'string', 'simulator state query returned no state');
+  return matches[0].state;
+}
+
+async function waitForSimulatorState(simulator, env, expectedState, {
+  execute = spawnSimulatorTool,
+  intervalMs = simulatorCleanupSampleIntervalMs,
+  now = Date.now,
+  pause = delay,
+  timeoutMs = simulatorCommandTimeoutMs,
+  deadline: providedDeadline
+} = {}) {
+  assert.ok(Number.isSafeInteger(intervalMs) && intervalMs > 0, 'simulator state interval must be positive');
+  assert.ok(Number.isSafeInteger(timeoutMs) && timeoutMs > 0, 'simulator state timeout must be positive');
+  const started = now();
+  const deadline = providedDeadline ?? started + timeoutMs;
+  assert.ok(Number.isFinite(deadline) && deadline > started, 'simulator state deadline is invalid');
+  let samples = 0;
+  while (now() < deadline) {
+    const state = simulatorDeviceState(simulator, env, { deadline, execute, now });
+    samples += 1;
+    if (state === expectedState) return { samples, state };
+    const remaining = deadline - now();
+    if (remaining <= 0) break;
+    await pause(Math.min(intervalMs, remaining));
+  }
+  assert.fail(`owned simulator did not reach ${expectedState}`);
+}
+
+function requestSimulatorControl(simulator, env, subcommand, {
+  execute = spawnSimulatorTool,
+  timeoutMs = simulatorCommandTimeoutMs
+} = {}) {
+  return checkedSimulatorToolResult(execute('/usr/bin/xcrun', ['simctl', subcommand, simulator.udid], {
+    env,
+    timeout: timeoutMs
+  }), `simulator ${subcommand}`);
+}
+
+async function shutdownSimulatorAndWait(simulator, env, options = {}) {
+  const { execute = spawnSimulatorTool, intervalMs = simulatorCleanupSampleIntervalMs, now = Date.now, pause = delay, timeoutMs = simulatorCommandTimeoutMs } = options;
+  const deadline = now() + timeoutMs;
+  requestSimulatorControl(simulator, env, 'shutdown', { execute, timeoutMs: simulatorToolTimeout(deadline, now) });
+  return waitForSimulatorState(simulator, env, 'Shutdown', { execute, intervalMs, now, pause, timeoutMs, deadline });
+}
+
+async function waitForSimulatorBooted(simulator, env, {
+  execute = spawnSimulatorTool,
+  intervalMs = simulatorCleanupSampleIntervalMs,
+  now = Date.now,
+  pause = delay,
+  timeoutMs = simulatorCommandTimeoutMs,
+  deadline: providedDeadline
+} = {}) {
+  const started = now();
+  const deadline = providedDeadline ?? started + timeoutMs;
+  assert.ok(Number.isFinite(deadline) && deadline > started, 'simulator boot deadline is invalid');
+  checkedSimulatorToolResult(execute('/usr/bin/xcrun', ['simctl', 'bootstatus', simulator.udid, '-b'], {
+    env,
+    timeout: simulatorToolTimeout(deadline, now)
+  }), 'simulator boot status');
+  return waitForSimulatorState(simulator, env, 'Booted', { execute, intervalMs, now, pause, timeoutMs, deadline });
+}
+
+async function bootSimulatorAndWait(simulator, env, {
+  execute = spawnSimulatorTool,
+  onBootAccepted,
+  ...options
+} = {}) {
+  const { now = Date.now, timeoutMs = simulatorCommandTimeoutMs } = options;
+  const deadline = now() + timeoutMs;
+  requestSimulatorControl(simulator, env, 'boot', { execute, timeoutMs: simulatorToolTimeout(deadline, now) });
+  onBootAccepted?.();
+  return waitForSimulatorBooted(simulator, env, { execute, ...options, now, timeoutMs, deadline });
+}
+
 function appleDependencyRequirements() {
   const properties = fs.readFileSync(path.join(root, 'node_modules/react-native/sdks/hermes-engine/version.properties'), 'utf8');
   const hermesVersion = properties.match(/^HERMES_V1_VERSION_NAME=(.+)$/m)?.[1];
@@ -2974,6 +3198,296 @@ function podCacheRegression() {
   }
   assert.equal(fs.existsSync(temp), false, 'Pod cache regression cleanup failed');
   return { ...result, cleaned: true };
+}
+
+function simulatorRegistrationFixture(states, { uninstallStatuses = [0] } = {}) {
+  assert.ok(states.length > 0, 'simulator registration fixture requires states');
+  let stateIndex = 0;
+  let activeState;
+  let pendingPlistState;
+  let uninstallIndex = 0;
+  const calls = [];
+  const execute = (file, args, options = {}) => {
+    calls.push({ args: [...args], file });
+    if (file === '/usr/bin/xcrun') {
+      assert.equal(args[0], 'simctl');
+      if (args[1] === 'get_app_container') {
+        assert.equal(activeState, undefined, 'fixture container query overlapped a snapshot');
+        activeState = states[Math.min(stateIndex, states.length - 1)];
+        stateIndex += 1;
+        if (activeState.containerError) return { error: new Error('fixture container launch failure'), status: null, stderr: '', stdout: '' };
+        if (activeState.containerInvalid) return { error: undefined, status: null, stderr: '', stdout: '' };
+        return { error: undefined, status: activeState.containerPresent ? 0 : (activeState.containerStatus ?? 1), stderr: activeState.containerPresent ? '' : (activeState.containerStderr ?? 'No such file or directory'), stdout: activeState.containerPresent ? '/fixture/container' : (activeState.containerStdout ?? '') };
+      }
+      if (args[1] === 'listapps') {
+        assert.ok(activeState, 'fixture LaunchServices query had no active snapshot');
+        if (activeState.listStatus !== undefined && activeState.listStatus !== 0) {
+          return { error: undefined, status: activeState.listStatus, stderr: '', stdout: '' };
+        }
+        pendingPlistState = activeState;
+        activeState = undefined;
+        return { error: undefined, status: 0, stderr: '', stdout: 'fixture-listapps-plist' };
+      }
+      if (args[1] === 'uninstall') {
+        const status = uninstallStatuses[Math.min(uninstallIndex, uninstallStatuses.length - 1)];
+        uninstallIndex += 1;
+        return { error: undefined, status, stderr: '', stdout: '' };
+      }
+      assert.fail('fixture received an unexpected simulator registration command');
+    }
+    if (file === '/usr/bin/plutil') {
+      assert.deepEqual(args, ['-convert', 'json', '-o', '-', '--', '-']);
+      assert.equal(options.input, 'fixture-listapps-plist');
+      assert.ok(pendingPlistState, 'fixture plist conversion had no LaunchServices snapshot');
+      const state = pendingPlistState;
+      pendingPlistState = undefined;
+      if (state.plistStatus !== undefined && state.plistStatus !== 0) {
+        return { error: undefined, status: state.plistStatus, stderr: '', stdout: '' };
+      }
+      const keys = state.keys ?? (state.launchServicesRegistered ? [bundleId] : []);
+      const stdout = state.plistJson ?? JSON.stringify(Object.fromEntries(keys.map((key) => [key, { CFBundleIdentifier: key }])));
+      return { error: undefined, status: 0, stderr: '', stdout };
+    }
+    assert.fail('fixture received an unexpected executable');
+  };
+  return {
+    calls,
+    execute,
+    get snapshotCount() { return stateIndex; },
+    get uninstallCount() { return uninstallIndex; }
+  };
+}
+
+function simulatorStateFixture(states, { listStatus = 0, listStdout, listError, missingDevice = false, commandDelayMs = 0, advance = () => {} } = {}) {
+  assert.ok(states.length > 0, 'simulator state fixture requires states');
+  let stateIndex = 0;
+  const calls = [];
+  const execute = (file, args, options = {}) => {
+    calls.push({ args: [...args], file });
+    assert.equal(file, '/usr/bin/xcrun');
+    assert.equal(args[0], 'simctl');
+    advance(commandDelayMs);
+    if (commandDelayMs > Number(options.timeout ?? Number.POSITIVE_INFINITY)) return { error: new Error('fixture simulator command timed out'), status: null, stderr: '', stdout: '' };
+    if (args[1] === 'list') {
+      assert.deepEqual(args, ['simctl', 'list', 'devices', '--json']);
+      const state = states[Math.min(stateIndex, states.length - 1)];
+      stateIndex += 1;
+      return {
+        error: listError,
+        status: listError ? null : listStatus,
+        stderr: '',
+        stdout: listStdout ?? JSON.stringify({ devices: { 'fixture-runtime': [{ name: 'Fixture', state, udid: missingDevice ? 'OTHER-UDID' : 'FIXTURE-UDID' }] } })
+      };
+    }
+    assert.ok(['boot', 'bootstatus', 'shutdown'].includes(args[1]), 'fixture received an unexpected simulator state command');
+    return { error: undefined, status: 0, stderr: '', stdout: '' };
+  };
+  return { calls, execute, get stateSamples() { return stateIndex; } };
+}
+
+function simulatorRegressionClock() {
+  let milliseconds = 0;
+  return {
+    now: () => milliseconds,
+    advance: (duration) => { milliseconds += duration; },
+    pause: async (duration) => { milliseconds += duration; }
+  };
+}
+
+async function simulatorCleanupRegression() {
+  const simulator = { name: 'Fixture', state: 'Booted', udid: 'FIXTURE-UDID' };
+  const fixtureOptions = (clock, execute, timeoutMs = 200) => ({
+    execute,
+    intervalMs: 10,
+    now: clock.now,
+    pause: clock.pause,
+    stableSamples: simulatorCleanupStableSamples,
+    timeoutMs
+  });
+
+  const delayedFixture = simulatorRegistrationFixture([
+    { containerPresent: true, launchServicesRegistered: true },
+    { containerPresent: false, launchServicesRegistered: true },
+    { containerPresent: false, launchServicesRegistered: true },
+    ...Array.from({ length: simulatorCleanupStableSamples }, () => ({ containerPresent: false, launchServicesRegistered: false }))
+  ]);
+  const delayedClock = simulatorRegressionClock();
+  const delayed = await uninstallOwnedSimulatorAppDurably(simulator, {}, fixtureOptions(delayedClock, delayedFixture.execute));
+  assert.equal(delayed.uninstallAttempts, 1);
+  assert.equal(delayed.nonzeroUninstallAccepted, false);
+  assert.ok(delayed.samples > simulatorCleanupStableSamples, 'dual-signal cleanup accepted container-only absence');
+
+  const rebootFixture = simulatorRegistrationFixture([
+    { containerPresent: false, launchServicesRegistered: true },
+    { containerPresent: false, launchServicesRegistered: true },
+    ...Array.from({ length: simulatorCleanupStableSamples }, () => ({ containerPresent: false, launchServicesRegistered: false }))
+  ], { uninstallStatuses: [7] });
+  const rebootClock = simulatorRegressionClock();
+  const reboot = await uninstallOwnedSimulatorAppDurably(simulator, {}, fixtureOptions(rebootClock, rebootFixture.execute));
+  assert.deepEqual({ nonzero: reboot.nonzeroUninstallAccepted, attempts: reboot.uninstallAttempts }, { nonzero: true, attempts: 1 });
+
+  const persistentFixture = simulatorRegistrationFixture([{ containerPresent: false, launchServicesRegistered: true }]);
+  const persistentClock = simulatorRegressionClock();
+  await assert.rejects(
+    uninstallOwnedSimulatorAppDurably(simulator, {}, fixtureOptions(persistentClock, persistentFixture.execute, 35)),
+    /did not reach durable container and LaunchServices absence/
+  );
+  assert.equal(persistentFixture.uninstallCount, 1, 'persistent registration triggered more than one uninstall');
+
+  const suffixFixture = simulatorRegistrationFixture([{ containerPresent: false, keys: [`${bundleId}.shadow`] }]);
+  const suffixClock = simulatorRegressionClock();
+  const suffix = simulatorAppRegistrationSnapshot(simulator, {}, { deadline: 100, execute: suffixFixture.execute, now: suffixClock.now });
+  assert.deepEqual(suffix, { containerPresent: false, launchServicesRegistered: false });
+
+  const unexpectedContainerFailure = simulatorRegistrationFixture([{ containerPresent: false, containerStderr: 'permission denied' }]);
+  assert.throws(
+    () => simulatorAppRegistrationSnapshot(simulator, {}, { deadline: 100, execute: unexpectedContainerFailure.execute, now: () => 0 }),
+    /unexpected nonzero result/
+  );
+  const mixedContainerDiagnostic = simulatorRegistrationFixture([{ containerPresent: false, containerStderr: 'No such file or directory\npermission denied' }]);
+  assert.throws(
+    () => simulatorAppRegistrationSnapshot(simulator, {}, { deadline: 100, execute: mixedContainerDiagnostic.execute, now: () => 0 }),
+    /unexpected nonzero result/
+  );
+  const incorrectContainerStatus = simulatorRegistrationFixture([{ containerPresent: false, containerStatus: 2 }]);
+  assert.throws(
+    () => simulatorAppRegistrationSnapshot(simulator, {}, { deadline: 100, execute: incorrectContainerStatus.execute, now: () => 0 }),
+    /unexpected nonzero result/
+  );
+  const containerStartFailure = simulatorRegistrationFixture([{ containerError: true }]);
+  assert.throws(
+    () => simulatorAppRegistrationSnapshot(simulator, {}, { deadline: 100, execute: containerStartFailure.execute, now: () => 0 }),
+    /could not start/
+  );
+  const containerInvalidResult = simulatorRegistrationFixture([{ containerInvalid: true }]);
+  assert.throws(
+    () => simulatorAppRegistrationSnapshot(simulator, {}, { deadline: 100, execute: containerInvalidResult.execute, now: () => 0 }),
+    /did not exit normally/
+  );
+
+  const listFailure = simulatorRegistrationFixture([{ containerPresent: false, listStatus: 2 }]);
+  assert.throws(
+    () => simulatorAppRegistrationSnapshot(simulator, {}, { deadline: 100, execute: listFailure.execute, now: () => 0 }),
+    /LaunchServices query failed/
+  );
+  const plistFailure = simulatorRegistrationFixture([{ containerPresent: false, plistStatus: 2 }]);
+  assert.throws(
+    () => simulatorAppRegistrationSnapshot(simulator, {}, { deadline: 100, execute: plistFailure.execute, now: () => 0 }),
+    /plist conversion failed/
+  );
+  const malformedPlist = simulatorRegistrationFixture([{ containerPresent: false, plistJson: '[]' }]);
+  assert.throws(
+    () => simulatorAppRegistrationSnapshot(simulator, {}, { deadline: 100, execute: malformedPlist.execute, now: () => 0 }),
+    /plist root is not a dictionary/
+  );
+
+  const unexpectedSuccessSession = await startNoFollowSession();
+  const unexpectedSuccessRoot = unexpectedSuccessSession.root;
+  await assert.rejects(
+    rejectedSessionFixture({
+      bootstrapFailure: 'unexpected-success',
+      startSession: async () => unexpectedSuccessSession
+    }),
+    /Missing expected rejection/
+  );
+  assert.equal(fs.existsSync(unexpectedSuccessRoot), false, 'unexpectedly fulfilled rejected-session fixture retained its session root');
+
+  const shutdownFixture = simulatorStateFixture(['Shutting Down', 'Shutdown']);
+  const shutdownClock = simulatorRegressionClock();
+  const shutdown = await shutdownSimulatorAndWait(simulator, {}, {
+    execute: shutdownFixture.execute,
+    intervalMs: 10,
+    now: shutdownClock.now,
+    pause: shutdownClock.pause,
+    timeoutMs: 50
+  });
+  assert.deepEqual(shutdown, { samples: 2, state: 'Shutdown' });
+
+  const bootFixture = simulatorStateFixture(['Booting', 'Booted']);
+  const bootClock = simulatorRegressionClock();
+  let bootAccepted = false;
+  const boot = await bootSimulatorAndWait(simulator, {}, {
+    execute: bootFixture.execute,
+    intervalMs: 10,
+    now: bootClock.now,
+    pause: bootClock.pause,
+    timeoutMs: 50,
+    onBootAccepted: () => { bootAccepted = true; }
+  });
+  assert.deepEqual(boot, { samples: 2, state: 'Booted' });
+  assert.equal(bootAccepted, true);
+
+  const delayedTransitionClock = simulatorRegressionClock();
+  const delayedTransitionFixture = simulatorStateFixture(['Booted'], { commandDelayMs: 10, advance: delayedTransitionClock.advance });
+  await assert.rejects(
+    bootSimulatorAndWait(simulator, {}, {
+      execute: delayedTransitionFixture.execute,
+      now: delayedTransitionClock.now,
+      pause: delayedTransitionClock.pause,
+      timeoutMs: 25
+    }),
+    /simulator state query could not start/
+  );
+
+  const stuckFixture = simulatorStateFixture(['Booted']);
+  const stuckClock = simulatorRegressionClock();
+  await assert.rejects(
+    shutdownSimulatorAndWait(simulator, {}, {
+      execute: stuckFixture.execute,
+      intervalMs: 10,
+      now: stuckClock.now,
+      pause: stuckClock.pause,
+      timeoutMs: 25
+    }),
+    /did not reach Shutdown/
+  );
+
+  const stateCommandFailure = simulatorStateFixture(['Booted'], { listStatus: 2 });
+  assert.throws(() => simulatorDeviceState(simulator, {}, { execute: stateCommandFailure.execute, now: () => 0, deadline: 50 }), /state query failed/);
+  const malformedState = simulatorStateFixture(['Booted'], { listStdout: 'not-json' });
+  assert.throws(() => simulatorDeviceState(simulator, {}, { execute: malformedState.execute, now: () => 0, deadline: 50 }), /state query returned malformed JSON/);
+  const missingStateDevice = simulatorStateFixture(['Booted'], { missingDevice: true });
+  assert.throws(() => simulatorDeviceState(simulator, {}, { execute: missingStateDevice.execute, now: () => 0, deadline: 50 }), /did not return the exact owned device/);
+
+  const allCalls = [
+    ...delayedFixture.calls,
+    ...rebootFixture.calls,
+    ...persistentFixture.calls,
+    ...suffixFixture.calls,
+    ...unexpectedContainerFailure.calls,
+    ...mixedContainerDiagnostic.calls,
+    ...incorrectContainerStatus.calls,
+    ...containerStartFailure.calls,
+    ...containerInvalidResult.calls,
+    ...listFailure.calls,
+    ...plistFailure.calls,
+    ...malformedPlist.calls,
+    ...shutdownFixture.calls,
+    ...bootFixture.calls,
+    ...delayedTransitionFixture.calls,
+    ...stuckFixture.calls,
+    ...stateCommandFailure.calls,
+    ...malformedState.calls,
+    ...missingStateDevice.calls
+  ];
+  assert.ok(allCalls.every(({ file }) => ['/usr/bin/plutil', '/usr/bin/xcrun'].includes(file)), 'simulator cleanup regression escaped its injected command surface');
+  return {
+    status: 'PASS',
+    mode: 'simulator-cleanup-regression',
+    containerOnlyAbsenceRejected: true,
+    delayedLaunchServicesRemovalWaited: true,
+    exactBundleKeyRequired: true,
+    nonzeroUninstallAcceptedOnlyAfterStableAbsence: true,
+    persistentRegistrationRejected: true,
+    commandAndPlistFailuresRejected: true,
+    simulatorTransitionsBounded: true,
+    sharedTransitionDeadlineRegression: true,
+    stableSamples: simulatorCleanupStableSamples,
+    productionIntervalMs: simulatorCleanupSampleIntervalMs,
+    productionTimeoutMs: simulatorCleanupTimeoutMs,
+    realCommandsInvoked: false,
+    repositoryMutated: false
+  };
 }
 
 function sandboxProfiles(temp, port) {
@@ -3787,10 +4301,10 @@ async function developmentBuild() {
     nestedSwiftPm.mainCompiledBuildOutputCounts = assertNestedSwiftPmCacheOutput(compiledOutput, 'main compiled build', true);
     failurePhase = 'simulator-boot';
     if (simulator.state !== 'Booted') {
-      run('xcrun', ['simctl', 'boot', simulator.udid], { env });
-      simulatorBootedByRunner = true;
+      await bootSimulatorAndWait(simulator, env, { onBootAccepted: () => { simulatorBootedByRunner = true; } });
+    } else {
+      await waitForSimulatorBooted(simulator, env);
     }
-    run('xcrun', ['simctl', 'bootstatus', simulator.udid, '-b'], { env });
     failurePhase = 'metro';
     const metroFile = '/usr/bin/sandbox-exec';
     const metroArgs = ['-f', profiles.metro, path.join(root, 'node_modules/.bin/expo'), 'start', '--localhost', '--port', String(port)];
@@ -3816,8 +4330,8 @@ async function developmentBuild() {
     failurePhase = 'app-install';
     const app = path.join(temp, 'ios-derived/Build/Products/Debug-iphonesimulator/AllNewMTS.app');
     assert.ok(fs.existsSync(app), 'built iOS app is missing');
-    const existing = spawnSync('xcrun', ['simctl', 'get_app_container', simulator.udid, bundleId], { cwd: root, encoding: 'utf8', env });
-    assert.notEqual(existing.status, 0, `refusing to replace pre-existing ${bundleId}`);
+    const existing = simulatorAppRegistrationSnapshot(simulator, env);
+    assert.deepEqual(existing, { containerPresent: false, launchServicesRegistered: false }, `refusing to replace pre-existing ${bundleId}`);
     run('xcrun', ['simctl', 'install', simulator.udid, app], { env });
     appInstalled = true;
     failurePhase = 'app-launch';
@@ -3876,12 +4390,7 @@ async function developmentBuild() {
   });
   await attempt(async () => {
     if (!appInstalled || !simulator) return;
-    run('xcrun', ['simctl', 'uninstall', simulator.udid, bundleId], { env });
-    for (let index = 0; index < 50; index += 1) {
-      if (spawnSync('xcrun', ['simctl', 'get_app_container', simulator.udid, bundleId], { env }).status !== 0) return;
-      await delay(100);
-    }
-    assert.fail(`cleanup left ${bundleId} registered`);
+    await uninstallOwnedSimulatorAppDurably(simulator, env);
   });
   await attempt(async () => { if (portGuard) await portGuard.release(); });
   for (const probe of [...activeProbes]) {
@@ -3904,17 +4413,13 @@ async function developmentBuild() {
   await attempt(async () => assert.equal(activeProbes.size, 0, 'cleanup left active truth probes'));
   await attempt(async () => {
     if (!simulatorBootedByRunner) return;
-    run('xcrun', ['simctl', 'shutdown', simulator.udid], { env });
+    await shutdownSimulatorAndWait(simulator, env);
     let rebooted = false;
     try {
-      run('xcrun', ['simctl', 'boot', simulator.udid], { env });
-      rebooted = true;
-      run('xcrun', ['simctl', 'bootstatus', simulator.udid, '-b'], { env });
-      const registration = spawnSync('xcrun', ['simctl', 'get_app_container', simulator.udid, bundleId], { env });
-      if (registration.status === 0) run('xcrun', ['simctl', 'uninstall', simulator.udid, bundleId], { env });
-      assert.notEqual(spawnSync('xcrun', ['simctl', 'get_app_container', simulator.udid, bundleId], { env }).status, 0, 'post-cleanup simulator App registration survived reboot');
+      await bootSimulatorAndWait(simulator, env, { onBootAccepted: () => { rebooted = true; } });
+      await uninstallOwnedSimulatorAppDurably(simulator, env);
     } finally {
-      if (rebooted) run('xcrun', ['simctl', 'shutdown', simulator.udid], { env });
+      if (rebooted) await shutdownSimulatorAndWait(simulator, env);
     }
   });
   await attempt(async () => {
@@ -3952,6 +4457,8 @@ const result = requestedMode === '--preflight'
       ? podCacheRegression()
       : requestedMode === '--metro-evidence-regression'
         ? metroEvidenceRegression()
+        : requestedMode === '--simulator-cleanup-regression'
+          ? await simulatorCleanupRegression()
       : requestedMode === '--build-failure-marker-transport-child'
           ? buildFailureMarkerTransportChild()
           : requestedMode === '--generic-failure-marker-transport-child'

@@ -272,9 +272,14 @@ test('G004 runner and verifier keep hostile evidence and cleanup fail-closed', (
   assert.match(runner, /function cleanupOnlyPrimary[\s\S]+new AggregateError[\s\S]+error\.errors = error\.cleanupErrors = cleanupErrors[\s\S]+if \(cleanupErrors\.length\) \{\s+const error = cleanupOnlyPrimary\(cleanupErrors, appMetroSettings\);\s+throwAfterBuildFailureEmission\(error, cleanupErrors, undefined, failurePhase\);/);
   assert.match(runner, /const baseline = run[\s\S]+let nofollow;[\s\S]+let temp;[\s\S]+try \{\s+failurePhase = 'package-custodian';\s+temp = fs\.mkdtempSync\(path\.join\(os\.tmpdir\(\), 'allnewmts-g004-development-build-'\)\);\s+nofollow = await startNoFollowSession\(\);[\s\S]+simulator = availableSimulator\(\);[\s\S]+selected = await selectGuardedPort\(temp, activeProbes\);/, 'established G004 operational temp and G011 recovery root must be separately cleanup-owned');
   assert.match(runner, /net\.createServer[\s\S]+acceptedSockets\.add[\s\S]+socket\.once\('error'[\s\S]+server\.close[\s\S]+for \(const socket of acceptedSockets\) socket\.destroy/, 'the loopback guard must own accepted sockets and close them during bounded release');
-  assert.match(runner, /let simulatorBootedByRunner = false;[\s\S]+if \(simulator\.state !== 'Booted'\) \{[\s\S]+simctl', 'boot'[\s\S]+simulatorBootedByRunner = true;[\s\S]+if \(!simulatorBootedByRunner\) return;[\s\S]+simctl', 'shutdown'/, 'simulator shutdown must require a successful runner-owned boot');
-  assert.match(runner, /simctl', 'terminate'[\s\S]+ps', \['-p'[\s\S]+simctl', 'uninstall'[\s\S]+simctl', 'get_app_container'[\s\S]+if \(portGuard\) await portGuard\.release\(\)[\s\S]+for \(const probe of \[\.\.\.activeProbes\]\)[\s\S]+stopProbe[\s\S]+runtimeLog\.kill\('SIGTERM'\)[\s\S]+reapChild\(runtimeLog\)[\s\S]+stopProcessGroup[\s\S]+closeFd[\s\S]+assertPortReusable[\s\S]+activeProbes\.size[\s\S]+simulatorBootedByRunner[\s\S]+simctl', 'shutdown'[\s\S]+restore_package[\s\S]+closeNoFollowSession\(nofollow\)/, 'cleanup must prove the App terminated and unregistered, terminate remaining probes and log/Metro children, then close FDs, port, simulator transition, restored package, and repository-owned runner');
-  assert.match(runner, /post-cleanup simulator App registration survived reboot/, 'runner-owned simulator cleanup must reject registration that reappears after shutdown and boot');
+  assert.match(runner, /const simulatorCleanupStableSamples = 4;\s+const simulatorCleanupSampleIntervalMs = 250;\s+const simulatorCleanupTimeoutMs = 30000;/, 'simulator cleanup stability and deadline must remain explicit and bounded');
+  assert.match(runner, /async function rejectedSessionFixture[\s\S]+let session;[\s\S]+const startSession = options\.startSession \?\? startNoFollowSession[\s\S]+finally \{[\s\S]+if \(session\) await closeNoFollowSession\(session\);/, 'unexpectedly fulfilled rejected-session fixtures must close their session');
+  assert.match(runner, /function simulatorAppRegistrationSnapshot[\s\S]+get_app_container[\s\S]+listapps[\s\S]+\/usr\/bin\/plutil[\s\S]+hasOwnProperty\.call\(applications, bundleId\)/, 'simulator registration must combine exact container and LaunchServices plist state');
+  assert.match(runner, /container\.status !== 0[\s\S]+\[container\.status, diagnostic, container\.stdout \?\? ''\][\s\S]+\[1, 'No such file or directory', ''\][\s\S]+unexpected nonzero result/, 'only the exact expected not-installed container result may count as absence');
+  assert.match(runner, /async function uninstallOwnedSimulatorAppDurably[\s\S]+consecutiveAbsence === stableSamples[\s\S]+uninstallAttempts === 0[\s\S]+owned simulator App uninstall[\s\S]+did not reach durable container and LaunchServices absence/, 'owned uninstall must require stable dual-signal absence and bound one idempotent uninstall');
+  assert.match(runner, /function simulatorDeviceState[\s\S]+simctl', 'list', 'devices', '--json'[\s\S]+async function waitForSimulatorState[\s\S]+async function shutdownSimulatorAndWait[\s\S]+waitForSimulatorState\(simulator, env, 'Shutdown'/, 'runner-owned simulator transitions must use exact JSON state queries and bounded waits');
+  assert.match(runner, /let simulatorBootedByRunner = false;[\s\S]+if \(simulator\.state !== 'Booted'\) \{[\s\S]+bootSimulatorAndWait\(simulator, env, \{ onBootAccepted:[\s\S]+simulatorBootedByRunner = true;[\s\S]+if \(!simulatorBootedByRunner\) return;[\s\S]+shutdownSimulatorAndWait/, 'simulator shutdown must require a successful bounded runner-owned boot');
+  assert.match(runner, /simctl', 'terminate'[\s\S]+ps', \['-p'[\s\S]+uninstallOwnedSimulatorAppDurably\(simulator, env\)[\s\S]+if \(portGuard\) await portGuard\.release\(\)[\s\S]+for \(const probe of \[\.\.\.activeProbes\]\)[\s\S]+stopProbe[\s\S]+runtimeLog\.kill\('SIGTERM'\)[\s\S]+reapChild\(runtimeLog\)[\s\S]+stopProcessGroup[\s\S]+closeFd[\s\S]+assertPortReusable[\s\S]+activeProbes\.size[\s\S]+simulatorBootedByRunner[\s\S]+shutdownSimulatorAndWait[\s\S]+bootSimulatorAndWait\(simulator, env, \{ onBootAccepted:[\s\S]+uninstallOwnedSimulatorAppDurably[\s\S]+restore_package[\s\S]+closeNoFollowSession\(nofollow\)/, 'cleanup must prove the App terminated and durably unregistered, terminate remaining children, then verify reboot with one bounded transition, restore the package, and close the repository-owned runner');
 
   const network = spawnSync(process.execPath, [fileURLToPath(new URL('../scripts/run-g004-development-build.mjs', import.meta.url)), '--network-regression'], {
     cwd: fileURLToPath(new URL('..', import.meta.url)),
@@ -313,6 +318,31 @@ test('G004 runner and verifier keep hostile evidence and cleanup fail-closed', (
     cleaned: true
   });
 
+  const simulatorCleanup = spawnSync(process.execPath, [fileURLToPath(new URL('../scripts/run-g004-development-build.mjs', import.meta.url)), '--simulator-cleanup-regression'], {
+    cwd: fileURLToPath(new URL('..', import.meta.url)),
+    encoding: 'utf8',
+    timeout: 30000
+  });
+  assert.equal(simulatorCleanup.error, undefined, `G004 simulator cleanup regression could not run: ${simulatorCleanup.error?.message}`);
+  assert.equal(simulatorCleanup.status, 0, `G004 simulator cleanup regression failed:\n${simulatorCleanup.stdout}${simulatorCleanup.stderr}`);
+  assert.deepEqual(JSON.parse(simulatorCleanup.stdout.trim().replace(/^G004_DEVELOPMENT_BUILD=/, '')), {
+    status: 'PASS',
+    mode: 'simulator-cleanup-regression',
+    containerOnlyAbsenceRejected: true,
+    delayedLaunchServicesRemovalWaited: true,
+    exactBundleKeyRequired: true,
+    nonzeroUninstallAcceptedOnlyAfterStableAbsence: true,
+    persistentRegistrationRejected: true,
+    commandAndPlistFailuresRejected: true,
+    simulatorTransitionsBounded: true,
+    sharedTransitionDeadlineRegression: true,
+    stableSamples: 4,
+    productionIntervalMs: 250,
+    productionTimeoutMs: 30000,
+    realCommandsInvoked: false,
+    repositoryMutated: false
+  });
+
   const verifier = fs.readFileSync(new URL('../scripts/verify-ui.mjs', import.meta.url), 'utf8');
   for (const phase of ['contract-registry', 'parser-model', 'projection-render', 'runtime-client', 'unseen-generality', 'module-stub-smoke', 'development-build', 'policy-cleanup']) {
     assert.match(verifier, new RegExp(`phase\\('${phase}'|['"]${phase}['"]`), `missing G004 phase ${phase}`);
@@ -343,9 +373,9 @@ test('G014 generic failure phases are closed and statically bound to production 
   assert.match(build, /failurePhase = 'nested-swiftpm';\s+const swiftPm = await prepareNestedSwiftPm/);
   assert.match(build, /failurePhase = 'build-settings';\s+const generatedSettings = generatedMetroSettings\(\);[\s\S]+appShow = sandbox[\s\S]+podShow = sandbox[\s\S]+assertMetroSettings[\s\S]+const buildArgs[\s\S]+assertBuildArgv/);
   assert.match(build, /failurePhase = 'compiled-build';\s+const compiled = runCompiledBuild[\s\S]+mainCompiledBuildOutputCounts = assertNestedSwiftPmCacheOutput/);
-  assert.match(build, /failurePhase = 'simulator-boot';\s+if \(simulator\.state !== 'Booted'\)[\s\S]+simctl', 'bootstatus'/);
+  assert.match(build, /failurePhase = 'simulator-boot';[\s\S]+bootSimulatorAndWait\(simulator, env[\s\S]+waitForSimulatorBooted\(simulator, env\)/);
   assert.match(build, /failurePhase = 'metro';\s+const metroFile[\s\S]+assertExpoArgv[\s\S]+metroStdoutFd[\s\S]+await portGuard\.release\(\);\s+metro = spawn[\s\S]+const readinessNetwork = await assertMetroNetwork/);
-  assert.match(build, /failurePhase = 'app-install';\s+const app =[\s\S]+fs\.existsSync\(app\)[\s\S]+get_app_container[\s\S]+simctl', 'install'/);
+  assert.match(build, /failurePhase = 'app-install';\s+const app =[\s\S]+fs\.existsSync\(app\)[\s\S]+simulatorAppRegistrationSnapshot\(simulator, env\)[\s\S]+launchServicesRegistered: false[\s\S]+simctl', 'install'/);
   assert.match(build, /failurePhase = 'app-launch';\s+const stdoutFile[\s\S]+const prelaunchNetwork[\s\S]+simctl', 'launch'[\s\S]+could not parse App PID/);
   assert.match(build, /failurePhase = 'runtime-marker';\s+const observed = await waitForMarker[\s\S]+const finalNetwork[\s\S]+result = \{[\s\S]+toolchain: toolchainProvenance\(\)/);
   assert.match(build, /catch \(error\) \{[\s\S]+primaryError = error;\s+primaryFailurePhase = failurePhase;\s+\}\s+failurePhase = 'cleanup';/);
@@ -506,6 +536,7 @@ test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe
   const runnerPath = fileURLToPath(new URL('../scripts/run-g004-development-build.mjs', import.meta.url));
   const runner = fs.readFileSync(runnerPath, 'utf8');
   const tmpRoot = path.join(repoRoot, '.omx/tmp');
+  const tmpPresentBefore = fs.existsSync(tmpRoot);
   const beforeEntries = fs.existsSync(tmpRoot) ? fs.readdirSync(tmpRoot).sort() : [];
   const installedFiles = [
     'node_modules/expo-modules-jsi/apple/Package.swift',
@@ -519,7 +550,7 @@ test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe
     encoding: 'utf8',
     env: { ...process.env, TMPDIR: '/var/folders/allnewmts-hostile-alias' },
     maxBuffer: 10 * 1024 * 1024,
-    timeout: 60000
+    timeout: 90000
   });
   assert.equal(regression.error, undefined, `G011 nofollow regression could not run: ${regression.error?.message}`);
   assert.equal(regression.status, 0, `G011 nofollow regression failed:\n${regression.stdout}${regression.stderr}`);
@@ -594,7 +625,9 @@ test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe
     assert.equal(oracle.varAliasExcluded, true);
     assert.equal(oracle.physicalRepository, repoRoot);
     assert.equal(oracle.repositoryTmp, path.join(repoRoot, '.omx/tmp'));
-    for (const anchor of [oracle.omx, oracle.tmp]) {
+    assert.equal(oracle.omx.present, true);
+    assert.equal(oracle.tmp.present, tmpPresentBefore);
+    for (const anchor of [oracle.omx, ...(oracle.tmp.present ? [oracle.tmp] : [])]) {
       assert.equal(anchor.identity.type, 'directory');
       assert.match(anchor.identity.mode, /^[0-7]{4}$/);
       assert.match(anchor.identity.dev, /^\d+$/);
@@ -602,6 +635,7 @@ test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe
       assert.ok(anchor.inventory.length > 0);
       assert.deepEqual(anchor.inventory[0], { mode: anchor.identity.mode, path: '', type: 'directory' });
     }
+    if (!oracle.tmp.present) assert.deepEqual(oracle.tmp, { identity: null, inventory: [], present: false });
   }
   assert.deepEqual([evidence.integration.pendingRequest.pendingCount, evidence.integration.pendingRequest.runnerExists], [0, false]);
   assert.equal(evidence.integration.pendingRequest.restored.wholeSha256, evidence.custodian.baselineWholeAggregate);
@@ -748,7 +782,7 @@ test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe
   assert.match(runner, /def write_owned[\s\S]+mkdir_chain_bound[\s\S]+write-owned-after-traversal[\s\S]+observed!=data[\s\S]+same\(final_fd,final_path\)/);
   assert.match(runner, /def artifact_record[\s\S]+artifact-before-file-open[\s\S]+same\(opened_stat,after\)[\s\S]+artifact substitution/);
   assert.match(runner, /write_owned\(\["write-link","owned"\][\s\S]+heldAncestorRejected[\s\S]+def drift_fixture[\s\S]+baseline-after-source-inventory[\s\S]+restore-before-final-verification[\s\S]+coordinatorFailures/);
-  assert.match(runner, /function repositoryAnchorOracle[\s\S]+if \(type === 'directory'\) for \(const name of fs\.readdirSync\(target\)[\s\S]+stableOmxInventory[\s\S]+const omxInventory = stableOmxInventory\(\)[\s\S]+const tmpInventory = inventory\(tmp\)/);
+  assert.match(runner, /function repositoryAnchorOracle[\s\S]+if \(type === 'directory'\) for \(const name of fs\.readdirSync\(target\)[\s\S]+stableOmxInventory[\s\S]+const snapshotAnchor[\s\S]+error\?\.code === 'ENOENT'[\s\S]+present: false[\s\S]+const omxInventory = stableOmxInventory\(\)[\s\S]+tmp: snapshotAnchor\(tmp\)/);
   assert.match(runner, /def journal_append[\s\S]+write_all\(journal_fd,raw\); os\.fsync\(journal_fd\)[\s\S]+journal_readback\(\)/);
   assert.match(runner, /const custodianRequestTimeoutMs = 300000;[\s\S]+op: 'promote_swiftpm' \}, 125000/);
   assert.match(runner, /baselineRootAggregates[\s\S]+previousRecordSha256[\s\S]+allnewmts\.g011\.cleanup-complete\.v1/);
