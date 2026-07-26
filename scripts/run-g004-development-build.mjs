@@ -2743,9 +2743,14 @@ function simulatorAppRegistrationSnapshot(simulator, env, {
   checkedSimulatorToolResult(container, 'simulator App container query', false);
   if (container.status !== 0) {
     const diagnostic = String(container.stderr ?? '').trim();
-    assert.deepEqual(
-      [container.status, diagnostic, container.stdout ?? ''],
-      [1, 'No such file or directory', ''],
+    const legacyAbsence = container.status === 1 && diagnostic === 'No such file or directory';
+    const xcode26Absence = container.status === 2 && diagnostic === [
+      'An error was encountered processing the command (domain=NSPOSIXErrorDomain, code=2):',
+      'The operation couldn’t be completed. No such file or directory',
+      'No such file or directory'
+    ].join('\n');
+    assert.ok(
+      (legacyAbsence || xcode26Absence) && (container.stdout ?? '') === '',
       'simulator App container query returned an unexpected nonzero result'
     );
   }
@@ -3338,6 +3343,18 @@ async function simulatorCleanupRegression() {
   const suffixClock = simulatorRegressionClock();
   const suffix = simulatorAppRegistrationSnapshot(simulator, {}, { deadline: 100, execute: suffixFixture.execute, now: suffixClock.now });
   assert.deepEqual(suffix, { containerPresent: false, launchServicesRegistered: false });
+
+  const xcode26MissingContainer = simulatorRegistrationFixture([{
+    containerPresent: false,
+    containerStatus: 2,
+    containerStderr: [
+      'An error was encountered processing the command (domain=NSPOSIXErrorDomain, code=2):',
+      'The operation couldn’t be completed. No such file or directory',
+      'No such file or directory'
+    ].join('\n')
+  }]);
+  const xcode26Missing = simulatorAppRegistrationSnapshot(simulator, {}, { deadline: 100, execute: xcode26MissingContainer.execute, now: () => 0 });
+  assert.deepEqual(xcode26Missing, { containerPresent: false, launchServicesRegistered: false });
 
   const unexpectedContainerFailure = simulatorRegistrationFixture([{ containerPresent: false, containerStderr: 'permission denied' }]);
   assert.throws(

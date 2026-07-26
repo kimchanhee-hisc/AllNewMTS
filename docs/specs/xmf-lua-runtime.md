@@ -10,6 +10,8 @@ XMF is the evidenced Milestone 1 screen/form input. Screen, control, transaction
 
 XMS has no approved runnable fixture or evidenced role. It is a separate `defer` entry and must return `UNSUPPORTED_INPUT_ROLE` until a later ADR and deterministic fixture activate it. `CtlImage` is likewise deferred and unsupported in the first slice. Exact inventories live in [`contracts/control-registry.json`](../../contracts/control-registry.json).
 
+The reference projects are `~/Dev/Plus` for the native original and `~/Dev/mts_screen` for the XMS source to parse. MVigsEngine material may be located, opened, and inspected, but cannot be used as implementation or evidence.
+
 ## Architecture boundaries
 
 The shared parser produces data for one registry-driven React Native renderer. Production code cannot register or branch on a particular screen, control instance, transaction, asset, layout signature, or operating system. Unknown required structure, controls, properties, events, or capability combinations fail before an interactive screen is exposed. Optional presentation fallback exists only when declared by the registry.

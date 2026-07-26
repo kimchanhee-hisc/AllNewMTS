@@ -400,7 +400,7 @@
     },
     {
       "path": "AGENTS.md",
-      "sha256": "8a4a81dba8f3afe307ebfe282b13171c9b44a612936cccd6aa8ad3ac9a8038a8"
+      "sha256": "b302db74ab0266883e5e0e71538eed89e914c4ba64d227a6cbaffaab173f0897"
     },
     {
       "path": "README.md",
@@ -408,7 +408,7 @@
     },
     {
       "path": "docs/specs/xmf-lua-runtime.md",
-      "sha256": "aa25920a84f227f52f478c5bc56f5dad2d0c2485f60ad884d59826e4d302d0fc"
+      "sha256": "33020bd8efb74224d5f6d312f38fe8231db3920383299f37f22350c4f03247df"
     },
     {
       "path": "docs/specs/runtime-contract.md",
@@ -472,7 +472,7 @@
     },
     {
       "path": "scripts/run-g004-development-build.mjs",
-      "sha256": "8588a69bc6d8ea4daa55dd7aac9d624bd7ab7971d86d9d50a7baa82a53688b43"
+      "sha256": "356232fc5fb38fb5719901b5b33af93c00d3adfd276471ef5372ceeeb23b77e6"
     },
     {
       "path": "scripts/run-gate0-development-build.mjs",
@@ -496,7 +496,7 @@
     },
     {
       "path": "test/foundation.test.mjs",
-      "sha256": "df0ea0d4c455d3019881bedd96a3685c7915800821ac746cb0f83adb11f7b735"
+      "sha256": "9f361927204f361d024c63fdfc73acc04aa39826f1d5ab40cf48389c7c5fd89e"
     },
     {
       "path": "test/g004/g003-baseline.json",
