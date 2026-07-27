@@ -1,0 +1,19 @@
+{
+  "$schema": "./product-config.schema.json",
+  "schemaVersion": 1,
+  "environment": "beta",
+  "platforms": {
+    "ios": {
+      "mciChannelDetail": "CC320"
+    },
+    "android": {
+      "mciChannelDetail": "CC321"
+    }
+  },
+  "secretStore": {
+    "localPath": "config/product-secrets.local.json",
+    "easFileEnvironmentVariable": "ALLNEWMTS_PRODUCT_SECRETS_FILE",
+    "schemaPath": "config/product-secrets.schema.json",
+    "requiredFor": "rest-authentication"
+  }
+}

@@ -180,6 +180,26 @@
       "budgetSeconds": 1200
     },
     {
+      "id": "networking",
+      "packageScript": "verify:networking",
+      "command": "npm run verify:networking",
+      "argv": [
+        "node",
+        "scripts/verify-networking.mjs"
+      ],
+      "inputs": [
+        "committed product config and uncommitted secret-store contract",
+        "pinned BETA endpoint hashes",
+        "shared MCI framing and connection core",
+        "synthetic transport fixtures",
+        "operator-only BETA init and GD1000Q1 probes"
+      ],
+      "outputs": [
+        "BETA preflight, init and GD1000Q1 framing, polling, authentication gate, retry, and fail-closed probe evidence"
+      ],
+      "budgetSeconds": 120
+    },
+    {
       "id": "runtime",
       "packageScript": "verify:runtime",
       "command": "npm run verify:runtime",
@@ -295,6 +315,7 @@
         "type",
         "unit",
         "fixtures",
+        "networking",
         "native",
         "runtime",
         "ui"
@@ -306,6 +327,10 @@
     {
       "path": ".gitattributes",
       "sha256": "1f4619fca33b9632a8b226707fa19c6365c5d0e287f9df5fb5010c2500f8d26f"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "cd8a733c57da979e171f65f0b1dcf6dfaec1350c87d85f31aed4c1321651d972"
     },
     {
       "path": "AGENTS.md",
@@ -329,11 +354,11 @@
     },
     {
       "path": "docs/specs/networking-contract.md",
-      "sha256": "e757e38bd4bae6bd97d6b2b4eccff571a5c686b9fcc545f92b8bf5ae8302b43d"
+      "sha256": "f7e4d25f66e94a169d5969312ceca4c8040ca33b926823cb5dbc2c46082f8045"
     },
     {
       "path": "docs/testing.md",
-      "sha256": "e56fffb68211c2344b811e6a7388a03e30bb8e161bb007b13fd92b4c692d3f11"
+      "sha256": "9d47d636c2c536e3653521b42d3ea14840fa3902f4526d6a50c1e81122332fb9"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
@@ -360,8 +385,20 @@
       "sha256": "6a7445a015cc2c70007c072b15d6b8eff0624b71171624e0955b820dc959a889"
     },
     {
+      "path": "config/product-config.json",
+      "sha256": "16bf953003daaaa45f43b2321cdbe32e84c50d0ee76fef0a04d67550b623a23c"
+    },
+    {
+      "path": "config/product-config.schema.json",
+      "sha256": "91293e6ffb1c40eeeb22f65d86982d647d2a1652dbb4ad518969c664cbfe2fc8"
+    },
+    {
+      "path": "config/product-secrets.schema.json",
+      "sha256": "831f96d6e25c86034fbbe28eb28bc4ad28d2b5fa12c4d636fce6cb6169f682e6"
+    },
+    {
       "path": "native/lua-source-manifest.json",
-      "sha256": "3d9384563a1e6e153c478baf714c92b0b1ee509a4397286a1b3cc67afd637312"
+      "sha256": "a258266704f8561ffc8c7ded91978b0ad0ff64db3fc2644879c3788c2a82018e"
     },
     {
       "path": "native/lua-source-manifest.schema.json",
@@ -373,7 +410,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "27da6abcb699cf8da268f8e62bbd60568086d9c3ea3960af75d3a492272ba08e"
+      "sha256": "35e8b8a0835e285d837453c4a9147350af7b58c3ddf114b5ad87ce711c6283dc"
     },
     {
       "path": "scripts/generate-xmf-assets.mjs",
@@ -388,6 +425,14 @@
       "sha256": "f708c2b672e7ba5c4974517716363282c5a2fcd5b9cf5fa67bed8714c0523cda"
     },
     {
+      "path": "scripts/probe-mci-beta.mjs",
+      "sha256": "2087b6ef34bd01bbba277679611f71909d0878a32b72e552770794e60407903b"
+    },
+    {
+      "path": "scripts/probe-mci-beta-tr.mjs",
+      "sha256": "dae90f0ccf2b735641c3bab1c43338acdb70714e326d92cfa8bac4a28c8958c9"
+    },
+    {
       "path": "scripts/run-ui-development-build.mjs",
       "sha256": "41938f8a3782a0122f57f34efa6af6726a99af03f712e8de3b8414d9843d67da"
     },
@@ -397,11 +442,15 @@
     },
     {
       "path": "scripts/verify-foundation.mjs",
-      "sha256": "ed8e0249de49b5c985e7c7f3cd47bdbca7b2cdee5cf63488a92324e44c70d38d"
+      "sha256": "ffd64ea077f8ea96203010528bd087d1e1cc00cdc1162abdda533c07097db649"
+    },
+    {
+      "path": "scripts/verify-networking.mjs",
+      "sha256": "fa2a54a7d111e17da2a94aef4ac80a0304dc859f04e477d7ab99a8e8fcf5fcd6"
     },
     {
       "path": "scripts/verify-native.mjs",
-      "sha256": "dbdcc1425141b1222e9f2c1f3ec80ae6979b44afb8f8f8653606f10baa469144"
+      "sha256": "71042eeac9aafe52349f43e48d214fd440e665f12eb3c77aff5667616d5b3157"
     },
     {
       "path": "scripts/verify-runtime.mjs",

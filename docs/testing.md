@@ -4,7 +4,7 @@
 
 - `npm run verify:fast` runs format, documentation, policy, type, and unit checks.
 - `npm run verify:ci` runs every check listed in [`verification/manifest.json`](../verification/manifest.json).
-- `npm run verify:fixtures`, `verify:native`, `verify:runtime`, `verify:ui`, `verify:ctlimage`, `verify:control-modules`, and `verify:provenance` run focused checks directly.
+- `npm run verify:fixtures`, `verify:networking`, `verify:native`, `verify:runtime`, `verify:ui`, `verify:ctlimage`, `verify:control-modules`, and `verify:provenance` run focused checks directly.
 - `npm run verify:development-runners` runs the optional Development Build runner self-checks. It is intentionally outside `verify:fast` and `verify:ci`.
 
 Every manifest check is runnable; verification is composed directly from named checks and suites.
@@ -21,7 +21,25 @@ The runtime check covers Host contracts, revisions, snapshots, commands, rollbac
 
 ## Networking verification
 
-Networking transport evidence, remote boundaries, and `NET-*` scenarios are owned by [`networking-contract.md`](specs/networking-contract.md).
+`npm run verify:networking` validates the product-config and secret-store schemas, proves the iOS `CC320` and Android `CC321` native build selections, compiles the shared MCI core, and runs only synthetic, credential-free transport callbacks. It also proves that `config/product-secrets.local.json` is ignored and untracked; verification never opens a local secret store. `npm run verify:networking -- --beta-source /path/to/ip.dat` additionally validates the externally held pinned BETA source without printing or contacting its endpoint. Networking transport evidence, remote boundaries, and `NET-*` scenarios are owned by [`networking-contract.md`](specs/networking-contract.md).
+
+The non-acceptance live diagnostic is explicitly operator-triggered:
+
+```sh
+ALLNEWMTS_MCI_LIVE_BETA=1 \
+npm run mci:probe:beta -- --platform ios --source /path/to/ip.dat
+```
+
+Use `--platform ios` for committed `CC320` or `--platform android` for committed `CC321`; no channel-detail override is accepted. The command performs only the bounded BETA `I` probe defined by the networking contract, redacts endpoint/session data, and removes its temporary executable.
+
+The fixed read-only quote diagnostic has a separate, exact opt-in:
+
+```sh
+ALLNEWMTS_MCI_LIVE_BETA_TR=GD1000Q1 \
+npm run mci:probe:beta:tr -- --platform ios --source /path/to/ip.dat
+```
+
+It performs the single credential-free `J/005930`, `GID=1000`, output `FID=0004` request defined by the networking contract. It prints no quote, endpoint, or session value; a server authentication/key-exchange requirement fails the probe.
 
 ## Change protocol
 
