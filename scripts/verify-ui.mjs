@@ -10,9 +10,9 @@ import { generateSyntheticFixture } from './generate-synthetic-xmf.mjs';
 import { safeRepoFile, validateSchema } from './verify-foundation.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const phases = ['parser-model', 'projection-render', 'runtime-client', 'unseen-generality', 'module-stub-smoke'];
+const phases = ['parser-model', 'projection-render', 'runtime-client', 'unseen-generality', 'module-stub-smoke', 'ctlimage', 'control-modules'];
 const controlModuleFiles = ['button', 'edit', 'image', 'label'].map((name) => `src/controls/${name}.ts`);
-const focusedPhases = [...phases, 'ctlimage', 'control-modules'];
+const focusedPhases = phases;
 const argv = process.argv.slice(2);
 const forwardingRegression = argv.length === 1 && argv[0] === '--build-failure-forwarding-regression';
 assert.ok(forwardingRegression || argv.length === 0 || (argv.length === 2 && argv[0] === '--phase' && focusedPhases.includes(argv[1])), `usage: node scripts/verify-ui.mjs [--phase ${focusedPhases.join('|')}]`);

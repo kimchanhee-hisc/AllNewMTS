@@ -161,6 +161,7 @@ function foundationFiles() {
     'scripts/verify-native.mjs',
     'scripts/verify-runtime.mjs',
     'scripts/verify-ui.mjs',
+    'test/development-runners.test.mjs',
     'test/foundation.test.mjs',
     'test/ui/runtime-client-golden.json',
     'package.json'
@@ -193,6 +194,7 @@ export const expectedIntegrityPaths = [
   'scripts/verify-native.mjs',
   'scripts/verify-runtime.mjs',
   'scripts/verify-ui.mjs',
+  'test/development-runners.test.mjs',
   'test/foundation.test.mjs',
   'test/ui/runtime-client-golden.json'
 ];
@@ -327,7 +329,7 @@ function verifyDocs() {
 
   verifySuites(manifest);
   assert.deepEqual(manifest.suites.fast.checks, ['format', 'docs', 'policy', 'type', 'unit']);
-  assert.deepEqual(manifest.suites.ci.checks, ['format', 'docs', 'policy', 'type', 'unit', 'fixtures', 'native', 'runtime', 'ui', 'ctlimage', 'control-modules', 'provenance']);
+  assert.deepEqual(manifest.suites.ci.checks, ['format', 'docs', 'policy', 'type', 'unit', 'fixtures', 'native', 'runtime', 'ui']);
 
   assert.equal(host.inventoryStatus, 'active');
   assert.deepEqual(host.publicApis.map(({ name }) => name), [
