@@ -101,21 +101,26 @@
     },
     {
       "id": "image",
-      "decision": "defer",
-      "sourceTags": [],
+      "decision": "include",
+      "sourceTags": ["IMAGE"],
       "semanticFamilies": ["CtlImage"],
-      "normalizedType": "unsupported",
-      "properties": [],
+      "normalizedType": "Image",
+      "properties": [
+        { "name": "name", "policy": "identifier", "required": true, "default": null, "maxBytes": 128 },
+        { "name": "imgpath", "policy": "resource-name", "required": true, "default": null, "maxBytes": 256 },
+        { "name": "ly_vert", "policy": "layout", "required": true, "default": null, "maxBytes": 21 }
+      ],
       "mutableProperties": [],
       "events": [],
-      "capabilities": [],
+      "capabilities": ["image-resource", "layout", "accessibility-image"],
       "undeclared": "reject",
-      "diagnostic": "UNSUPPORTED_CONTROL_TYPE"
+      "diagnostic": null
     }
   ],
   "policies": [
     { "id": "identifier", "coercion": "identifier", "projection": "data", "unsupported": "reject", "warning": null },
     { "id": "text", "coercion": "bounded-text", "projection": "data", "unsupported": "reject", "warning": null },
+    { "id": "resource-name", "coercion": "logical-resource-name", "projection": "resolver-key", "unsupported": "reject", "warning": null },
     { "id": "layout", "coercion": "layout-rect", "projection": "logical-pixels", "unsupported": "reject", "warning": null },
     { "id": "enabled", "coercion": "zero-one-boolean", "projection": "enabled", "unsupported": "reject", "warning": null },
     { "id": "max-length", "coercion": "canonical-decimal-1-262144", "projection": "max-length", "unsupported": "reject", "warning": null },

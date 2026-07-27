@@ -33,6 +33,8 @@ test('story, command, inventory, and path contracts fail closed', () => {
   assert.deepEqual(storyChecks('G002-embed-official-lua-5-1-5', manifest).checks, ['native']);
   assert.deepEqual(storyChecks('G003-implement-bounded-native-runtime', manifest).checks, ['runtime']);
   assert.deepEqual(storyChecks('G004-build-generic-xmf-ui-path', manifest).checks, ['ui']);
+  assert.deepEqual(storyChecks('G015-activate-basic-ctlimage-control', manifest).checks, ['ctlimage']);
+  assert.deepEqual(storyChecks('G016-separate-control-modules', manifest).checks, ['control-modules']);
   assert.deepEqual(deferredMilestoneLayers(manifest).map(({ id }) => id), ['package']);
   assert.deepEqual(manifest.integrity.map(({ path: file }) => file).sort(), [...expectedIntegrityPaths].sort());
   const g004AcceptanceFiles = [

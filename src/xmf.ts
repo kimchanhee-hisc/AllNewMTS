@@ -1,40 +1,14 @@
 import registryDocument from '../contracts/control-registry.json';
+import { createControl, projectControl } from './controls';
+import type { XmfColor, XmfControl, XmfPadding, XmfRect, XmfRenderDescriptor } from './controls';
+
+export type { XmfColor, XmfControl, XmfPadding, XmfRect, XmfRenderDescriptor } from './controls';
 
 export type XmfWarning = Readonly<{
   code: 'UNSUPPORTED_PRESENTATION_CODE';
   normalizedType: 'Label' | 'Edit' | 'Button';
   property: 'fontsize' | 'fontstyle';
 }>;
-
-export type XmfRect = Readonly<{ left: number; top: number; width: number; height: number }>;
-export type XmfPadding = Readonly<{ top: number; right: number; bottom: number; left: number }>;
-export type XmfColor = Readonly<{ source: string; prefix: string; value: string }>;
-
-type XmfControlBase = Readonly<{ name: string; layout: XmfRect }>;
-
-export type XmfControl =
-  | (XmfControlBase & Readonly<{
-      type: 'Label';
-      caption: string;
-      fontsize?: string;
-      fontstyle?: string;
-    }>)
-  | (XmfControlBase & Readonly<{
-      type: 'Edit';
-      caption: string;
-      hintCaption: string;
-      maxLength: number;
-      padding: XmfPadding;
-    }>)
-  | (XmfControlBase & Readonly<{
-      type: 'Button';
-      caption: string;
-      enabled: boolean;
-      foregroundColor: XmfColor;
-      backgroundColor?: XmfColor;
-      borderSize: number;
-      fontsize: string;
-    }>);
 
 export type XmfField = Readonly<{ name: string; valueBytes: Uint8Array }>;
 export type XmfBlock = Readonly<{
@@ -78,24 +52,6 @@ export type XmfModel = Readonly<{
   warnings: readonly XmfWarning[];
 }>;
 
-export type XmfRenderDescriptor = Readonly<{
-  key: string;
-  control: string;
-  component: 'Text' | 'TextInput' | 'Pressable';
-  text?: string;
-  placeholder?: string;
-  maxLength?: number;
-  enabled?: boolean;
-  foregroundColor?: string;
-  backgroundColor?: string;
-  borderWidth?: number;
-  padding?: XmfPadding;
-  style: XmfRect;
-  accessibilityLabel: string;
-  accessibilityRole?: 'button';
-  event?: 'OnEditComplete' | 'OnClick';
-}>;
-
 type XmfRenderState = Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 
 export type XmfControlEvent = Readonly<{
@@ -121,7 +77,7 @@ type RegistryPropertyDescriptor = Readonly<{
 type ControlDescriptor = Readonly<{
   decision: 'include' | 'defer';
   sourceTags: readonly string[];
-  normalizedType: 'Label' | 'Edit' | 'Button' | 'unsupported';
+  normalizedType: 'Label' | 'Edit' | 'Button' | 'Image' | 'unsupported';
   properties: readonly RegistryPropertyDescriptor[];
   events: readonly Readonly<{
     name: 'OnEditComplete' | 'OnClick';
@@ -418,6 +374,9 @@ function coerce(policyId: string, value: string, location: string): unknown {
       if (isIdentifier(value)) return value;
       break;
     case 'bounded-text': return value;
+    case 'logical-resource-name':
+      if (/^[A-Za-z0-9_][A-Za-z0-9_.-]{0,255}$/.test(value)) return value;
+      break;
     case 'layout-rect': return layout(value, location);
     case 'zero-one-boolean':
       if (value === '0' || value === '1') return value === '1';
@@ -470,17 +429,8 @@ function controlFrom(tag: string, raw: Readonly<Record<string, string>>, warning
       warnings.set(key, Object.freeze({ code: warning, normalizedType: descriptor.normalizedType as 'Label' | 'Edit' | 'Button', property: property.name as 'fontsize' | 'fontstyle' }));
     }
   }
-  const common = { name: values.name as string, layout: values.ly_vert as XmfRect };
-  if (descriptor.normalizedType === 'Label') {
-    return Object.freeze({ ...common, type: 'Label', caption: values.caption as string, ...(values.fontsize === undefined ? {} : { fontsize: values.fontsize as string }), ...(values.fontstyle === undefined ? {} : { fontstyle: values.fontstyle as string }) });
-  }
-  if (descriptor.normalizedType === 'Edit') {
-    return Object.freeze({ ...common, type: 'Edit', caption: values.caption as string, hintCaption: values.hintcaption as string, maxLength: values.maxlength as number, padding: values.paddinginfo as XmfPadding });
-  }
-  if (descriptor.normalizedType === 'Button') {
-    return Object.freeze({ ...common, type: 'Button', caption: values.caption as string, enabled: values.enable as boolean, foregroundColor: values.fgcolor as XmfColor, ...(values.bgcolor === undefined ? {} : { backgroundColor: values.bgcolor as XmfColor }), borderSize: values.bordersize as number, fontsize: values.fontsize as string });
-  }
-  fail('UNSUPPORTED_CONTROL_TYPE', 'control');
+  if (descriptor.normalizedType === 'unsupported') fail('UNSUPPORTED_CONTROL_TYPE', 'control');
+  return createControl(descriptor.normalizedType, { name: values.name as string, layout: values.ly_vert as XmfRect }, values);
 }
 
 function bounded(raw: Readonly<Record<string, string>>, name: string, maximum: number, location: string, minimum = 0): string {
@@ -589,18 +539,19 @@ function parseXmfInternal(source: Uint8Array): XmfModel {
   attributes(scanner.opening('CONTROL_INFO', true, 'controls'), [], [], 'controls');
   const warnings = new Map<string, XmfWarning>();
   const controls: XmfControl[] = [];
-  for (let index = 0; index < 5; index += 1) {
+  while (controls.length < 6) {
     scanner.whitespace();
+    if (starts(bytes, scanner.position, ascii('<TABORDER_INFO'))) break;
     const tag = registry.controls.flatMap(({ sourceTags }) => sourceTags).find((candidate) => starts(bytes, scanner.position, ascii(`<${candidate}`)));
     if (!tag) fail('UNSUPPORTED_CONTROL_TYPE', 'control');
     controls.push(controlFrom(tag, scanner.opening(tag, false, 'control'), warnings));
   }
   const counts = controls.reduce<Record<string, number>>((result, control) => ({ ...result, [control.type]: (result[control.type] ?? 0) + 1 }), {});
-  if (counts.Label !== 2 || counts.Edit !== 1 || counts.Button !== 2 || new Set(controls.map(({ name }) => name)).size !== 5) fail('INVALID_STRUCTURE', 'controls');
+  if (counts.Label !== 2 || counts.Edit !== 1 || counts.Button !== 2 || (counts.Image ?? 0) > 1 || new Set(controls.map(({ name }) => name)).size !== controls.length) fail('INVALID_STRUCTURE', 'controls');
   scanner.whitespace();
   const tabRaw = scanner.opening('TABORDER_INFO', false, 'tab-order');
   attributes(tabRaw, ['horz', 'vert'], [], 'tab-order');
-  const focusable = new Set(controls.filter(({ type }) => type !== 'Label').map(({ name }) => name));
+  const focusable = new Set(controls.filter(({ type }) => type === 'Edit' || type === 'Button').map(({ name }) => name));
   const tabList = (value: string): readonly string[] => {
     if (encoder.encode(value).length > 644) fail('INVALID_STRUCTURE', 'tab-order');
     const names = value.split('`');
@@ -731,26 +682,10 @@ export function toRenderDescriptors(model: XmfModel, state: XmfRenderState = {})
         ...(properties.enabled === undefined ? {} : { enabled: properties.enabled }),
       }));
     } else if (keys.length) {
-      fail('INVALID_PROPERTY', 'runtime.Label');
+      fail('INVALID_PROPERTY', `runtime.${control.type}`);
     }
   }
-  return Object.freeze(model.controls.map((control): XmfRenderDescriptor => {
-    const current = normalized.get(control.name) ?? {};
-    const common = {
-      key: control.name,
-      control: control.name,
-      style: control.layout,
-      accessibilityLabel: control.name,
-    };
-    switch (control.type) {
-      case 'Label': return Object.freeze({ ...common, component: 'Text', text: control.caption, accessibilityLabel: control.caption || control.name });
-      case 'Edit': return Object.freeze({ ...common, component: 'TextInput', text: (current.caption as string | undefined) ?? control.caption, placeholder: control.hintCaption, maxLength: control.maxLength, padding: control.padding, accessibilityLabel: control.hintCaption || control.name, event: 'OnEditComplete' });
-      case 'Button': {
-        const enabled = (current.enabled as boolean | undefined) ?? control.enabled;
-        return Object.freeze({ ...common, component: 'Pressable', text: control.caption, enabled, foregroundColor: !enabled && current.disabledForegroundColor !== undefined ? current.disabledForegroundColor as string : control.foregroundColor.value, ...(control.backgroundColor === undefined ? {} : { backgroundColor: control.backgroundColor.value }), borderWidth: (current.borderWidth as number | undefined) ?? control.borderSize, accessibilityLabel: control.caption || control.name, accessibilityRole: 'button', event: 'OnClick' });
-      }
-    }
-  }));
+  return Object.freeze(model.controls.map((control) => projectControl(control, normalized.get(control.name) ?? {})));
 }
 
 export function buildControlEvent(control: XmfControl, event: 'OnEditComplete' | 'OnClick', value?: string): XmfControlEvent {

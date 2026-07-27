@@ -25,6 +25,7 @@ export function buildG004AppRuntimeConfig(model: XmfModel): RuntimeConfig {
         case 'Label': return [];
         case 'Edit': return [{ id: control.name, type: 'Edit' as const, properties: { caption: control.caption } }];
         case 'Button': return [{ id: control.name, type: 'Button' as const, properties: { border: control.borderSize > 0 ? 'solid' : 'none', dfgcolor: 'black', enabled: control.enabled } }];
+        case 'Image': return [];
       }
     }),
     transactions: [{ id: 'T_ALPHA', blocks: [{ id: 'input', fields: ['value'] }, { id: 'output', fields: ['value'] }] }],

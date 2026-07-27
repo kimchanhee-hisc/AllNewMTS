@@ -247,6 +247,56 @@
       "budgetSeconds": 1200
     },
     {
+      "id": "ctlimage",
+      "packageScript": "verify:ctlimage",
+      "command": "npm run verify:ctlimage",
+      "argv": [
+        "node",
+        "scripts/verify-ui.mjs",
+        "--phase",
+        "ctlimage"
+      ],
+      "owner": "G015-activate-basic-ctlimage-control",
+      "activation": "active",
+      "risk": "contract",
+      "inputs": [
+        "independently re-authored deterministic IMAGE mutation",
+        "control registry and closed IMAGE property policy",
+        "generic parser, descriptor projection, and React Native source-table boundary"
+      ],
+      "outputs": [
+        "immutable Image model and descriptor evidence",
+        "logical-resource and undeclared-surface rejection evidence",
+        "zero remote-operation and zero runtime-property/event evidence"
+      ],
+      "budgetSeconds": 120
+    },
+    {
+      "id": "control-modules",
+      "packageScript": "verify:control-modules",
+      "command": "npm run verify:control-modules",
+      "argv": [
+        "node",
+        "scripts/verify-ui.mjs",
+        "--phase",
+        "control-modules"
+      ],
+      "owner": "G016-separate-control-modules",
+      "activation": "active",
+      "risk": "contract",
+      "inputs": [
+        "shared control-module contract and exact included control modules",
+        "generic parser model/projection delegation",
+        "React Native ControlView boundary"
+      ],
+      "outputs": [
+        "explicit exhaustive dispatch and module ownership evidence",
+        "unchanged original and static Image model/descriptor evidence",
+        "zero dynamic discovery and zero operating-system selection evidence"
+      ],
+      "budgetSeconds": 120
+    },
+    {
       "id": "package",
       "packageScript": "verify:package",
       "command": "npm run verify:package",
@@ -320,6 +370,22 @@
         "package"
       ],
       "budgetSeconds": 2700
+    },
+    {
+      "id": "G015-activate-basic-ctlimage-control",
+      "activation": "active",
+      "checks": [
+        "ctlimage"
+      ],
+      "budgetSeconds": 120
+    },
+    {
+      "id": "G016-separate-control-modules",
+      "activation": "active",
+      "checks": [
+        "control-modules"
+      ],
+      "budgetSeconds": 120
     }
   ],
   "tiers": {
@@ -353,7 +419,8 @@
         "provenance",
         "native",
         "runtime",
-        "ui"
+        "ui",
+        "ctlimage"
       ],
       "budgetSeconds": 2700,
       "readinessClaim": "milestone"
@@ -387,6 +454,18 @@
       "requiredForMilestone": true
     },
     {
+      "id": "ctlimage",
+      "status": "active",
+      "owner": "G015-activate-basic-ctlimage-control",
+      "requiredForMilestone": true
+    },
+    {
+      "id": "control-modules",
+      "status": "active",
+      "owner": "G016-separate-control-modules",
+      "requiredForMilestone": true
+    },
+    {
       "id": "package",
       "status": "deferred",
       "owner": "G006-verify-first-milestone",
@@ -408,7 +487,7 @@
     },
     {
       "path": "docs/specs/xmf-lua-runtime.md",
-      "sha256": "33020bd8efb74224d5f6d312f38fe8231db3920383299f37f22350c4f03247df"
+      "sha256": "e3dc52d2c462829d95219a4515a8a6bb9a319e3f5ea705b19a97108e29ad5904"
     },
     {
       "path": "docs/specs/runtime-contract.md",
@@ -416,7 +495,7 @@
     },
     {
       "path": "docs/testing.md",
-      "sha256": "940f724fe3f7ac621d17768288abb41f083bcea9c504b2f2125f67c1e46522d1"
+      "sha256": "e41ae1a7ffd088ac36697f60e53f5f429dca72b52041e13df6543f6d7e3443d6"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
@@ -436,11 +515,11 @@
     },
     {
       "path": "contracts/control-registry.json",
-      "sha256": "1f337e7c6fc006f0634b79eb92631a04c4c2762c203aa08d4c65b61b8ac6464d"
+      "sha256": "7ec3ed60e21e20bfb5b77ae58dacbc0bf11b15a26db5338383fe8872a01b7fd2"
     },
     {
       "path": "contracts/control-registry.schema.json",
-      "sha256": "eadd0af03901750ffebc6f49f514a80084e62b7075cbb0232f137e98dbac71f3"
+      "sha256": "ac70be1bfb528ead2820a1cf205bf02e65359cea38b595652318e5c5aa726caa"
     },
     {
       "path": "native/lua-source-manifest.json",
@@ -456,7 +535,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "df07631be1376e1708991247946333a1cb5048f5b586483c72fab003568de2c7"
+      "sha256": "ed6dd31c06bbb78b9ea076dad0bfd1e435bcd027f9d889a921b3a6725ceb6efa"
     },
     {
       "path": "scripts/generate-g004-assets.mjs",
@@ -480,7 +559,7 @@
     },
     {
       "path": "scripts/verify-foundation.mjs",
-      "sha256": "c302a30aad18dbcb3f737f788cb02f4078f3cb021231f27c7af54aff9570d2e5"
+      "sha256": "24209c66fd6a47e26dba40f38569b5ee6c9375e1c6fcfe4cf1f111b48a74e419"
     },
     {
       "path": "scripts/verify-native.mjs",
@@ -492,15 +571,15 @@
     },
     {
       "path": "scripts/verify-ui.mjs",
-      "sha256": "416f528d9b8605549e61e45b319f1e9ba04e298f1495dd93757d8968637cf2a6"
+      "sha256": "a4d15ce8a37db3134f94e54855e0e08c6eda504015d5218a15b1c474de6bdb73"
     },
     {
       "path": "test/foundation.test.mjs",
-      "sha256": "9f361927204f361d024c63fdfc73acc04aa39826f1d5ab40cf48389c7c5fd89e"
+      "sha256": "f9b70d1502b59e228485ce6c4bb8ccf0e99f5655ed1b6e063846ee27187e4378"
     },
     {
       "path": "test/g004/g003-baseline.json",
-      "sha256": "f66bf54fca0d7f5b9a1b46fb1dc77f05ab522bf5ef4243551b1efcf77500d54c"
+      "sha256": "df1c68949e7ede18e5b8ffd497189dc676f5dd78504906244c245725367579f5"
     },
     {
       "path": "test/g004/runtime-client-golden.json",
