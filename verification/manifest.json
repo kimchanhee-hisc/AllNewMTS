@@ -13,6 +13,11 @@
       "heading": "# Shared runtime contract"
     },
     {
+      "topic": "networking-contract-and-evidence",
+      "path": "docs/specs/networking-contract.md",
+      "heading": "# Networking contract and evidence"
+    },
+    {
       "topic": "verification-and-evidence",
       "path": "docs/testing.md",
       "heading": "# Verification and evidence contract"
@@ -299,7 +304,7 @@
     },
     {
       "path": "AGENTS.md",
-      "sha256": "4b57918b96d8a5aad972941bf2bae3cae851b23f925f74ce24c27db58ab7e762"
+      "sha256": "910c73c0de0ee726be3fa75eac7cd4e0ed54f70bb841dffe075b29f1b50610e0"
     },
     {
       "path": "README.md",
@@ -311,11 +316,15 @@
     },
     {
       "path": "docs/specs/runtime-contract.md",
-      "sha256": "1f7149bbb09d31ebbe122f3cb2d31ae77468e692babcb0c742bcbf7f3f062cd9"
+      "sha256": "62199557f1050704f2792831735644f1c76fcec2e9c1a2461dc8920de360eb87"
+    },
+    {
+      "path": "docs/specs/networking-contract.md",
+      "sha256": "e757e38bd4bae6bd97d6b2b4eccff571a5c686b9fcc545f92b8bf5ae8302b43d"
     },
     {
       "path": "docs/testing.md",
-      "sha256": "6feab48d9eb39fa635b005c4147439855b2488f574b9f4c9b6a362a2cf946ed7"
+      "sha256": "37fc6e22525cfe3e7b5337d3d927ab4c6175fb54459eaaac148c0cc93122d515"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
@@ -379,7 +388,7 @@
     },
     {
       "path": "scripts/verify-foundation.mjs",
-      "sha256": "0533b9108325e5378b784153eff188fece4ea1fd7115eaf9bf6fdef154e725b1"
+      "sha256": "2827da7672c5d5f276d05b247d52455058066df449a5d464ed8c991bda58291c"
     },
     {
       "path": "scripts/verify-native.mjs",
