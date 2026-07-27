@@ -88,6 +88,28 @@ Each connection attempt owns a generation. Disconnect, loss, timeout, or MCI-ini
 
 Reconnect runs the full reconnect process above, not only a raw socket reopen. It first cancels outstanding request correlation and realtime wire registrations. It never blindly replays a state-changing transaction. After login succeeds, still-live logical realtime scopes may register again from their current registry; closed scopes and stale callbacks remain canceled. Candidate ordering must be deterministic in tests. The original random starting candidate and force-server controls are deployment concerns, not shared runtime semantics.
 
+### MCI transport, KeySharp, timeout, and beta boundary
+
+The selected compatibility transport is one plain TCP byte stream. It performs no TLS handshake and has no certificate-validation or pinning policy. KeySharp is a separate application-layer protocol: `I` initializes the MCI session, `X` carries the KeySharp key-init/final tokens, and only a later transaction body marked for MCI encryption is passed through KeySharp message encryption. The 321-byte common header remains outside that body encryption. Encryption or decryption failure rejects the transaction and connection generation; it must never reproduce the original plaintext downgrade.
+
+The future implementation must copy, without translating, the exact KeySharp artifacts already held by Plus. Android provenance is submodule commit `7df031ddd1951063b53290fe164ee267871c8d0e`: `SignKorea-Android.jar` SHA-256 `cc0d9d3f32b11bbfc210742f55e42f2af5dd19cc04887dd22c84c74a44c85401`, plus `libKeySharp_Android_Core.so` for `armeabi-v7a` SHA-256 `1c131d9950e75cc567b48c01091d40708ef4c8f14908dbdfb1cdaf059405d580`, `arm64-v8a` SHA-256 `02c400cf786fd2378fe02824bf218c2ed7335cc4d4666cc82ee143ecf786e1f6`, `x86` SHA-256 `7fe5d3404f927d55b3497517ab7f725ad860ea98f4f487aa3c7d1d7bc4d92337`, and `x86_64` SHA-256 `bdc829a5a94e6af0b6af95e1558a7eb9d0370091f17e15f6e2a59b2f860caa35`. Obsolete `armeabi`, `mips`, and `mips64` slices are not imported. iOS provenance is submodule commit `f06d957d314ed688a1e882f85e39dca4867c150f`: `libKeySharpiPhone.a` SHA-256 `4e33fdd87eacdf61613306da2674edfa5a03177f6d64e3757d3ca3c85118346e` and the `KeySharpiPhone include/crypto include` tree object `2abe52c0a094ae205885a91821df624f28550df2`. That library contains arm64 device and x86_64 simulator slices; an arm64-simulator build requires a newer vendor artifact rather than relabeling the device slice.
+
+The observed MCI calls construct `KSClient` or call `KS_ClientLib_Init` without a license token or license file, and neither selected SDK tree contains a LICENSE or NOTICE artifact. Therefore there is no runtime license value to copy from Plus. Presence in Plus establishes technical provenance, not redistribution permission; vendor/procurement authorization must be recorded before these binaries enter AllNewMTS.
+
+One cross-platform default policy applies:
+
+- socket connect timeout: 15 seconds;
+- `I` and each `X` command response timeout: 5 seconds;
+- ordinary MCI transaction response timeout: 30 seconds;
+- polling: immediately echo the complete server-supplied `H` frame byte-for-byte, with no client-generated polling interval; and
+- socket read and idle timeout: disabled. EOF, socket error, malformed frame, command/transaction timeout, or the server-driven polling contract triggers reconnect.
+
+The configured four-second value that is not carried to the socket and the platform-specific physical connect limits are not reproduced. Adding an idle watchdog requires a beta trace that establishes the server cadence and one new shared timeout fixture.
+
+The only permitted future live MCI endpoint source is the exact `[베타]` entry in Plus Android submodule commit `7df031ddd1951063b53290fe164ee267871c8d0e`, file `Main/MTSMain/src/release/assets/res/ip.dat` with file SHA-256 `f4c887ff3c331e460f9490e2dfd4612feba457fce02118715d8d234b771dc144`. The selected `host:port` SHA-256 is `429a801e3b3ec7485a6ef5817ce7c034151f40b799bc3341c93ac2716dd91a35`. A preflight materializes only that entry, requires `CNT=1`, a non-numeric host and numeric port, compares the endpoint hash, and keeps the value in process memory. A missing or changed entry fails closed. No literal endpoint is copied into this repository or diagnostics, and there is no production, development, alternate-section, DNS, or candidate fallback. This records the endpoint boundary but does not itself authorize a live call.
+
+Three independent golden sets are required before transport activation: the complete plaintext `I` request/response; the `X` key-init/final exchange; and one encrypted normal request/response. The unchanged Plus builders and pinned KeySharp SDK provide the observational input, but the expected bytes are independently re-authored or frozen outside the new encoder so neither the legacy implementation nor the new implementation is its own oracle. All values are fixed and synthetic. Because KeySharp key-init includes time/random input, its golden must preserve one inert test handshake and prove that it contains no reusable credential or session before repository admission; otherwise the bytes remain in an approved restricted fixture store and only their hashes are committed. Each adapter must consume the same set. No production capture, account/customer value, endpoint, access token, or active session key may enter a golden.
+
 ### MCI socket frame and header construction
 
 Frames are byte-oriented and fixed-width:
@@ -133,7 +155,7 @@ Realtime registration and cancellation use the same connected session and 321-by
 
 The coordinator keeps one native registration per normalized service/key while logical scopes hold references. The final local reference emits unregister; scope release unregisters all of that scope; reconnect re-registers only still-live scopes after business readiness. Incoming pushes are parsed once and routed by scope, service, and normalized key. Unknown, malformed, stale-generation, or post-release pushes are discarded with bounded value-redacted diagnostics.
 
-Physical socket-library choice, TLS mode, keepalive, crypto algorithms, live endpoints, and credentials are deliberately unresolved because the allowed Plus wrappers do not independently establish them. They require a separately activated networking goal and may not be inferred from MVigsEngine.
+The concrete socket library remains an implementation choice, and live credentials remain unresolved. The selected transport mode, KeySharp source, timeout behavior, and beta-only endpoint boundary above are compatibility decisions for a later networking goal; they do not activate networking in Gate 3. MVigsEngine inspection is diagnostic only and is not acceptance evidence or an implementation source.
 
 ## Production limits
 
