@@ -25,7 +25,7 @@ Pod::Spec.new do |s|
     'ios/AllNewMTSRuntime*.{h,mm,swift}',
     'ios/allnewmts_runtime_ios_adapter.c'
   ]
-  verification_sources = ENV['EXPO_PUBLIC_G002_NATIVE_HARNESS'] == '1' ? [
+  verification_sources = ENV['EXPO_PUBLIC_NATIVE_HARNESS'] == '1' ? [
     'shared/allnewmts_lua.{c,h}',
     'shared/allnewmts_lua_adapters.h',
     'ios/AllNewMTSLua*.{h,mm,swift}',

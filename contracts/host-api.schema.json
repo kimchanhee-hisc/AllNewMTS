@@ -8,7 +8,6 @@
     "schemaVersion",
     "contract",
     "inventoryStatus",
-    "owningGoal",
     "runtimeResultSchema",
     "evidence",
     "limits",
@@ -29,9 +28,6 @@
     },
     "inventoryStatus": {
       "const": "active"
-    },
-    "owningGoal": {
-      "const": "G003-implement-bounded-native-runtime"
     },
     "runtimeResultSchema": {
       "const": "./runtime-result.schema.json"
@@ -309,7 +305,6 @@
       "required": [
         "id",
         "kind",
-        "owner",
         "name",
         "decision",
         "arity",
@@ -337,9 +332,6 @@
             "property-set",
             "resource-loader"
           ]
-        },
-        "owner": {
-          "const": "G003-implement-bounded-native-runtime"
         },
         "name": {
           "type": "string",
@@ -451,7 +443,7 @@
           "enum": [
             "include",
             "exclude",
-            "defer"
+            "unsupported"
           ]
         },
         "evidence": {
@@ -482,7 +474,7 @@
             "normalize",
             "safe-union",
             "reject",
-            "defer"
+            "unsupported"
           ]
         },
         "testOrGolden": {

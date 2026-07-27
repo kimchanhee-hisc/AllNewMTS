@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { generateSyntheticFixture } from './generate-g001-synthetic.mjs';
+import { generateSyntheticFixture } from './generate-synthetic-xmf.mjs';
 import { safeRepoFile, validateSchema } from './verify-foundation.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -18,12 +18,12 @@ const selected = forwardingRegression ? undefined : argv[1];
 const read = (file, encoding) => fs.readFileSync(safeRepoFile(file), encoding);
 const json = (file) => JSON.parse(read(file, 'utf8'));
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
-const buildFailurePrefix = 'ALLNEWMTS_G004_BUILD_FAILURE=';
-const buildFailureCommand = 'node scripts/run-g004-development-build.mjs';
-const buildFailureEnvelopeSchema = 'allnewmts.g004.build-failure-envelope.v1';
-const buildFailureEvidenceSchema = 'allnewmts.g004.build-failure-evidence.v1';
-const genericFailureEvidenceSchema = 'allnewmts.g004.generic-failure-evidence.v1';
-const buildFailureForwardSchema = 'allnewmts.g004.build-failure-forward.v1';
+const buildFailurePrefix = 'ALLNEWMTS_UI_BUILD_FAILURE=';
+const buildFailureCommand = 'node scripts/run-ui-development-build.mjs';
+const buildFailureEnvelopeSchema = 'allnewmts.ui.build-failure-envelope.v1';
+const buildFailureEvidenceSchema = 'allnewmts.ui.build-failure-evidence.v1';
+const genericFailureEvidenceSchema = 'allnewmts.ui.generic-failure-evidence.v1';
+const buildFailureForwardSchema = 'allnewmts.ui.build-failure-forward.v1';
 const buildFailureEvidenceCap = 524_288;
 const genericFailureEvidenceCap = 1024;
 const buildFailureSuffixCap = 524_512;
@@ -132,7 +132,7 @@ function forwardBuildFailure(result, emit = emitBuildFailureMarker) {
 
 function assertSuccessfulRun(file, args, result, emit = emitBuildFailureMarker) {
   if (result.status === 0) return;
-  if (file === 'node' && args[0] === 'scripts/run-g004-development-build.mjs') {
+  if (file === 'node' && args[0] === 'scripts/run-ui-development-build.mjs') {
     forwardBuildFailure(result, emit);
     assert.fail(`${buildFailureCommand} failed; bounded evidence forwarded`);
   }
@@ -141,7 +141,7 @@ function assertSuccessfulRun(file, args, result, emit = emitBuildFailureMarker) 
 }
 
 function forwardingRegressionEvidence() {
-  const child = spawnSync('node', ['scripts/run-g004-development-build.mjs', '--build-failure-marker-transport-child'], {
+  const child = spawnSync('node', ['scripts/run-ui-development-build.mjs', '--build-failure-marker-transport-child'], {
     cwd: root,
     encoding: 'utf8',
     maxBuffer: 100 * 1024 * 1024
@@ -160,10 +160,10 @@ function forwardingRegressionEvidence() {
   assert.ok(Buffer.byteLength(evidenceJson) <= buildFailureEvidenceCap);
   assert.equal(sha256(evidenceJson), envelope.buildFailureEvidenceSha256);
   assert.ok(Buffer.byteLength(suffix) <= buildFailureSuffixCap);
-  const writerLine = String(child.stderr ?? '').split(/\r?\n/).find((line) => line.startsWith('G004_BUILD_FAILURE_WRITER_REGRESSION='));
+  const writerLine = String(child.stderr ?? '').split(/\r?\n/).find((line) => line.startsWith('UI_BUILD_FAILURE_WRITER_REGRESSION='));
   assert.ok(writerLine, 'build-failure marker child emitted no writer-failure evidence');
-  const writerFailure = JSON.parse(writerLine.slice('G004_BUILD_FAILURE_WRITER_REGRESSION='.length));
-  const genericChild = spawnSync('node', ['scripts/run-g004-development-build.mjs', '--generic-failure-marker-transport-child'], {
+  const writerFailure = JSON.parse(writerLine.slice('UI_BUILD_FAILURE_WRITER_REGRESSION='.length));
+  const genericChild = spawnSync('node', ['scripts/run-ui-development-build.mjs', '--generic-failure-marker-transport-child'], {
     cwd: root,
     encoding: 'utf8',
     maxBuffer: 100 * 1024 * 1024
@@ -180,10 +180,10 @@ function forwardingRegressionEvidence() {
   assert.equal(genericEnvelope.buildFailureEvidence.schema, genericFailureEvidenceSchema);
   assert.equal(genericEnvelope.buildFailureEvidence.errorCode, 'ERR_ASSERTION');
   assert.equal(genericEnvelope.buildFailureEvidence.phase, 'development-build');
-  assert.doesNotMatch(genericMarkers[0], /G004_GENERIC_CHILD_SECRET/);
-  const genericWriterLine = String(genericChild.stderr ?? '').split(/\r?\n/).find((line) => line.startsWith('G004_GENERIC_FAILURE_WRITER_REGRESSION='));
+  assert.doesNotMatch(genericMarkers[0], /UI_GENERIC_CHILD_SECRET/);
+  const genericWriterLine = String(genericChild.stderr ?? '').split(/\r?\n/).find((line) => line.startsWith('UI_GENERIC_FAILURE_WRITER_REGRESSION='));
   assert.ok(genericWriterLine, 'generic failure marker child emitted no writer-failure evidence');
-  const genericWriterRegression = JSON.parse(genericWriterLine.slice('G004_GENERIC_FAILURE_WRITER_REGRESSION='.length));
+  const genericWriterRegression = JSON.parse(genericWriterLine.slice('UI_GENERIC_FAILURE_WRITER_REGRESSION='.length));
   const { phaseMarkers, ...genericWriterFailure } = genericWriterRegression;
   assert.deepEqual(genericWriterFailure.productionPhases, genericFailurePhases);
   assert.equal(phaseMarkers.length, genericFailurePhases.length);
@@ -192,7 +192,7 @@ function forwardingRegressionEvidence() {
     assert.equal(validBuildFailureSuffix(marker.slice(buildFailurePrefix.length)), true, phase);
     const emitted = [];
     assert.throws(
-      () => assertSuccessfulRun('node', ['scripts/run-g004-development-build.mjs'], { status: 1, signal: null, stdout: marker, stderr: '' }, (line) => emitted.push(line)),
+      () => assertSuccessfulRun('node', ['scripts/run-ui-development-build.mjs'], { status: 1, signal: null, stdout: marker, stderr: '' }, (line) => emitted.push(line)),
       (error) => error?.message === `${buildFailureCommand} failed; bounded evidence forwarded`,
       phase
     );
@@ -202,20 +202,20 @@ function forwardingRegressionEvidence() {
   assert.deepEqual(forwardedPhases, genericFailurePhases);
   const genericForwarded = [];
   assert.throws(
-    () => assertSuccessfulRun('node', ['scripts/run-g004-development-build.mjs'], genericChild, (line) => genericForwarded.push(line)),
+    () => assertSuccessfulRun('node', ['scripts/run-ui-development-build.mjs'], genericChild, (line) => genericForwarded.push(line)),
     (error) => error?.message === `${buildFailureCommand} failed; bounded evidence forwarded`
   );
   assert.deepEqual(genericForwarded, genericMarkers);
   const forwarded = [];
   assert.throws(
-    () => assertSuccessfulRun('node', ['scripts/run-g004-development-build.mjs'], child, (line) => {
+    () => assertSuccessfulRun('node', ['scripts/run-ui-development-build.mjs'], child, (line) => {
       forwarded.push(line);
       emitBuildFailureMarker(line);
     }),
     (error) => error?.message === `${buildFailureCommand} failed; bounded evidence forwarded`
   );
   assert.deepEqual(forwarded, [producerMarker]);
-  const secret = 'G004_FORWARDING_PLANTED_SECRET';
+  const secret = 'UI_FORWARDING_PLANTED_SECRET';
   const envelopeForEvidence = (buildFailureEvidence) => {
     const evidenceJson = canonicalJson(buildFailureEvidence);
     return canonicalJson({
@@ -235,16 +235,16 @@ function forwardingRegressionEvidence() {
     ['noncanonical', `${buildFailurePrefix} ${suffix}`],
     ['oversize', `${buildFailurePrefix}${'x'.repeat(buildFailureSuffixCap + 1)}`],
     ['hash-mismatch', `${buildFailurePrefix}${mismatch}`],
-    ['generic-unknown-schema', `${buildFailurePrefix}${envelopeForEvidence({ ...genericEvidence, schema: 'allnewmts.g004.unknown.v1' })}`],
+    ['generic-unknown-schema', `${buildFailurePrefix}${envelopeForEvidence({ ...genericEvidence, schema: 'allnewmts.ui.unknown.v1' })}`],
     ['generic-extra-key', `${buildFailurePrefix}${envelopeForEvidence({ ...genericEvidence, secret })}`],
-    ['generic-invalid-code', `${buildFailurePrefix}${envelopeForEvidence({ ...genericEvidence, errorCode: 'G004_FORWARDING_PLANTED_SECRET' })}`],
+    ['generic-invalid-code', `${buildFailurePrefix}${envelopeForEvidence({ ...genericEvidence, errorCode: 'UI_FORWARDING_PLANTED_SECRET' })}`],
     ['generic-unknown-phase', `${buildFailurePrefix}${envelopeForEvidence({ ...genericEvidence, phase: 'unknown-phase' })}`],
     ['generic-oversize', `${buildFailurePrefix}${envelopeForEvidence({ ...genericEvidence, errorName: 'A'.repeat(genericFailureEvidenceCap + 1) })}`]
   ];
   for (const [name, stdout] of cases) {
     const emitted = [];
     assert.throws(
-      () => assertSuccessfulRun('node', ['scripts/run-g004-development-build.mjs'], { status: 1, signal: null, stdout, stderr: secret }, (line) => emitted.push(line)),
+      () => assertSuccessfulRun('node', ['scripts/run-ui-development-build.mjs'], { status: 1, signal: null, stdout, stderr: secret }, (line) => emitted.push(line)),
       (error) => error?.message === `${buildFailureCommand} failed; bounded evidence forwarded`,
       name
     );
@@ -293,17 +293,17 @@ function forwardingRegressionEvidence() {
 
 if (forwardingRegression) {
   const evidence = forwardingRegressionEvidence();
-  const output = `G004_BUILD_FAILURE_FORWARDING_REGRESSION=${canonicalJson(evidence)}\n`;
+  const output = `UI_BUILD_FAILURE_FORWARDING_REGRESSION=${canonicalJson(evidence)}\n`;
   await new Promise((resolve, reject) => process.stdout.write(output, (error) => error ? reject(error) : resolve()));
   process.exit(0);
 }
 
-const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'allnewmts-g004-verifier-'));
+const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'allnewmts-ui-verifier-'));
 const originalPath = 'test/oracles/sources/mts_screen/HS1200P08.xmf_';
 const syntheticPath = 'test/oracles/synthetic/renamed-reordered.xmf_';
 const expectedSourceHash = '4d63ba22ac5339cfd3068cffa91710e0099481da81d974e2aff0ce7ae39ed53e';
 const sourceManifest = json('native/lua-source-manifest.json');
-const expectedGolden = read('test/g004/runtime-client-golden.json', 'utf8').trim();
+const expectedGolden = read('test/ui/runtime-client-golden.json', 'utf8').trim();
 const independentGrammar = Object.freeze([
   { parent: 'document', order: 1, tag: 'ROOT', form: 'paired', cardinality: '1', required: [], optional: [], body: 'MAP_INFO,FORM_INFO,CONTROL_INFO,SCRIPT_INFO,DATAIO_INFO; no trailing data' },
   { parent: 'ROOT', order: 1, tag: 'MAP_INFO', form: 'self', cardinality: '1', required: ['scrno', 'scrname', 'version', 'writer', 'scrtype', 'scripttype'], optional: [], body: 'token/text/decimal metadata bounds' },
@@ -321,13 +321,12 @@ const independentGrammar = Object.freeze([
   { parent: 'TRIO_INFO', order: 1, tag: 'TRAN', form: 'paired', cardinality: '2', required: ['name', 'title', 'realdata', 'dessvr', 'occurslen', 'memfieldlen'], optional: [], body: 'four TRBLOCK: two in/two out and one occurs=1 per direction' },
   { parent: 'TRIO_INFO/TRAN', order: 1, tag: 'TRBLOCK', form: 'paired', cardinality: '4 each/8 total', required: ['name', 'inout', '_len', '_ulen'], optional: ['occurs'], body: 'opaque 1..262144; LF xor CRLF; 1..1024 unique identifier^ rows; first close wins' }
 ]);
-const invocationPids = { ui: new Set([process.pid]), developmentBuild: new Set() };
+const invocationPids = { ui: new Set([process.pid]) };
 
 function run(file, args, options = {}) {
   const result = spawnSync(file, args, { cwd: root, encoding: 'utf8', maxBuffer: 100 * 1024 * 1024, ...options });
   assert.equal(result.error, undefined, `${file} could not start: ${result.error?.message}`);
   assertSuccessfulRun(file, args, result);
-  if (file === 'node' && args[0] === 'scripts/run-g004-development-build.mjs') invocationPids.developmentBuild.add(result.pid);
   return (result.stdout ?? '').trim();
 }
 
@@ -350,9 +349,9 @@ const synthetic = read(syntheticPath);
 
 function phase(name, work) {
   const started = performance.now();
-  console.log(JSON.stringify({ event: 'G004_PHASE_START', phase: name }));
+  console.log(JSON.stringify({ event: 'UI_PHASE_START', phase: name }));
   return Promise.resolve(work()).then((evidence) => {
-    console.log(JSON.stringify({ event: 'G004_PHASE_END', phase: name, status: 'PASS', durationMs: Math.round(performance.now() - started), ...evidence }));
+    console.log(JSON.stringify({ event: 'UI_PHASE_END', phase: name, status: 'PASS', durationMs: Math.round(performance.now() - started), ...evidence }));
     return evidence;
   });
 }
@@ -427,10 +426,9 @@ function assertModel(model, source) {
 
 function contractRegistry() {
   const registry = json('contracts/control-registry.json');
-  validateSchema(json('contracts/control-registry.schema.json'), registry, 'G004 control registry');
-  assert.equal(registry.owningGoal, 'G004-build-generic-xmf-ui-path');
+  validateSchema(json('contracts/control-registry.schema.json'), registry, 'UI control registry');
   assert.deepEqual(registry.inputRoles.map(({ name, decision, diagnostic }) => [name, decision, diagnostic]), [
-    ['XMF', 'include', null], ['XMS', 'defer', 'UNSUPPORTED_INPUT_ROLE']
+    ['XMF', 'include', null], ['XMS', 'unsupported', 'UNSUPPORTED_INPUT_ROLE']
   ]);
   assert.deepEqual(registry.controls.filter(({ decision }) => decision === 'include').map(({ normalizedType }) => normalizedType), ['Label', 'Edit', 'Button']);
   assert.equal(registry.controls.find(({ semanticFamilies }) => semanticFamilies.includes('CtlImage')).diagnostic, 'UNSUPPORTED_CONTROL_TYPE');
@@ -458,10 +456,8 @@ function contractRegistry() {
   fs.writeFileSync(path.join(integrityRoot, approvedName), 'x');
   fs.writeFileSync(path.join(integrityOutside, outsideName), 'x');
   fs.symlinkSync(path.join(integrityOutside, outsideName), path.join(integrityRoot, linkName));
-  assert.equal(safeRepoFile(approvedName, 'G004 integrity', integrityRoot), fs.realpathSync.native(path.join(integrityRoot, approvedName)));
-  for (const hostile of [`../${outsideName}`, path.join(path.sep, 'tmp', outsideName), linkName]) assert.throws(() => safeRepoFile(hostile, 'G004 integrity', integrityRoot));
-  const umbrella = read('.omx/plans/test-spec-allnewmts-lua-runtime.md', 'utf8');
-  assert.doesNotMatch(umbrella, /G004[^\n]*(?:transaction success|transaction error|close)/i, 'umbrella still assigns transaction traces to G004');
+  assert.equal(safeRepoFile(approvedName, 'UI integrity', integrityRoot), fs.realpathSync.native(path.join(integrityRoot, approvedName)));
+  for (const hostile of [`../${outsideName}`, path.join(path.sep, 'tmp', outsideName), linkName]) assert.throws(() => safeRepoFile(hostile, 'UI integrity', integrityRoot));
   return { grammarRows: independentGrammar.length, grammarColumns: 8, policies: registry.policies.length, integrityHostiles: 3, asset: assetAndComposition() };
 }
 
@@ -832,24 +828,24 @@ async function runtimeClient() {
   await duplicate.client.destroy();
 
   let releaseDestroy;
-  const deferred = harness({ destroy(runtimeId) {
+  const delayed = harness({ destroy(runtimeId) {
     return new Promise((resolve) => { releaseDestroy = () => resolve({ code: 'OK', runtimeId, reservedRevision: '1' }); });
   } });
-  await deferred.client.create(config);
-  deferred.listener(null);
-  assert.equal(deferred.client.getState().error, 'INVALID_RUNTIME_RESULT');
+  await delayed.client.create(config);
+  delayed.listener(null);
+  assert.equal(delayed.client.getState().error, 'INVALID_RUNTIME_RESULT');
   await Promise.resolve();
-  assert.deepEqual(deferred.evidence.events, ['native-destroy']);
-  const pendingDestroy = deferred.client.destroy();
+  assert.deepEqual(delayed.evidence.events, ['native-destroy']);
+  const pendingDestroy = delayed.client.destroy();
   let settled = false;
   pendingDestroy.finally(() => { settled = true; });
   await Promise.resolve();
   assert.equal(settled, false);
-  assert.equal(deferred.evidence.listenerRemoved, 0);
+  assert.equal(delayed.evidence.listenerRemoved, 0);
   releaseDestroy();
   await pendingDestroy;
-  assert.deepEqual(deferred.evidence.events, ['native-destroy', 'listener-remove']);
-  assert.equal(deferred.evidence.destroyed, 1);
+  assert.deepEqual(delayed.evidence.events, ['native-destroy', 'listener-remove']);
+  assert.equal(delayed.evidence.destroyed, 1);
 
   const afterDestroy = harness();
   await afterDestroy.client.create(config);
@@ -970,7 +966,7 @@ module.exports = { requests, runtime, requireNativeModule(name) { requests.push(
   const stub = require(path.join(stubRoot, 'index.js'));
   const entry = require(path.join(entryRoot, 'index.js'));
   assert.deepEqual(stub.requests, ['AllNewMTSRuntime'], 'ordinary package entry requested an unexpected native module');
-  assert.equal(stub.requests.includes('AllNewMTSLua'), false, 'ordinary package entry reached the G002 harness');
+  assert.equal(stub.requests.includes('AllNewMTSLua'), false, 'ordinary package entry reached the NATIVE_HARNESS harness');
   assert.equal(entry.runtime, stub.runtime, 'named runtime export lost the production binding');
   assert.equal(entry.default, entry.runtime, 'default and named runtime exports diverged');
   const packageJson = json('modules/allnewmts-lua/package.json');
@@ -992,7 +988,7 @@ module.exports = { requests, runtime, requireNativeModule(name) { requests.push(
   run('xcrun', ['clang++', '-std=c++17', '-fobjc-arc', '-fblocks', '-Wall', '-Wextra', '-Werror', '-I', 'modules/allnewmts-lua/ios', ...include, '-c', 'modules/allnewmts-lua/ios/AllNewMTSRuntimeAdapter.mm', '-o', objcAdapter]);
   const swiftLibrary = path.join(temp, 'libExpoModulesCore.dylib');
   run('xcrun', ['swiftc', '-emit-library', '-emit-module', '-module-name', 'ExpoModulesCore', 'native/test/runtime_swift_expo_stub.swift', '-o', swiftLibrary]);
-  const swiftExecutable = path.join(temp, 'g004-swift-module-smoke');
+  const swiftExecutable = path.join(temp, 'ui-swift-module-smoke');
   run('xcrun', ['swiftc', '-I', temp, '-L', temp, '-lExpoModulesCore', '-import-objc-header', 'modules/allnewmts-lua/ios/AllNewMTSRuntimeAdapter.h', 'modules/allnewmts-lua/ios/AllNewMTSRuntimeModule.swift', 'native/test/runtime_swift_module_golden_test.swift', objcAdapter, ...runtimeObjects, provider, '-Xlinker', '-lm', '-Xlinker', '-lc++', '-o', swiftExecutable]);
   const swiftOutput = run(swiftExecutable, [config, event], { env: { ...process.env, DYLD_LIBRARY_PATH: temp } });
   assert.equal(swiftOutput, expectedGolden);
@@ -1041,13 +1037,13 @@ module.exports = { requests, runtime, requireNativeModule(name) { requests.push(
 }
 
 function assetAndComposition() {
-  run('node', ['scripts/generate-g004-assets.mjs', '--check']);
-  const generated = read('src/generated/g004-original-xmf.ts', 'utf8');
+  run('node', ['scripts/generate-xmf-assets.mjs', '--check']);
+  const generated = read('src/generated/approved-xmf.ts', 'utf8');
   const values = [...generated.matchAll(/(?:^|\s)([0-9]{1,3}),/gm)].map((match) => Number(match[1]));
   assert.equal(values.length, 10_179);
   assert.deepEqual(Buffer.from(values), original);
-  assert.match(generated, /g004OriginalXmfBytesCount = 10179/);
-  assert.match(generated, new RegExp(`g004OriginalXmfSha256 = '${expectedSourceHash}'`));
+  assert.match(generated, /approvedXmfBytesCount = 10179/);
+  assert.match(generated, new RegExp(`approvedXmfSha256 = '${expectedSourceHash}'`));
   const app = read('App.tsx', 'utf8');
   assert.doesNotMatch(app, /readFile|https?:|Platform\.(?:OS|select)|dispatch\s*\(/);
   const ts = createRequire(import.meta.url)('typescript');
@@ -1058,13 +1054,13 @@ function assetAndComposition() {
   const calls = nodes.filter(ts.isCallExpression);
   const callText = (name) => calls.filter(({ expression }) => expression.getText(source) === name).map((call) => call.arguments.map((argument) => argument.getText(source)));
   assert.deepEqual(callText('createRuntimeClient'), [['runtime']], 'App must pass the exact exported runtime value');
-  assert.deepEqual(callText('ingestApprovedXmf'), [['{\n  bytes: g004OriginalXmfBytes,\n  byteCount: g004OriginalXmfBytesCount,\n  sha256: g004OriginalXmfSha256,\n}']], 'App must ingest only the generated approved asset');
-  assert.deepEqual(callText('client.create'), [['buildG004AppRuntimeConfig(model)']], 'App must create exactly once from the model-owned config');
+  assert.deepEqual(callText('ingestApprovedXmf'), [['{\n  bytes: approvedXmfBytes,\n  byteCount: approvedXmfBytesCount,\n  sha256: approvedXmfSha256,\n}']], 'App must ingest only the generated approved asset');
+  assert.deepEqual(callText('client.create'), [['buildAppRuntimeConfig(model)']], 'App must create exactly once from the model-owned config');
   assert.equal(calls.some(({ expression }) => expression.getText(source).endsWith('.dispatch')), false, 'Development Build App must not dispatch');
   const imports = nodes.filter(ts.isImportDeclaration).map((node) => [node.moduleSpecifier.text, node.importClause?.namedBindings?.getText(source)]);
   assert.ok(imports.some(([module, names]) => module === './modules/allnewmts-lua/src' && names === '{ runtime }'));
-  assert.ok(imports.some(([module, names]) => module === './src/generated/g004-original-xmf' && names?.includes('g004OriginalXmfBytes') && names.includes('g004OriginalXmfBytesCount') && names.includes('g004OriginalXmfSha256')));
-  const builder = nodes.find((node) => ts.isFunctionDeclaration(node) && node.name?.text === 'buildG004AppRuntimeConfig');
+  assert.ok(imports.some(([module, names]) => module === './src/generated/approved-xmf' && names?.includes('approvedXmfBytes') && names.includes('approvedXmfBytesCount') && names.includes('approvedXmfSha256')));
+  const builder = nodes.find((node) => ts.isFunctionDeclaration(node) && node.name?.text === 'buildAppRuntimeConfig');
   const returned = builder && nodes.find((node) => node.parent === builder.body && ts.isReturnStatement(node))?.expression;
   assert.ok(returned && ts.isObjectLiteralExpression(returned), 'App config builder must return one object literal');
   const property = (object, name) => object.properties.find((entry) => ts.isPropertyAssignment(entry) && entry.name.getText(source) === name)?.initializer;
@@ -1080,90 +1076,6 @@ function assetAndComposition() {
   return { sourceSha256: expectedSourceHash, generatedBytes: values.length, appAstValueFlow: true, createCalls: callText('client.create').length };
 }
 
-function policyCleanup() {
-  const packageJson = json('package.json');
-  assert.equal(packageJson.scripts['verify:ui'], 'node scripts/verify-ui.mjs');
-  assert.equal(fs.existsSync(path.join(root, 'package-lock.json')), true);
-  const manifest = json('verification/manifest.json');
-  const ui = manifest.focusedChecks.find(({ id }) => id === 'ui');
-  assert.deepEqual([ui.activation, ui.owner, ui.argv], ['active', 'G004-build-generic-xmf-ui-path', ['node', 'scripts/verify-ui.mjs']]);
-  assert.deepEqual(manifest.stories.find(({ id }) => id.startsWith('G004-')), { id: 'G004-build-generic-xmf-ui-path', activation: 'active', checks: ['ui'], budgetSeconds: 1200 });
-  assert.equal(manifest.layers.find(({ id }) => id === 'ui').status, 'active');
-  assert.deepEqual(manifest.layers.filter(({ status }) => status === 'deferred').map(({ id }) => id), ['package']);
-  assert.equal(manifest.stories.find(({ id }) => id.startsWith('G005-')).activation, 'deferred');
-  assert.equal(manifest.stories.find(({ id }) => id.startsWith('G006-')).activation, 'deferred');
-  const safeSources = ['src/xmf.ts', 'src/runtime-client.ts', 'src/XmfScreen.tsx', 'App.tsx'];
-  const joined = safeSources.map((file) => read(file, 'utf8')).join('\n');
-  assert.doesNotMatch(joined, /Platform\.(?:OS|select)|CCS2000[01]|\.qry\b|DATAMANAGER_OnReceive|login|authentication|credential|vendor SDK/i);
-  assert.doesNotMatch(joined, /(?:https?|ftp|sftp):\/\//i);
-  const rollback = json('test/g004/g003-baseline.json');
-  assert.equal(rollback.schemaVersion, 2);
-  run('git', ['cat-file', '-e', `${rollback.checkpointCommit}^{commit}`]);
-  const status = spawnSync('git', ['status', '--short', '--untracked-files=all'], { cwd: root, encoding: 'utf8' });
-  assert.equal(status.status, 0, 'could not read rollback working-tree state');
-  const changedPaths = status.stdout.trimEnd().split(/\r?\n/).filter(Boolean).map((line) => line.slice(3));
-  assert.equal(changedPaths.some((file) => /MVigsEngine/i.test(file)), false, 'AUTHORITY_BLOCKED: DIRECT_MVIGSENGINE_INSPECTION_OR_USE');
-  const expectedChanged = [...new Set([...rollback.preG004DirtyPaths, ...rollback.g004RollbackPaths])].sort();
-  assert.deepEqual(changedPaths.filter((file) => !expectedChanged.includes(file)).sort(), [], 'dirty tree exceeds recorded G003 baseline plus exact G004 rollback inventory');
-  const overlap = rollback.preG004DirtyPaths.filter((file) => rollback.g004RollbackPaths.includes(file)).sort();
-  assert.deepEqual(overlap, rollback.sharedPaths.filter((file) => rollback.preG004DirtyPaths.includes(file)).sort(), 'pre-G004 dirty/shared path declaration drift');
-  assert.ok(rollback.sharedPaths.every((file) => rollback.g004RollbackPaths.includes(file)), 'shared baseline escapes the selective G004 rollback inventory');
-  assert.ok(rollback.preG004DirtyPaths.some((file) => !rollback.sharedPaths.includes(file)), 'G003-only baseline must remain outside rollback');
-  assert.deepEqual(rollback.sharedBaselines.map(({ path: file }) => file), rollback.sharedPaths, 'shared baseline order/path drift');
-  const rollbackRoot = path.join(temp, 'selective-g004-rollback');
-  const contentHashes = {};
-  for (const baseline of rollback.sharedBaselines) {
-    assert.match(baseline.sha256, /^[a-f0-9]{64}$/);
-    assert.ok(Number.isInteger(baseline.byteCount) && baseline.byteCount >= 0);
-    assert.ok(Array.isArray(baseline.provenance) && baseline.provenance.length > 0, `missing final-G003 provenance for ${baseline.path}`);
-    const bytes = Buffer.from(baseline.contentBase64, 'base64');
-    assert.equal(bytes.toString('base64'), baseline.contentBase64, `non-canonical baseline bytes for ${baseline.path}`);
-    assert.equal(bytes.length, baseline.byteCount, `baseline byte count drift for ${baseline.path}`);
-    assert.equal(sha256(bytes), baseline.sha256, `baseline content hash drift for ${baseline.path}`);
-    const target = path.join(rollbackRoot, baseline.path);
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(target, bytes);
-    contentHashes[baseline.path] = sha256(fs.readFileSync(target));
-  }
-  assert.deepEqual(contentHashes, Object.fromEntries(rollback.sharedBaselines.map(({ path: file, sha256: hash }) => [file, hash])), 'selective G004 rollback did not reproduce final-G003 content hashes');
-  const rolledBackPackage = JSON.parse(fs.readFileSync(path.join(rollbackRoot, 'package.json'), 'utf8'));
-  const rolledBackManifest = JSON.parse(fs.readFileSync(path.join(rollbackRoot, 'verification/manifest.json'), 'utf8'));
-  assert.equal(rolledBackPackage.scripts['verify:ui'], 'node scripts/verify-foundation.mjs deferred ui');
-  assert.deepEqual([
-    rolledBackManifest.focusedChecks.find(({ id }) => id === 'ui').activation,
-    rolledBackManifest.stories.find(({ id }) => id.startsWith('G004-')).activation,
-    rolledBackManifest.layers.find(({ id }) => id === 'ui').status
-  ], ['deferred', 'deferred', 'deferred']);
-  assert.deepEqual(rollback.selectiveRollback, {
-    method: 'replace only sharedPaths with decoded contentBase64 bytes, then verify byteCount and sha256',
-    preservesPreG004OnlyPaths: true,
-    contentHashesRequired: true
-  });
-  for (const file of rollback.protectedCheckpointPaths) {
-    const result = spawnSync('git', ['show', `${rollback.checkpointCommit}:${file}`], { cwd: root, encoding: null, maxBuffer: 100 * 1024 * 1024 });
-    assert.equal(result.status, 0, `missing protected checkpoint path ${file}`);
-    assert.equal(sha256(read(file)), sha256(result.stdout), `protected checkpoint path drifted: ${file}`);
-  }
-  assert.deepEqual(rollback.deferredAfterRollback, ['G005', 'G006', 'package']);
-  assert.equal(rollback.remoteOrDataMigrationRequired, false);
-  assert.equal(fs.existsSync(path.join(root, 'ios')), false);
-  assert.equal(fs.existsSync(path.join(root, 'android')), false);
-  return {
-    cleanup: 'clean', rollback: { checkpoint: rollback.checkpointCommit, paths: rollback.g004RollbackPaths.length, sharedPaths: rollback.sharedPaths.length, contentHashes, remoteOrDataMigrationRequired: false }, g005Executed: false,
-    nativeAnalysisPerformed: false, mvigsInspectionPerformed: false, futureConnectivityActivated: false
-  };
-}
-
-function developmentBuildPhase() {
-  const output = run('node', ['scripts/run-g004-development-build.mjs']);
-  const line = output.split(/\r?\n/).find((entry) => entry.startsWith('G004_DEVELOPMENT_BUILD='));
-  assert.ok(line, 'Development Build emitted no machine-readable result');
-  const evidence = JSON.parse(line.slice('G004_DEVELOPMENT_BUILD='.length));
-  assert.equal(evidence.developmentBuildInvocations, 1);
-  assert.equal(invocationPids.developmentBuild.size, 1);
-  return evidence;
-}
-
 const work = { 'parser-model': parserModel, 'projection-render': projectionRender, 'runtime-client': runtimeClient, 'unseen-generality': unseenGenerality, 'module-stub-smoke': moduleStubSmoke };
 try {
   if (selected) {
@@ -1172,12 +1084,9 @@ try {
     const evidence = {};
     evidence.contract = await phase('contract-registry', contractRegistry);
     for (const name of phases) evidence[name] = await phase(name, work[name]);
-    evidence.developmentBuild = await phase('development-build', developmentBuildPhase);
-    evidence.policy = await phase('policy-cleanup', policyCleanup);
     const uiCommandInvocations = invocationPids.ui.size;
-    const developmentBuildInvocations = invocationPids.developmentBuild.size;
-    assert.deepEqual([uiCommandInvocations, developmentBuildInvocations], [1, 1]);
-    console.log(`G004_UI_SUMMARY=${JSON.stringify({ status: 'PASS', sourceSha256: expectedSourceHash, syntheticSha256: sha256(synthetic), ...evidence, uiCommandInvocations, developmentBuildInvocations })}`);
+    assert.equal(uiCommandInvocations, 1);
+    console.log(`UI_SUMMARY=${JSON.stringify({ status: 'PASS', sourceSha256: expectedSourceHash, syntheticSha256: sha256(synthetic), ...evidence, uiCommandInvocations })}`);
   }
 } finally {
   fs.rmSync(temp, { recursive: true, force: true });

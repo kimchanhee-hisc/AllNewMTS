@@ -3,11 +3,10 @@
   "$id": "urn:allnewmts:schema:control-registry",
   "type": "object",
   "additionalProperties": false,
-  "required": ["$schema", "schemaVersion", "owningGoal", "inputRoles", "form", "controls", "policies"],
+  "required": ["$schema", "schemaVersion", "inputRoles", "form", "controls", "policies"],
   "properties": {
     "$schema": { "const": "./control-registry.schema.json" },
     "schemaVersion": { "const": 1 },
-    "owningGoal": { "const": "G004-build-generic-xmf-ui-path" },
     "inputRoles": {
       "type": "array",
       "minItems": 2,
@@ -40,7 +39,7 @@
       "required": ["name", "decision", "role", "diagnostic"],
       "properties": {
         "name": { "enum": ["XMF", "XMS"] },
-        "decision": { "enum": ["include", "defer"] },
+        "decision": { "enum": ["include", "unsupported"] },
         "role": { "enum": ["screen-form-document", "unestablished"] },
         "diagnostic": { "enum": [null, "UNSUPPORTED_INPUT_ROLE"] }
       }
@@ -85,7 +84,7 @@
       "required": ["id", "decision", "sourceTags", "semanticFamilies", "normalizedType", "properties", "mutableProperties", "events", "capabilities", "undeclared", "diagnostic"],
       "properties": {
         "id": { "enum": ["label", "edit", "button", "image"] },
-        "decision": { "enum": ["include", "defer"] },
+        "decision": { "enum": ["include", "unsupported"] },
         "sourceTags": { "type": "array", "items": { "enum": ["LABEL", "EDIT", "BUTTON"] }, "uniqueItems": true },
         "semanticFamilies": { "type": "array", "items": { "enum": ["CtlButton", "CtlImage"] }, "uniqueItems": true },
         "normalizedType": { "enum": ["Label", "Edit", "Button", "unsupported"] },

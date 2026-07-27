@@ -2,17 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 import { runtime } from './modules/allnewmts-lua/src';
 import { XmfScreen } from './src/XmfScreen';
-import { g004OriginalXmfBytes, g004OriginalXmfBytesCount, g004OriginalXmfSha256 } from './src/generated/g004-original-xmf';
+import { approvedXmfBytes, approvedXmfBytesCount, approvedXmfSha256 } from './src/generated/approved-xmf';
 import { createRuntimeClient, type RuntimeConfig } from './src/runtime-client';
 import { ingestApprovedXmf, type XmfModel } from './src/xmf';
 
 const model = ingestApprovedXmf({
-  bytes: g004OriginalXmfBytes,
-  byteCount: g004OriginalXmfBytesCount,
-  sha256: g004OriginalXmfSha256,
+  bytes: approvedXmfBytes,
+  byteCount: approvedXmfBytesCount,
+  sha256: approvedXmfSha256,
 });
 
-export function buildG004AppRuntimeConfig(model: XmfModel): RuntimeConfig {
+export function buildAppRuntimeConfig(model: XmfModel): RuntimeConfig {
   return {
     schemaVersion: 1,
     entry: {
@@ -37,11 +37,11 @@ export default function App() {
 
   useEffect(() => {
     const unsubscribe = client.subscribe(setClientState);
-    void client.create(buildG004AppRuntimeConfig(model)).then((admission) => {
-      if (admission.code === 'OK' && process.env.EXPO_PUBLIC_ALLNEWMTS_G004_OBSERVE === '1') {
-        console.log(`ALLNEWMTS_G004_UI_READY=${JSON.stringify({
+    void client.create(buildAppRuntimeConfig(model)).then((admission) => {
+      if (admission.code === 'OK' && process.env.EXPO_PUBLIC_ALLNEWMTS_UI_OBSERVE === '1') {
+        console.log(`ALLNEWMTS_UI_READY=${JSON.stringify({
           status: 'PASS',
-          sourceSha256: g004OriginalXmfSha256,
+          sourceSha256: approvedXmfSha256,
           formCount: 1,
           labelCount: model.controls.filter(({ type }) => type === 'Label').length,
           editCount: model.controls.filter(({ type }) => type === 'Edit').length,

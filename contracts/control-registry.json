@@ -1,7 +1,6 @@
 {
   "$schema": "./control-registry.schema.json",
   "schemaVersion": 1,
-  "owningGoal": "G004-build-generic-xmf-ui-path",
   "inputRoles": [
     {
       "name": "XMF",
@@ -11,7 +10,7 @@
     },
     {
       "name": "XMS",
-      "decision": "defer",
+      "decision": "unsupported",
       "role": "unestablished",
       "diagnostic": "UNSUPPORTED_INPUT_ROLE"
     }
@@ -101,7 +100,7 @@
     },
     {
       "id": "image",
-      "decision": "defer",
+      "decision": "unsupported",
       "sourceTags": [],
       "semanticFamilies": ["CtlImage"],
       "normalizedType": "unsupported",

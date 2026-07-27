@@ -46,7 +46,7 @@ add_library(allnewmts_lua SHARED
   runtime_jni.cpp
 )
 
-if(DEFINED ENV{EXPO_PUBLIC_G002_NATIVE_HARNESS} AND "$ENV{EXPO_PUBLIC_G002_NATIVE_HARNESS}" STREQUAL "1")
+if(DEFINED ENV{EXPO_PUBLIC_NATIVE_HARNESS} AND "$ENV{EXPO_PUBLIC_NATIVE_HARNESS}" STREQUAL "1")
   target_sources(allnewmts_lua PRIVATE
     ${SHARED_ROOT}/allnewmts_lua.c
     allnewmts_lua_android_adapter.c

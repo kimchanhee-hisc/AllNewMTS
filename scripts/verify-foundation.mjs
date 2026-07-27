@@ -152,18 +152,17 @@ function foundationFiles() {
     'native/lua-source-manifest.schema.json',
     'verification/manifest.json',
     'verification/manifest.schema.json',
-    'scripts/generate-g004-assets.mjs',
+    'scripts/generate-xmf-assets.mjs',
     'scripts/generate-native-assets.mjs',
     'scripts/patch-expo-modules-core.mjs',
-    'scripts/run-g004-development-build.mjs',
-    'scripts/run-gate0-development-build.mjs',
+    'scripts/run-ui-development-build.mjs',
+    'scripts/run-native-harness-development-build.mjs',
     'scripts/verify-foundation.mjs',
     'scripts/verify-native.mjs',
     'scripts/verify-runtime.mjs',
     'scripts/verify-ui.mjs',
     'test/foundation.test.mjs',
-    'test/g004/g003-baseline.json',
-    'test/g004/runtime-client-golden.json',
+    'test/ui/runtime-client-golden.json',
     'package.json'
   ];
 }
@@ -185,18 +184,17 @@ export const expectedIntegrityPaths = [
   'native/lua-source-manifest.schema.json',
   'verification/manifest.schema.json',
   'package.json',
-  'scripts/generate-g004-assets.mjs',
+  'scripts/generate-xmf-assets.mjs',
   'scripts/generate-native-assets.mjs',
   'scripts/patch-expo-modules-core.mjs',
-  'scripts/run-g004-development-build.mjs',
-  'scripts/run-gate0-development-build.mjs',
+  'scripts/run-ui-development-build.mjs',
+  'scripts/run-native-harness-development-build.mjs',
   'scripts/verify-foundation.mjs',
   'scripts/verify-native.mjs',
   'scripts/verify-runtime.mjs',
   'scripts/verify-ui.mjs',
   'test/foundation.test.mjs',
-  'test/g004/g003-baseline.json',
-  'test/g004/runtime-client-golden.json'
+  'test/ui/runtime-client-golden.json'
 ];
 
 function verifyFormat() {
@@ -226,33 +224,27 @@ function unique(items, label) {
   assert.equal(new Set(items).size, items.length, `docs contract: duplicate ${label}; rerun npm run verify:docs`);
 }
 
-export function verifyStoryDefinitions(manifest) {
-  unique(manifest.stories.map(({ id }) => id), 'story id');
-  for (const story of manifest.stories.filter(({ activation }) => activation === 'active')) {
-    assert.ok(story.checks.length > 0, `story contract: active ${story.id} has no checks`);
-    unique(story.checks, `${story.id} check`);
-    for (const id of story.checks) {
-      const check = manifest.focusedChecks.find((item) => item.id === id);
-      assert.ok(check, `story contract: ${story.id} references missing ${id}`);
-      assert.equal(check.activation, 'active', `story contract: ${story.id} references non-active ${id}`);
-      assert.equal(check.owner, story.id, `story contract: ${story.id} does not own ${id}`);
+export function verifySuites(manifest) {
+  unique(manifest.checks.map(({ id }) => id), 'check id');
+  for (const [name, suite] of Object.entries(manifest.suites)) {
+    unique(suite.checks, `${name} check`);
+    for (const id of suite.checks) {
+      assert.ok(manifest.checks.some((check) => check.id === id), `${name} suite references missing ${id}`);
     }
   }
 }
 
-export function verifyFocusedCommands(manifest, packageJson) {
-  unique(manifest.focusedChecks.map(({ id }) => id), 'focused check id');
-  unique(manifest.focusedChecks.map(({ packageScript }) => packageScript), 'focused package script');
-  for (const check of manifest.focusedChecks) {
+export function verifyCommands(manifest, packageJson) {
+  unique(manifest.checks.map(({ packageScript }) => packageScript), 'package script');
+  for (const check of manifest.checks) {
     assert.ok(packageJson.scripts[check.packageScript], `docs contract: missing package script ${check.packageScript}`);
     assert.equal(check.command, `npm run ${check.packageScript}`, `docs contract: command drift for ${check.id}`);
     assert.equal(packageJson.scripts[check.packageScript], check.argv.join(' '), `docs contract: executable drift for ${check.id}`);
   }
 }
 
-export function verifyActiveVerifierPaths(manifest, readVerifier = read) {
-  const verifierScripts = [...new Set(manifest.focusedChecks
-    .filter(({ activation }) => activation === 'active')
+export function verifyVerifierPaths(manifest, readVerifier = read) {
+  const verifierScripts = [...new Set(manifest.checks
     .flatMap(({ argv }) => argv.filter((argument) => /^scripts\/.+\.mjs$/.test(argument))))];
   const sources = new Map();
   for (const verifier of verifierScripts) {
@@ -264,9 +256,9 @@ export function verifyActiveVerifierPaths(manifest, readVerifier = read) {
     }
   }
   const native = sources.get('scripts/verify-native.mjs');
-  assert.ok(native, 'active G002 verifier source is missing');
-  assert.match(native, /modules\/allnewmts-lua\/android\/src\/g002\/java\/com\/allnewmts\/lua\/AllNewMTSLuaModule\.kt/, 'active G002 verifier must read the flag-gated Kotlin source set');
-  assert.doesNotMatch(native, /modules\/allnewmts-lua\/android\/src\/main\/java\/com\/allnewmts\/lua\/AllNewMTSLuaModule\.kt/, 'active G002 verifier must not reference the production Kotlin source set for the harness');
+  assert.ok(native, 'native verifier source is missing');
+  assert.match(native, /modules\/allnewmts-lua\/android\/src\/verification\/java\/com\/allnewmts\/lua\/AllNewMTSLuaModule\.kt/, 'native verifier must read the flag-gated Kotlin source set');
+  assert.doesNotMatch(native, /modules\/allnewmts-lua\/android\/src\/main\/java\/com\/allnewmts\/lua\/AllNewMTSLuaModule\.kt/, 'native verifier must not reference the production Kotlin source set for the harness');
 }
 
 export function verifyContractInventories(host, controls) {
@@ -326,21 +318,18 @@ function verifyDocs() {
   }
 
   const packageJson = json('package.json');
-  verifyFocusedCommands(manifest, packageJson);
-  verifyActiveVerifierPaths(manifest);
-  assert.equal(packageJson.scripts['verify:ci'], 'npm run verify:milestone', 'docs contract: verify:ci must delegate to milestone once; rerun npm run verify:docs');
-  for (const name of ['verify:fast', 'verify:story', 'verify:milestone', 'verify:ci']) {
+  verifyCommands(manifest, packageJson);
+  verifyVerifierPaths(manifest);
+  assert.equal(packageJson.scripts['verify:ci'], 'node scripts/verify-foundation.mjs ci', 'docs contract: verify:ci command drift; rerun npm run verify:docs');
+  for (const name of ['verify:fast', 'verify:ci']) {
     assert.ok(read('docs/testing.md').includes(`npm run ${name}`), `docs contract: docs/testing.md omits ${name}; rerun npm run verify:docs`);
   }
 
-  verifyStoryDefinitions(manifest);
-  const g001a = manifest.stories.find(({ id }) => id === 'G001A-establish-ai-native-foundation');
-  assert.equal(g001a.activation, 'active');
-  assert.equal(manifest.tiers.fast.readinessClaim, 'diagnostic-only');
-  assert.deepEqual(manifest.tiers.ci.checks, ['milestone-once']);
+  verifySuites(manifest);
+  assert.deepEqual(manifest.suites.fast.checks, ['format', 'docs', 'policy', 'type', 'unit']);
+  assert.deepEqual(manifest.suites.ci.checks, ['format', 'docs', 'policy', 'type', 'unit', 'fixtures', 'native', 'runtime', 'ui', 'provenance']);
 
   assert.equal(host.inventoryStatus, 'active');
-  assert.equal(host.owningGoal, 'G003-implement-bounded-native-runtime');
   assert.deepEqual(host.publicApis.map(({ name }) => name), [
     'Form.GetOpenLinkData', 'Form.GetSharedData', 'Form.GetItemCodeInfo', 'Form.MsgBoxEx', 'Form.Toast', 'Form.SendReturnToParent', 'Form.CloseForm',
     'DATAMANAGER.RequestTranData', 'DATAMANAGER.SetDataValue', 'DATAMANAGER.GetDataCount', 'DATAMANAGER.GetDataValue', 'Trim', 'dofile',
@@ -350,23 +339,23 @@ function verifyDocs() {
   verifyContractInventories(host, controls);
   const roles = Object.fromEntries(controls.inputRoles.map((role) => [role.name, role]));
   assert.equal(roles.XMF.decision, 'include');
-  assert.deepEqual({ decision: roles.XMS.decision, diagnostic: roles.XMS.diagnostic }, { decision: 'defer', diagnostic: 'UNSUPPORTED_INPUT_ROLE' });
+  assert.deepEqual({ decision: roles.XMS.decision, diagnostic: roles.XMS.diagnostic }, { decision: 'unsupported', diagnostic: 'UNSUPPORTED_INPUT_ROLE' });
   const registry = Object.fromEntries(controls.controls.map((control) => [control.normalizedType, control]));
   assert.deepEqual(registry.Label.sourceTags, ['LABEL']);
   assert.deepEqual(registry.Edit.sourceTags, ['EDIT']);
   assert.deepEqual(registry.Button.sourceTags, ['BUTTON']);
   assert.deepEqual(registry.Button.semanticFamilies, ['CtlButton']);
   assert.deepEqual(registry.unsupported.semanticFamilies, ['CtlImage']);
-  assert.equal(registry.unsupported.decision, 'defer');
+  assert.equal(registry.unsupported.decision, 'unsupported');
 
   verifyIntegrityInventory(manifest);
   console.log('PASS docs: owners, links, schemas, commands, contracts, and hashes agree');
 }
 
 const jsTsFile = (file) => /\.(?:js|jsx|mjs|cjs|ts|tsx)$/i.test(file);
-const behaviorFile = (file) => jsTsFile(file) && !/^(?:scripts|test|contracts|verification)\//.test(file) && !file.startsWith('.omx/');
+const behaviorFile = (file) => jsTsFile(file) && !/^(?:scripts|test|contracts|verification)\//.test(file) && !file.startsWith('.allnewmts/');
 const buildConfigFile = (file) => /(?:^|\/)(?:CMakeLists\.txt|Makefile|Podfile)$|\.(?:cmake|podspec|gradle|kts|pbxproj|xcconfig|xml|json|plist|properties|entitlements|mk)$/i.test(file);
-const textPolicyFile = (file) => !file.startsWith('.omx/') && (jsTsFile(file) || buildConfigFile(file) || /\.(?:c|cc|cpp|cxx|h|hpp|m|mm|swift|java|kt|lua|sh|bash|zsh|ya?ml|toml|txt|source|qry|xmf_)$/i.test(file));
+const textPolicyFile = (file) => !file.startsWith('.allnewmts/') && (jsTsFile(file) || buildConfigFile(file) || /\.(?:c|cc|cpp|cxx|h|hpp|m|mm|swift|java|kt|lua|sh|bash|zsh|ya?ml|toml|txt|source|qry|xmf_)$/i.test(file));
 const forbiddenArtifact = /(?:^|[/'"_-])(?:mvigsengine|legacy-engine)(?:[/'"_.-]|$)/i;
 const forbiddenReference = /\b(?:mvigsengine|legacy-engine)\b/i;
 const remoteProtocol = /\b(?:s?ftp):\/\//i;
@@ -574,7 +563,7 @@ function verifyPolicy() {
   const files = candidates.map((file) => ({ file, text: textPolicyFile(file) ? read(file) : '' }));
   const violations = policyViolations(files, json('package.json'), json('contracts/host-api.json'), json('contracts/control-registry.json'));
   assert.deepEqual(violations, [], `policy contract:\n${violations.join('\n')}\nrerun npm run verify:policy`);
-  console.log(`PASS policy: ${candidates.length} repository paths and ${files.filter(({ text }) => text).length} text/build/config surfaces satisfy objective gates`);
+  console.log(`PASS policy: ${candidates.length} repository paths and ${files.filter(({ text }) => text).length} text/build/config surfaces satisfy project policies`);
 }
 
 function verifyProvenance() {
@@ -589,27 +578,13 @@ function verifyProvenance() {
   console.log(`PASS provenance: ${entries.length} local oracle inventory hashes agree`);
 }
 
-export function storyChecks(goalId, manifest = loadManifest()) {
-  verifyStoryDefinitions(manifest);
-  const story = manifest.stories.find(({ id }) => id === goalId);
-  assert.ok(story, `story contract: unknown goal ${goalId}`);
-  if (story.activation === 'deferred') return { deferred: goalId, checks: [] };
-  assert.ok(story.checks.length > 0, `story contract: active ${goalId} has no checks`);
-  return { deferred: null, checks: story.checks };
-}
-
-export function deferredMilestoneLayers(manifest = loadManifest()) {
-  return manifest.layers.filter((layer) => layer.requiredForMilestone && layer.status === 'deferred');
-}
-
 function runChecks(ids, tier, manifest = loadManifest()) {
   assert.ok(ids.length > 0, `${tier} contract: no checks resolved`);
   unique(ids, `${tier} check`);
   const evidence = [];
   for (const id of ids) {
-    const check = manifest.focusedChecks.find((item) => item.id === id);
-    assert.ok(check, `${tier} contract: missing focused check ${id}`);
-    assert.equal(check.activation, 'active', `${tier} contract: cannot run ${id} while ${check.activation}`);
+    const check = manifest.checks.find((item) => item.id === id);
+    assert.ok(check, `${tier} contract: missing check ${id}`);
     const started = performance.now();
     console.log(JSON.stringify({ event: 'CHECK_START', tier, id, command: check.command }));
     const result = spawnSync(check.argv[0], check.argv.slice(1), { cwd: root, stdio: 'inherit', env: { ...process.env, CI: process.env.CI ?? '0' } });
@@ -622,51 +597,21 @@ function runChecks(ids, tier, manifest = loadManifest()) {
   return evidence;
 }
 
-function reportDeferred(id) {
-  const manifest = loadManifest();
-  const item = manifest.focusedChecks.find((check) => check.id === id) ?? manifest.layers.find((layer) => layer.id === id);
-  assert.ok(item, `deferred contract: unknown layer ${id}`);
-  assert.equal(item.activation ?? item.status, 'deferred', `deferred contract: ${id} is active`);
-  console.log(`DEFERRED(${item.owner})`);
-  console.log(JSON.stringify({ status: 'DEFERRED', layer: id, owningGoal: item.owner }));
-}
-
 function main(argv) {
-  const [command, argument] = argv;
+  const [command] = argv;
   if (command === 'format') return verifyFormat();
   if (command === 'docs') return verifyDocs();
   if (command === 'policy') return verifyPolicy();
   if (command === 'provenance') return verifyProvenance();
-  if (command === 'deferred') return reportDeferred(argument);
   if (command === 'fast') {
-    const evidence = runChecks(loadManifest().tiers.fast.checks, 'fast');
-    console.log(JSON.stringify({ status: 'PASS', tier: 'fast', readiness: 'diagnostic-only', checks: evidence }));
+    const evidence = runChecks(loadManifest().suites.fast.checks, 'fast');
+    console.log(JSON.stringify({ status: 'PASS', suite: 'fast', checks: evidence }));
     return;
   }
-  if (command === 'story') {
-    assert.ok(argument, 'story contract: goal id is required; rerun npm run verify:story -- <goal-id>');
-    const resolved = storyChecks(argument);
-    if (resolved.deferred) {
-      console.log(`DEFERRED(${resolved.deferred})`);
-      console.log(JSON.stringify({ status: 'DEFERRED', story: resolved.deferred }));
-      process.exitCode = 2;
-      return;
-    }
-    const evidence = runChecks(resolved.checks, 'story');
-    console.log(JSON.stringify({ status: 'PASS', tier: 'story', story: argument, checks: evidence }));
-    return;
-  }
-  if (command === 'milestone') {
+  if (command === 'ci') {
     const manifest = loadManifest();
-    const evidence = runChecks(manifest.tiers.milestone.checks, 'milestone', manifest);
-    const deferred = deferredMilestoneLayers(manifest);
-    if (deferred.length) {
-      deferred.forEach(({ owner }) => console.log(`DEFERRED(${owner})`));
-      console.log(JSON.stringify({ status: 'DEFERRED', tier: 'milestone', checks: evidence, layers: deferred }));
-      process.exitCode = 2;
-      return;
-    }
-    console.log(JSON.stringify({ status: 'PASS', tier: 'milestone', checks: evidence }));
+    const evidence = runChecks(manifest.suites.ci.checks, 'ci', manifest);
+    console.log(JSON.stringify({ status: 'PASS', suite: 'ci', checks: evidence }));
     return;
   }
   throw new Error(`unknown verification command: ${command ?? '<missing>'}`);

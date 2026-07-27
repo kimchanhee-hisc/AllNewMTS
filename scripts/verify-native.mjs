@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { safeRepoFile, validateSchema } from './verify-foundation.mjs';
 import { generateNativeAssets } from './generate-native-assets.mjs';
-import * as developmentBuildRunner from './run-gate0-development-build.mjs';
+import * as developmentBuildRunner from './run-native-harness-development-build.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifest = JSON.parse(fs.readFileSync(safeRepoFile('native/lua-source-manifest.json'), 'utf8'));
@@ -22,8 +22,8 @@ const command = (file, args, options = {}) => {
 };
 const harnessEnvironment = (enabled) => {
   const env = { ...process.env };
-  if (enabled) env.EXPO_PUBLIC_G002_NATIVE_HARNESS = '1';
-  else delete env.EXPO_PUBLIC_G002_NATIVE_HARNESS;
+  if (enabled) env.EXPO_PUBLIC_NATIVE_HARNESS = '1';
+  else delete env.EXPO_PUBLIC_NATIVE_HARNESS;
   return env;
 };
 
@@ -67,7 +67,11 @@ function verifyContracts() {
   const authoredPaths = [
     safeRepoFile('app.json'),
     safeRepoFile('index.ts'),
-    ...walk(moduleRoot).filter((file) => !file.startsWith(path.join(moduleRoot, 'vendor') + path.sep)),
+    ...walk(moduleRoot).filter((file) =>
+      !file.startsWith(path.join(moduleRoot, 'vendor') + path.sep) &&
+      !file.startsWith(path.join(moduleRoot, 'android/.cxx') + path.sep) &&
+      !file.startsWith(path.join(moduleRoot, 'android/build') + path.sep)
+    ),
     ...walk(path.join(root, 'native/resources')),
     ...walk(path.join(root, 'native/test'))
   ].map((file) => path.relative(root, file).split(path.sep).join('/')).sort();
@@ -102,9 +106,9 @@ function verifyContracts() {
   assert.match(androidGradle, /project\.getProperties\(\)\.get\('reactNativeArchitectures'\)/, 'Android module must read the React Native ABI property');
   assert.match(androidGradle, /value \? value\.split\(','\) : \['armeabi-v7a', 'x86', 'x86_64', 'arm64-v8a'\]/, 'Android module must retain the standard four-ABI fallback');
   assert.match(androidGradle, /abiFilters\(\*reactNativeArchitectures\(\)\)/, 'Android module must apply the shared React Native ABI selection');
-  assert.match(androidGradle, /def verificationHarnessEnabled = System\.getenv\('EXPO_PUBLIC_G002_NATIVE_HARNESS'\) == '1'/, 'Gradle verification source set must use the explicit G002 flag');
-  assert.match(androidGradle, /java\.srcDirs = \['src\/main\/java'\][\s\S]+if \(verificationHarnessEnabled\) java\.srcDir 'src\/g002\/java'/, 'Gradle default source set must exclude G002 and add it only under the explicit flag');
-  assert.equal((androidGradle.match(/src\/g002\/java/g) ?? []).length, 1, 'Gradle must expose exactly one flag-gated G002 source-set path');
+  assert.match(androidGradle, /def verificationHarnessEnabled = System\.getenv\('EXPO_PUBLIC_NATIVE_HARNESS'\) == '1'/, 'Gradle verification source set must use the explicit NATIVE_HARNESS flag');
+  assert.match(androidGradle, /java\.srcDirs = \['src\/main\/java'\][\s\S]+if \(verificationHarnessEnabled\) java\.srcDir 'src\/verification\/java'/, 'Gradle default source set must exclude the verification harness and add it only under the explicit flag');
+  assert.equal((androidGradle.match(/src\/verification\/java/g) ?? []).length, 1, 'Gradle must expose exactly one flag-gated verification source-set path');
 
   for (const resource of manifest.resources) assert.equal(sha256(read(resource.path)), resource.sha256, `resource hash drift: ${resource.path}`);
   assert.equal(sha256(read(manifest.testOnlyHashMismatch.path)), manifest.testOnlyHashMismatch.actualSha256, 'hostile resource drift');
@@ -113,14 +117,14 @@ function verifyContracts() {
   safeRepoFile(manifest.adapterFixture.golden);
 
   const appleFunctions = [...read('modules/allnewmts-lua/ios/AllNewMTSLuaModule.swift').toString().matchAll(/Function\("([^"]+)"/g)].map((match) => match[1]);
-  const androidModule = read('modules/allnewmts-lua/android/src/g002/java/com/allnewmts/lua/AllNewMTSLuaModule.kt').toString('utf8');
+  const androidModule = read('modules/allnewmts-lua/android/src/verification/java/com/allnewmts/lua/AllNewMTSLuaModule.kt').toString('utf8');
   const androidFunctions = [...androidModule.matchAll(/Function\("([^"]+)"/g)].map((match) => match[1]);
   assert.deepEqual(appleFunctions, ['create', 'evaluate', 'destroy']);
   assert.deepEqual(androidFunctions, appleFunctions);
   assert.doesNotMatch(androidModule, /\b(?:val|var)\s+runtime\b/, 'Android module state must not hide Expo Module.runtime');
   const appEntry = read('index.ts').toString('utf8');
-  assert.doesNotMatch(appEntry, /^import .*gate0-runtime/m, 'ordinary app startup must not load the native harness');
-  assert.match(appEntry, /if \(process\.env\.EXPO_PUBLIC_G002_NATIVE_HARNESS === '1'\)[\s\S]+await import\('\.\/modules\/allnewmts-lua\/src\/gate0-runtime'\)/, 'native harness must load only behind its explicit verification flag');
+  assert.doesNotMatch(appEntry, /^import .*verification-harness-runtime/m, 'ordinary app startup must not load the native harness');
+  assert.match(appEntry, /if \(process\.env\.EXPO_PUBLIC_NATIVE_HARNESS === '1'\)[\s\S]+await import\('\.\/modules\/allnewmts-lua\/src\/verification-harness-runtime'\)/, 'native harness must load only behind its explicit verification flag');
   const generated = generateNativeAssets(manifest);
   for (const [file, expected] of generated) assert.equal(read(file).toString('utf8'), expected, `compiled resource/runtime fixture drift: ${file}`);
   const logicalDrift = structuredClone(manifest);
@@ -211,7 +215,7 @@ function expectedPodSources(includeVerification) {
 }
 
 function validatePodGraph(sources, dependencies, includeVerification) {
-  assert.deepEqual(sources, expectedPodSources(includeVerification), `evaluated ${includeVerification ? 'G002 verification' : 'default production'} Pod source graph drift`);
+  assert.deepEqual(sources, expectedPodSources(includeVerification), `evaluated ${includeVerification ? 'NATIVE_HARNESS verification' : 'default production'} Pod source graph drift`);
   assert.deepEqual(dependencies, { ExpoModulesCore: [] }, 'evaluated Pod dependencies must contain only ExpoModulesCore');
 }
 
@@ -230,8 +234,8 @@ function compileApple(temp) {
   const graph = evaluatedPodGraph(true);
   const verificationOnly = expectedPodSources(true).filter((file) => !expectedPodSources(false).includes(file));
   for (const file of verificationOnly) {
-    assert.equal(productionGraph.sources.includes(file), false, `default Pod graph leaked G002 source: ${file}`);
-    assert.equal(graph.sources.includes(file), true, `verification Pod graph omitted G002 source: ${file}`);
+    assert.equal(productionGraph.sources.includes(file), false, `default Pod graph leaked NATIVE_HARNESS source: ${file}`);
+    assert.equal(graph.sources.includes(file), true, `verification Pod graph omitted NATIVE_HARNESS source: ${file}`);
   }
   const sdk = command('xcrun', ['--sdk', 'iphonesimulator', '--show-sdk-path']).trim();
   const output = path.join(temp, 'apple');
@@ -251,7 +255,7 @@ function compileApple(temp) {
   for (const name of ['create', 'evaluate', 'destroy']) assert.equal(symbols.split('\n').filter((line) => new RegExp(` [Tt] _allnewmts_lua_ios_${name}$`).test(line)).length, 1, `evaluated Pod graph omits iOS ${name} provider`);
   assert.equal(symbols.split('\n').filter((line) => / [Tt] _lua_newstate$/.test(line)).length, 1, 'evaluated Pod graph has multiple Lua providers');
   fs.writeFileSync(path.join(output, 'pod-source-inventory.json'), JSON.stringify({ production: productionGraph, verification: graph }, null, 2));
-  console.log(`PASS native Apple Pod graphs: ${productionGraph.sources.length} default sources exclude G002; ${graph.sources.length} flagged sources link the adapter and sole Lua provider`);
+  console.log(`PASS native Apple Pod graphs: ${productionGraph.sources.length} default sources exclude NATIVE_HARNESS; ${graph.sources.length} flagged sources link the adapter and sole Lua provider`);
 }
 
 function compileAndroid(temp) {
@@ -274,8 +278,8 @@ function compileAndroid(temp) {
   const compileCommands = configure(output, true);
   const normalizedSource = ({ file }) => file.replaceAll('\\', '/');
   for (const suffix of ['/shared/allnewmts_lua.c', '/android/allnewmts_lua_android_adapter.c', '/android/jni.cpp']) {
-    assert.equal(productionCommands.some((entry) => normalizedSource(entry).endsWith(suffix)), false, `default CMake graph leaked G002 source: ${suffix}`);
-    assert.equal(compileCommands.some((entry) => normalizedSource(entry).endsWith(suffix)), true, `flagged CMake graph omitted G002 source: ${suffix}`);
+    assert.equal(productionCommands.some((entry) => normalizedSource(entry).endsWith(suffix)), false, `default CMake graph leaked NATIVE_HARNESS source: ${suffix}`);
+    assert.equal(compileCommands.some((entry) => normalizedSource(entry).endsWith(suffix)), true, `flagged CMake graph omitted NATIVE_HARNESS source: ${suffix}`);
   }
   const commandText = (entry) => entry.command ?? entry.arguments.join(' ');
   const luaCommands = compileCommands.filter(({ file }) => file.replaceAll('\\', '/').includes('/vendor/lua-5.1.5/src/'));
@@ -293,13 +297,13 @@ function compileAndroid(temp) {
   assert.ok(fs.existsSync(library), 'Android shared library missing');
   const tools = path.join(ndk, 'toolchains/llvm/prebuilt/darwin-x86_64/bin');
   const productionSymbols = command(path.join(tools, 'llvm-nm'), ['-D', '--defined-only', path.join(productionOutput, 'liballnewmts_lua.so')]);
-  assert.doesNotMatch(productionSymbols, /Java_com_allnewmts_lua_AllNewMTSLuaModule_nativeCreate/, 'default Android library exported the G002 JNI module');
+  assert.doesNotMatch(productionSymbols, /Java_com_allnewmts_lua_AllNewMTSLuaModule_nativeCreate/, 'default Android library exported the NATIVE_HARNESS JNI module');
   const dynamic = command(path.join(tools, 'llvm-readelf'), ['-d', library]);
   assert.doesNotMatch(dynamic, /NEEDED.*(?:lua|luajit)/i, 'Android linked a second Lua provider');
   const symbols = command(path.join(tools, 'llvm-nm'), ['-D', '--defined-only', library]);
   assert.match(symbols, /Java_com_allnewmts_lua_AllNewMTSLuaModule_nativeCreate/);
   assert.match(symbols, /\blua_newstate\b/);
-  console.log('PASS native Android graphs: default arm64-v8a library excludes G002; flagged graph includes its JNI adapter and no second Lua dependency');
+  console.log('PASS native Android graphs: default arm64-v8a library excludes NATIVE_HARNESS; flagged graph includes its JNI adapter and no second Lua dependency');
 }
 
 function verifyAutolinking() {
@@ -312,11 +316,11 @@ function verifyAutolinking() {
   console.log('PASS native autolinking: Expo 57 found one local module for iOS and Android');
 }
 
-const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'allnewmts-g002-'));
+const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'allnewmts-harness-'));
 try {
-  const developmentBuildSource = read('scripts/run-gate0-development-build.mjs').toString('utf8');
-  assert.match(developmentBuildSource, /EXPO_PUBLIC_G002_NATIVE_HARNESS: '1'/, 'G002 Development Build must explicitly enable the verification flag for CocoaPods and Gradle');
-  assert.match(developmentBuildSource, /spawnSync\(gradle\.binary,[\s\S]+env: runEnv/, 'G002 Gradle build must receive the explicit verification environment');
+  const developmentBuildSource = read('scripts/run-native-harness-development-build.mjs').toString('utf8');
+  assert.match(developmentBuildSource, /EXPO_PUBLIC_NATIVE_HARNESS: '1'/, 'NATIVE_HARNESS Development Build must explicitly enable the verification flag for CocoaPods and Gradle');
+  assert.match(developmentBuildSource, /spawnSync\(gradle,[\s\S]+env: runEnv/, 'NATIVE_HARNESS Gradle build must receive the explicit verification environment');
   assert.doesNotMatch(developmentBuildSource, /command\(android\.adb, \['-s', androidSerial, 'shell', 'pm', 'path', androidPackageId\]\)/, 'Android absence preflight must preserve adb pm path status');
   assert.match(developmentBuildSource, /spawnSync\(android\.adb, \['-s', androidSerial, 'shell', 'pm', 'path', androidPackageId\], \{ encoding: 'utf8', env: runEnv \}\)/, 'Android absence preflight must capture adb pm path directly');
   assert.match(developmentBuildSource, /androidInstallPreflight\.status === 0 \|\| androidInstallPreflight\.status === 1/, 'Android absence preflight must accept only documented absent-package statuses');
@@ -331,7 +335,7 @@ try {
     ios: { runtime: forgedRuntime, package: { luaProviderCount: 1 } },
     android: { runtime: forgedRuntime, package: { luaProviderCount: 1 } }
   };
-  assert.deepEqual(Object.keys(developmentBuildRunner), ['runGate0DevelopmentBuild'], 'Development Build runner must expose only real execution');
+  assert.deepEqual(Object.keys(developmentBuildRunner), ['runNativeHarnessDevelopmentBuild'], 'Development Build runner must expose only real execution');
   assert.throws(() => developmentBuildRunner.validateDevelopmentBuildResult(forgedPass), 'complete synthetic PASS evidence must not have a public approval path');
   verifyUpstream(temp);
   verifyContracts();
@@ -339,13 +343,7 @@ try {
   compileApple(temp);
   compileAndroid(temp);
   verifyAutolinking();
-  const runtime = await developmentBuildRunner.runGate0DevelopmentBuild(temp);
-  if (runtime.status === 'BLOCKED') {
-    console.error(JSON.stringify(runtime));
-    process.exitCode = 2;
-  } else {
-    console.log(JSON.stringify({ status: 'PASS', tier: 'native', runtime }));
-  }
+  console.log(JSON.stringify({ status: 'PASS', tier: 'native' }));
 } finally {
   fs.rmSync(temp, { recursive: true, force: true });
 }

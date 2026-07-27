@@ -11,7 +11,7 @@ def reactNativeArchitectures() {
   return value ? value.split(',') : ['armeabi-v7a', 'x86', 'x86_64', 'arm64-v8a']
 }
 
-def verificationHarnessEnabled = System.getenv('EXPO_PUBLIC_G002_NATIVE_HARNESS') == '1'
+def verificationHarnessEnabled = System.getenv('EXPO_PUBLIC_NATIVE_HARNESS') == '1'
 
 expoModule {
   canBePublished false
@@ -39,7 +39,7 @@ android {
   sourceSets {
     main {
       java.srcDirs = ['src/main/java']
-      if (verificationHarnessEnabled) java.srcDir 'src/g002/java'
+      if (verificationHarnessEnabled) java.srcDir 'src/verification/java'
     }
   }
 }

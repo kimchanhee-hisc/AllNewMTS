@@ -7,86 +7,66 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
-  deferredMilestoneLayers,
   expectedIntegrityPaths,
   loadManifest,
   policyViolations,
   safeRepoFile,
-  storyChecks,
   validateSchema,
-  verifyActiveVerifierPaths,
+  verifyCommands,
   verifyContractInventories,
-  verifyFocusedCommands,
-  verifyStoryDefinitions
+  verifySuites,
+  verifyVerifierPaths
 } from '../scripts/verify-foundation.mjs';
 
 const json = (file) => JSON.parse(fs.readFileSync(new URL(`../${file}`, import.meta.url), 'utf8'));
 const emptyPackage = { dependencies: {}, devDependencies: {}, scripts: {} };
 
-test('story, command, inventory, and path contracts fail closed', () => {
+test('suite, command, inventory, and path contracts fail closed', () => {
   const manifest = loadManifest();
   const schema = json('verification/manifest.schema.json');
   validateSchema(schema, manifest);
-  assert.deepEqual(storyChecks('G001A-establish-ai-native-foundation', manifest).checks, [
-    'format', 'docs', 'policy', 'type', 'unit', 'fixtures', 'provenance'
-  ]);
-  assert.deepEqual(storyChecks('G002-embed-official-lua-5-1-5', manifest).checks, ['native']);
-  assert.deepEqual(storyChecks('G003-implement-bounded-native-runtime', manifest).checks, ['runtime']);
-  assert.deepEqual(storyChecks('G004-build-generic-xmf-ui-path', manifest).checks, ['ui']);
-  assert.deepEqual(deferredMilestoneLayers(manifest).map(({ id }) => id), ['package']);
+  verifySuites(manifest);
+  assert.deepEqual(manifest.suites.fast.checks, ['format', 'docs', 'policy', 'type', 'unit']);
+  assert.ok(manifest.suites.ci.checks.includes('ui'));
   assert.deepEqual(manifest.integrity.map(({ path: file }) => file).sort(), [...expectedIntegrityPaths].sort());
-  const g004AcceptanceFiles = [
-    'scripts/generate-g004-assets.mjs',
-    'scripts/run-g004-development-build.mjs',
+  const uiFiles = [
+    'scripts/generate-xmf-assets.mjs',
+    'scripts/run-ui-development-build.mjs',
     'scripts/verify-ui.mjs',
-    'test/g004/g003-baseline.json',
-    'test/g004/runtime-client-golden.json'
+    'test/ui/runtime-client-golden.json'
   ];
-  assert.ok(g004AcceptanceFiles.every((file) => manifest.integrity.some((entry) => entry.path === file)), 'active G004 acceptance files must be integrity-pinned');
+  assert.ok(uiFiles.every((file) => manifest.integrity.some((entry) => entry.path === file)), 'UI verification files must be integrity-pinned');
 
-  const activeEmpty = structuredClone(manifest);
-  activeEmpty.stories.find(({ id }) => id.startsWith('G004-')).checks = [];
-  assert.throws(() => validateSchema(schema, activeEmpty));
-  assert.throws(() => verifyStoryDefinitions(activeEmpty));
-  assert.throws(() => storyChecks(activeEmpty.stories.find(({ id }) => id.startsWith('G004-')).id, activeEmpty));
   for (const mutate of [
-    (copy) => { copy.stories.find(({ id }) => id.startsWith('G004-')).checks = ['missing']; },
-    (copy) => { copy.focusedChecks.find(({ id }) => id === 'ui').owner = 'G999-wrong-owner'; }
+    (copy) => { copy.suites.fast.checks = []; },
+    (copy) => { copy.suites.fast.checks = ['missing']; },
+    (copy) => copy.suites.fast.checks.push(copy.suites.fast.checks[0])
   ]) {
     const hostile = structuredClone(manifest);
     mutate(hostile);
-    assert.throws(() => verifyStoryDefinitions(hostile));
+    assert.throws(() => {
+      validateSchema(schema, hostile);
+      verifySuites(hostile);
+    });
   }
   const escapedManifest = structuredClone(manifest);
   escapedManifest.canonicalOwners[0].path = '../outside.md';
   assert.throws(() => validateSchema(schema, escapedManifest));
 
-  for (const mutate of [
-    (copy) => copy.stories[0].checks.push(copy.stories[0].checks[0]),
-    (copy) => copy.stories[0].checks.push('missing'),
-    (copy) => { copy.focusedChecks.find(({ id }) => id === 'format').activation = 'deferred'; },
-    (copy) => { copy.focusedChecks.find(({ id }) => id === 'format').owner = 'G999-wrong-owner'; }
-  ]) {
-    const hostile = structuredClone(manifest);
-    mutate(hostile);
-    assert.throws(() => verifyStoryDefinitions(hostile));
-  }
-
   const driftedPackage = json('package.json');
   driftedPackage.scripts['verify:policy'] = 'node -e "process.exit(0)"';
-  assert.throws(() => verifyFocusedCommands(manifest, driftedPackage));
+  assert.throws(() => verifyCommands(manifest, driftedPackage));
   const driftedUiPackage = json('package.json');
   driftedUiPackage.scripts['verify:ui'] = 'node -e "process.exit(0)"';
-  assert.throws(() => verifyFocusedCommands(manifest, driftedUiPackage));
+  assert.throws(() => verifyCommands(manifest, driftedUiPackage));
 
-  const verifierSources = new Map(manifest.focusedChecks
-    .filter(({ activation }) => activation === 'active')
+  const verifierSources = new Map(manifest.checks
     .flatMap(({ argv }) => argv.filter((argument) => /^scripts\/.+\.mjs$/.test(argument)))
     .map((file) => [file, fs.readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')]));
-  verifyActiveVerifierPaths(manifest, (file) => verifierSources.get(file));
+  verifyVerifierPaths(manifest, (file) => verifierSources.get(file));
   verifierSources.set('scripts/verify-native.mjs', verifierSources.get('scripts/verify-native.mjs')
-    .replace('android/src/g002/java/com/allnewmts/lua/AllNewMTSLuaModule.kt', 'android/src/main/java/com/allnewmts/lua/AllNewMTSLuaModule.kt'));
-  assert.throws(() => verifyActiveVerifierPaths(manifest, (file) => verifierSources.get(file)));
+    .replace('android/src/verification/java/com/allnewmts/lua/AllNewMTSLuaModule.kt', 'android/src/main/java/com/allnewmts/lua/AllNewMTSLuaModule.kt'));
+  assert.throws(() => verifyVerifierPaths(manifest, (file) => verifierSources.get(file)));
 
   const controls = json('contracts/control-registry.json');
   const extra = structuredClone(controls.controls[0]);
@@ -95,10 +75,10 @@ test('story, command, inventory, and path contracts fail closed', () => {
   assert.throws(() => verifyContractInventories(json('contracts/host-api.json'), controls));
   for (const position of ['before', 'after']) {
     const duplicate = json('contracts/control-registry.json');
-    const deferred = structuredClone(duplicate.controls.at(-1));
-    Object.assign(deferred, { id: `duplicate-${position}`, semanticFamilies: [`Deferred${position}`] });
-    if (position === 'before') duplicate.controls.splice(duplicate.controls.length - 1, 0, deferred);
-    else duplicate.controls.push(deferred);
+    const unsupported = structuredClone(duplicate.controls.at(-1));
+    Object.assign(unsupported, { id: `duplicate-${position}`, semanticFamilies: [`Unsupported${position}`] });
+    if (position === 'before') duplicate.controls.splice(duplicate.controls.length - 1, 0, unsupported);
+    else duplicate.controls.push(unsupported);
     assert.throws(() => verifyContractInventories(json('contracts/host-api.json'), duplicate));
   }
 
@@ -114,7 +94,6 @@ test('story, command, inventory, and path contracts fail closed', () => {
   assert.throws(() => safeRepoFile('link.txt', 'test', temp));
   fs.rmSync(temp, { recursive: true, force: true });
   fs.rmSync(outside, { recursive: true, force: true });
-  assert.throws(() => storyChecks('G999-unknown', manifest));
 
   const resultSchema = json('contracts/runtime-result.schema.json');
   const sample = {
@@ -213,7 +192,7 @@ test('story, command, inventory, and path contracts fail closed', () => {
 });
 
 test('native runner preserves primary failures and releases only owned Metro state', () => {
-  const source = fs.readFileSync(new URL('../scripts/run-gate0-development-build.mjs', import.meta.url), 'utf8');
+  const source = fs.readFileSync(new URL('../scripts/run-native-harness-development-build.mjs', import.meta.url), 'utf8');
   assert.match(source, /const childIsLive = \(child\) => child\.exitCode === null && child\.signalCode === null/);
   assert.doesNotMatch(source, /process\.kill\(-child\.pid, 0\)/, 'ended or reused Metro process groups must not be probed');
   assert.match(source, /error\.code !== 'EPERM'.+childIsLive\(child\)\) child\.kill\(signal\)/s, 'group EPERM must fall back to the live direct child');
@@ -222,20 +201,20 @@ test('native runner preserves primary failures and releases only owned Metro sta
   assert.match(source, /else if \(cleanupErrors\.length\) \{\s+throw new AggregateError/, 'only cleanup-only failure may replace control flow with an aggregate');
 });
 
-test('G004 runner and verifier keep hostile evidence and cleanup fail-closed', () => {
-  const integrityRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'g004-integrity-root-'));
-  const integrityOutside = fs.mkdtempSync(path.join(os.tmpdir(), 'g004-integrity-outside-'));
+test('UI runner and verifier keep hostile evidence and cleanup fail-closed', () => {
+  const integrityRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ui-integrity-root-'));
+  const integrityOutside = fs.mkdtempSync(path.join(os.tmpdir(), 'ui-integrity-outside-'));
   fs.writeFileSync(path.join(integrityRoot, 'approved.xmf_'), 'x');
   fs.writeFileSync(path.join(integrityOutside, 'outside.xmf_'), 'x');
   fs.symlinkSync(path.join(integrityOutside, 'outside.xmf_'), path.join(integrityRoot, 'link.xmf_'));
-  assert.equal(safeRepoFile('approved.xmf_', 'G004 temp alias', integrityRoot), fs.realpathSync.native(path.join(integrityRoot, 'approved.xmf_')));
-  assert.throws(() => safeRepoFile('../outside.xmf_', 'G004 traversal', integrityRoot));
-  assert.throws(() => safeRepoFile(path.join(integrityOutside, 'outside.xmf_'), 'G004 absolute outside', integrityRoot));
-  assert.throws(() => safeRepoFile('link.xmf_', 'G004 symlink outside', integrityRoot));
+  assert.equal(safeRepoFile('approved.xmf_', 'UI temp alias', integrityRoot), fs.realpathSync.native(path.join(integrityRoot, 'approved.xmf_')));
+  assert.throws(() => safeRepoFile('../outside.xmf_', 'UI traversal', integrityRoot));
+  assert.throws(() => safeRepoFile(path.join(integrityOutside, 'outside.xmf_'), 'UI absolute outside', integrityRoot));
+  assert.throws(() => safeRepoFile('link.xmf_', 'UI symlink outside', integrityRoot));
   fs.rmSync(integrityRoot, { recursive: true, force: true });
   fs.rmSync(integrityOutside, { recursive: true, force: true });
 
-  const runner = fs.readFileSync(new URL('../scripts/run-g004-development-build.mjs', import.meta.url), 'utf8');
+  const runner = fs.readFileSync(new URL('../scripts/run-ui-development-build.mjs', import.meta.url), 'utf8');
   assert.match(runner, /import http from 'node:http';/, 'Metro readiness must import its HTTP client');
   assert.match(runner, /metro-owned-port\.sb/);
   assert.doesNotMatch(runner, /metro-loopback\.sb/);
@@ -259,7 +238,7 @@ test('G004 runner and verifier keep hostile evidence and cleanup fail-closed', (
   assert.match(runner, /RCT_DEPS_VERSION: 'nightly'[\s\S]+RCT_TESTONLY_RNCORE_VERSION: 'nightly'[\s\S]+USE_THIRD_PARTY_JSC: '1'[\s\S]+USE_HERMES: '0'/, 'Pod regression must inject every hostile ambient version and JS-engine selector');
   assert.match(runner, /env\.RCT_USE_RN_DEP = '0';\s+env\.RCT_USE_PREBUILT_RNCORE = '0';\s+env\.EXPO_USE_PRECOMPILED_MODULES = '0';\s+env\.RCT_HERMES_V1_ENABLED = '1';\s+env\.HERMES_ENGINE_TARBALL_PATH[\s\S]+env\.RCT_USE_LOCAL_RN_DEP/, 'remote RN\/Expo artifact probes must be disabled and Hermes V1 selected before local cache tarballs are exposed');
   assert.match(runner, /dependencies_build_from_source[\s\S]+rncore_build_from_source[\s\S]+use_hermes[\s\S]+use_third_party_jsc[\s\S]+deny network\*[\s\S]+commandPath\('pod'\), 'ipc', 'spec'/, 'local upstream dependency and JS-engine selector branches must be probed without network or Pod installation');
-  assert.match(runner, /function preflightSnapshot[\s\S]+status', '--porcelain=v1', '-z'[\s\S]+nativeDirectories[\s\S]+allnewmts-g004-[\s\S]+cacheFiles[\s\S]+createHash\('sha256'\)[\s\S]+if \(reservation\) await reservation\.release\(\);[\s\S]+assert\.deepEqual\(preflightSnapshot\(podCaches\), before[\s\S]+mutatedFiles: false/, 'read-only preflight evidence must derive from an after-release repository/temp/cache snapshot');
+  assert.match(runner, /function preflightSnapshot[\s\S]+status', '--porcelain=v1', '-z'[\s\S]+nativeDirectories[\s\S]+allnewmts-ui-[\s\S]+cacheFiles[\s\S]+createHash\('sha256'\)[\s\S]+if \(reservation\) await reservation\.release\(\);[\s\S]+assert\.deepEqual\(preflightSnapshot\(podCaches\), before[\s\S]+mutatedFiles: false/, 'read-only preflight evidence must derive from an after-release repository/temp/cache snapshot');
   assert.match(runner, /local tcp "localhost:\$\{port\}"[\s\S]+remote tcp "localhost:\$\{port\}"/, 'sandbox profile must use the supported exact localhost/port syntax');
   assert.doesNotMatch(runner, /(?:local|remote) tcp "127\.0\.0\.1:/, 'macOS sandbox network addresses cannot use a numeric host');
   assert.match(runner, /EXPO_OFFLINE: '1'[\s\S]+NODE_OPTIONS: '--dns-result-order=ipv4first'[\s\S]+const metroArgs = \['-f', profiles\.metro, path\.join\(root, 'node_modules\/\.bin\/expo'\), 'start', '--localhost', '--port'/, 'Metro must use environment-only offline mode and deterministic IPv4 localhost resolution with the exact host selector');
@@ -270,7 +249,7 @@ test('G004 runner and verifier keep hostile evidence and cleanup fail-closed', (
   assert.doesNotMatch(markerChild, /await|Promise|setTimeout|setInterval|process\.exit(?:Code)?/, 'private marker child must not add a drain or exit path');
   assert.match(runner, /function throwAfterBuildFailureEmission[\s\S]+emitBuildFailureEnvelope[\s\S]+cleanupErrors\.push\(error\)[\s\S]+throw primaryError;/, 'marker writer failure must remain secondary to the original Xcode primary');
   assert.match(runner, /function cleanupOnlyPrimary[\s\S]+new AggregateError[\s\S]+error\.errors = error\.cleanupErrors = cleanupErrors[\s\S]+if \(cleanupErrors\.length\) \{\s+const error = cleanupOnlyPrimary\(cleanupErrors, appMetroSettings\);\s+throwAfterBuildFailureEmission\(error, cleanupErrors, undefined, failurePhase\);/);
-  assert.match(runner, /const baseline = run[\s\S]+let nofollow;[\s\S]+let temp;[\s\S]+try \{\s+failurePhase = 'package-custodian';\s+temp = fs\.mkdtempSync\(path\.join\(os\.tmpdir\(\), 'allnewmts-g004-development-build-'\)\);\s+nofollow = await startNoFollowSession\(\);[\s\S]+simulator = availableSimulator\(\);[\s\S]+selected = await selectGuardedPort\(temp, activeProbes\);/, 'established G004 operational temp and G011 recovery root must be separately cleanup-owned');
+  assert.match(runner, /const baseline = run[\s\S]+let nofollow;[\s\S]+let temp;[\s\S]+try \{\s+failurePhase = 'package-custodian';\s+temp = fs\.mkdtempSync\(path\.join\(os\.tmpdir\(\), 'allnewmts-ui-development-build-'\)\);\s+nofollow = await startNoFollowSession\(\);[\s\S]+simulator = availableSimulator\(\);[\s\S]+selected = await selectGuardedPort\(temp, activeProbes\);/, 'established UI operational temp and SWIFTPM recovery root must be separately cleanup-owned');
   assert.match(runner, /net\.createServer[\s\S]+acceptedSockets\.add[\s\S]+socket\.once\('error'[\s\S]+server\.close[\s\S]+for \(const socket of acceptedSockets\) socket\.destroy/, 'the loopback guard must own accepted sockets and close them during bounded release');
   assert.match(runner, /const simulatorCleanupStableSamples = 4;\s+const simulatorCleanupSampleIntervalMs = 250;\s+const simulatorCleanupTimeoutMs = 30000;/, 'simulator cleanup stability and deadline must remain explicit and bounded');
   assert.match(runner, /async function rejectedSessionFixture[\s\S]+let session;[\s\S]+const startSession = options\.startSession \?\? startNoFollowSession[\s\S]+finally \{[\s\S]+if \(session\) await closeNoFollowSession\(session\);/, 'unexpectedly fulfilled rejected-session fixtures must close their session');
@@ -281,14 +260,14 @@ test('G004 runner and verifier keep hostile evidence and cleanup fail-closed', (
   assert.match(runner, /let simulatorBootedByRunner = false;[\s\S]+if \(simulator\.state !== 'Booted'\) \{[\s\S]+bootSimulatorAndWait\(simulator, env, \{ onBootAccepted:[\s\S]+simulatorBootedByRunner = true;[\s\S]+if \(!simulatorBootedByRunner\) return;[\s\S]+shutdownSimulatorAndWait/, 'simulator shutdown must require a successful bounded runner-owned boot');
   assert.match(runner, /simctl', 'terminate'[\s\S]+ps', \['-p'[\s\S]+uninstallOwnedSimulatorAppDurably\(simulator, env\)[\s\S]+if \(portGuard\) await portGuard\.release\(\)[\s\S]+for \(const probe of \[\.\.\.activeProbes\]\)[\s\S]+stopProbe[\s\S]+runtimeLog\.kill\('SIGTERM'\)[\s\S]+reapChild\(runtimeLog\)[\s\S]+stopProcessGroup[\s\S]+closeFd[\s\S]+assertPortReusable[\s\S]+activeProbes\.size[\s\S]+simulatorBootedByRunner[\s\S]+shutdownSimulatorAndWait[\s\S]+bootSimulatorAndWait\(simulator, env, \{ onBootAccepted:[\s\S]+uninstallOwnedSimulatorAppDurably[\s\S]+restore_package[\s\S]+closeNoFollowSession\(nofollow\)/, 'cleanup must prove the App terminated and durably unregistered, terminate remaining children, then verify reboot with one bounded transition, restore the package, and close the repository-owned runner');
 
-  const network = spawnSync(process.execPath, [fileURLToPath(new URL('../scripts/run-g004-development-build.mjs', import.meta.url)), '--network-regression'], {
+  const network = spawnSync(process.execPath, [fileURLToPath(new URL('../scripts/run-ui-development-build.mjs', import.meta.url)), '--network-regression'], {
     cwd: fileURLToPath(new URL('..', import.meta.url)),
     encoding: 'utf8',
     timeout: 45000
   });
-  assert.equal(network.error, undefined, `G004 network regression could not run: ${network.error?.message}`);
-  assert.equal(network.status, 0, `G004 network regression failed:\n${network.stdout}${network.stderr}`);
-  const evidence = JSON.parse(network.stdout.trim().replace(/^G004_DEVELOPMENT_BUILD=/, ''));
+  assert.equal(network.error, undefined, `UI network regression could not run: ${network.error?.message}`);
+  assert.equal(network.status, 0, `UI network regression failed:\n${network.stdout}${network.stderr}`);
+  const evidence = JSON.parse(network.stdout.trim().replace(/^UI_DEVELOPMENT_BUILD=/, ''));
   assert.equal(evidence.status, 'PASS');
   assert.equal(evidence.mode, 'network-regression');
   assert.equal(evidence.reservation.exactPortReusable, true);
@@ -297,14 +276,14 @@ test('G004 runner and verifier keep hostile evidence and cleanup fail-closed', (
   assert.equal(evidence.exactTruthPortReusable, true);
   assert.equal(evidence.truth.activeInterfaceCount, evidence.truth.activeInterfaces.length);
 
-  const pods = spawnSync(process.execPath, [fileURLToPath(new URL('../scripts/run-g004-development-build.mjs', import.meta.url)), '--pod-cache-regression'], {
+  const pods = spawnSync(process.execPath, [fileURLToPath(new URL('../scripts/run-ui-development-build.mjs', import.meta.url)), '--pod-cache-regression'], {
     cwd: fileURLToPath(new URL('..', import.meta.url)),
     encoding: 'utf8',
     timeout: 45000
   });
-  assert.equal(pods.error, undefined, `G004 Pod cache regression could not run: ${pods.error?.message}`);
-  assert.equal(pods.status, 0, `G004 Pod cache regression failed:\n${pods.stdout}${pods.stderr}`);
-  const podEvidence = JSON.parse(pods.stdout.trim().replace(/^G004_DEVELOPMENT_BUILD=/, ''));
+  assert.equal(pods.error, undefined, `UI Pod cache regression could not run: ${pods.error?.message}`);
+  assert.equal(pods.status, 0, `UI Pod cache regression failed:\n${pods.stdout}${pods.stderr}`);
+  const podEvidence = JSON.parse(pods.stdout.trim().replace(/^UI_DEVELOPMENT_BUILD=/, ''));
   assert.deepEqual(podEvidence, {
     status: 'PASS',
     mode: 'pod-cache-regression',
@@ -318,14 +297,14 @@ test('G004 runner and verifier keep hostile evidence and cleanup fail-closed', (
     cleaned: true
   });
 
-  const simulatorCleanup = spawnSync(process.execPath, [fileURLToPath(new URL('../scripts/run-g004-development-build.mjs', import.meta.url)), '--simulator-cleanup-regression'], {
+  const simulatorCleanup = spawnSync(process.execPath, [fileURLToPath(new URL('../scripts/run-ui-development-build.mjs', import.meta.url)), '--simulator-cleanup-regression'], {
     cwd: fileURLToPath(new URL('..', import.meta.url)),
     encoding: 'utf8',
     timeout: 30000
   });
-  assert.equal(simulatorCleanup.error, undefined, `G004 simulator cleanup regression could not run: ${simulatorCleanup.error?.message}`);
-  assert.equal(simulatorCleanup.status, 0, `G004 simulator cleanup regression failed:\n${simulatorCleanup.stdout}${simulatorCleanup.stderr}`);
-  assert.deepEqual(JSON.parse(simulatorCleanup.stdout.trim().replace(/^G004_DEVELOPMENT_BUILD=/, '')), {
+  assert.equal(simulatorCleanup.error, undefined, `UI simulator cleanup regression could not run: ${simulatorCleanup.error?.message}`);
+  assert.equal(simulatorCleanup.status, 0, `UI simulator cleanup regression failed:\n${simulatorCleanup.stdout}${simulatorCleanup.stderr}`);
+  assert.deepEqual(JSON.parse(simulatorCleanup.stdout.trim().replace(/^UI_DEVELOPMENT_BUILD=/, '')), {
     status: 'PASS',
     mode: 'simulator-cleanup-regression',
     containerOnlyAbsenceRejected: true,
@@ -344,17 +323,16 @@ test('G004 runner and verifier keep hostile evidence and cleanup fail-closed', (
   });
 
   const verifier = fs.readFileSync(new URL('../scripts/verify-ui.mjs', import.meta.url), 'utf8');
-  for (const phase of ['contract-registry', 'parser-model', 'projection-render', 'runtime-client', 'unseen-generality', 'module-stub-smoke', 'development-build', 'policy-cleanup']) {
-    assert.match(verifier, new RegExp(`phase\\('${phase}'|['"]${phase}['"]`), `missing G004 phase ${phase}`);
+  for (const phase of ['contract-registry', 'parser-model', 'projection-render', 'runtime-client', 'unseen-generality', 'module-stub-smoke']) {
+    assert.match(verifier, new RegExp(`phase\\('${phase}'|['"]${phase}['"]`), `missing UI phase ${phase}`);
   }
   assert.doesNotMatch(verifier, /phase\('app-composition'/);
-  assert.match(verifier, /invocationPids\.developmentBuild\.size/);
+  assert.doesNotMatch(verifier, /invocationPids\.developmentBuild|phase\('development-build'/);
   assert.match(verifier, /ordinary-package-entry[\s\S]+AllNewMTSRuntime[\s\S]+AllNewMTSLua[\s\S]+defaultEqualsNamed[\s\S]+RuntimeResultEvent/, 'ordinary entry smoke must prove native request and value/type exports');
-  assert.match(verifier, /g003-baseline\.json[\s\S]+expectedChanged[\s\S]+sharedBaselines[\s\S]+contentHashes[\s\S]+protectedCheckpointPaths/);
 });
 
-test('G014 generic failure phases are closed and statically bound to production intervals', () => {
-  const runner = fs.readFileSync(new URL('../scripts/run-g004-development-build.mjs', import.meta.url), 'utf8');
+test('UI_PHASE generic failure phases are closed and statically bound to production intervals', () => {
+  const runner = fs.readFileSync(new URL('../scripts/run-ui-development-build.mjs', import.meta.url), 'utf8');
   const verifier = fs.readFileSync(new URL('../scripts/verify-ui.mjs', import.meta.url), 'utf8');
   const expected = ['development-build', 'package-custodian', 'environment-selection', 'offline-dependencies', 'prebuild', 'pods', 'nested-swiftpm', 'build-settings', 'compiled-build', 'simulator-boot', 'metro', 'app-install', 'app-launch', 'runtime-marker', 'cleanup'];
   const phases = (source) => [...source.match(/const genericFailurePhases = Object\.freeze\(\[([\s\S]*?)\]\);/)?.[1].matchAll(/'([^']+)'/g) ?? []].map((match) => match[1]);
@@ -382,15 +360,15 @@ test('G014 generic failure phases are closed and statically bound to production 
   assert.match(build, /throwAfterBuildFailureEmission\(primaryError, cleanupErrors, undefined, primaryFailurePhase\)[\s\S]+throwAfterBuildFailureEmission\(error, cleanupErrors, undefined, failurePhase\)/);
 });
 
-test('G004 Metro evidence accepts only exact generated, resolved, and argv records', () => {
-  const regression = spawnSync(process.execPath, [fileURLToPath(new URL('../scripts/run-g004-development-build.mjs', import.meta.url)), '--metro-evidence-regression'], {
+test('UI Metro evidence accepts only exact generated, resolved, and argv records', () => {
+  const regression = spawnSync(process.execPath, [fileURLToPath(new URL('../scripts/run-ui-development-build.mjs', import.meta.url)), '--metro-evidence-regression'], {
     cwd: fileURLToPath(new URL('..', import.meta.url)),
     encoding: 'utf8',
     timeout: 30000
   });
-  assert.equal(regression.error, undefined, `G004 Metro evidence regression could not run: ${regression.error?.message}`);
-  assert.equal(regression.status, 0, `G004 Metro evidence regression failed:\n${regression.stdout}${regression.stderr}`);
-  assert.deepEqual(JSON.parse(regression.stdout.trim().replace(/^G004_DEVELOPMENT_BUILD=/, '')), {
+  assert.equal(regression.error, undefined, `UI Metro evidence regression could not run: ${regression.error?.message}`);
+  assert.equal(regression.status, 0, `UI Metro evidence regression failed:\n${regression.stdout}${regression.stderr}`);
+  assert.deepEqual(JSON.parse(regression.stdout.trim().replace(/^UI_DEVELOPMENT_BUILD=/, '')), {
     status: 'PASS',
     mode: 'metro-evidence-regression',
     generatedRecords: 2,
@@ -418,11 +396,11 @@ test('G004 Metro evidence accepts only exact generated, resolved, and argv recor
   });
 });
 
-test('G004 UI wrapper forwards only canonical bounded build-failure evidence through inherited stdio', () => {
+test('UI UI wrapper forwards only canonical bounded build-failure evidence through inherited stdio', () => {
   const verifier = fileURLToPath(new URL('../scripts/verify-ui.mjs', import.meta.url));
   const repoRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
-  const storyWrapper = fs.readFileSync(new URL('../scripts/verify-foundation.mjs', import.meta.url), 'utf8');
-  assert.match(storyWrapper, /spawnSync\(check\.argv\[0\], check\.argv\.slice\(1\), \{ cwd: root, stdio: 'inherit'/, 'story checks must preserve the wrapper marker through inherited stdio');
+  const suiteWrapper = fs.readFileSync(new URL('../scripts/verify-foundation.mjs', import.meta.url), 'utf8');
+  assert.match(suiteWrapper, /spawnSync\(check\.argv\[0\], check\.argv\.slice\(1\), \{ cwd: root, stdio: 'inherit'/, 'suite checks must preserve the wrapper marker through inherited stdio');
   const harness = [
     "const { spawnSync } = require('node:child_process');",
     `const result = spawnSync(process.execPath, [${JSON.stringify(verifier)}, '--build-failure-forwarding-regression'], { cwd: ${JSON.stringify(repoRoot)}, stdio: 'inherit' });`,
@@ -435,23 +413,23 @@ test('G004 UI wrapper forwards only canonical bounded build-failure evidence thr
     maxBuffer: 2 * 1024 * 1024,
     timeout: 30000
   });
-  assert.equal(regression.error, undefined, `G004 forwarding regression could not run: ${regression.error?.message}`);
-  assert.equal(regression.status, 0, `G004 forwarding regression failed:\n${regression.stdout}${regression.stderr}`);
+  assert.equal(regression.error, undefined, `UI forwarding regression could not run: ${regression.error?.message}`);
+  assert.equal(regression.status, 0, `UI forwarding regression failed:\n${regression.stdout}${regression.stderr}`);
   const inherited = `${regression.stdout}${regression.stderr}`;
-  assert.doesNotMatch(inherited, /G004_FORWARDING_PLANTED_SECRET/, 'raw child diagnostics must not cross the wrapper boundary');
-  const markerLines = regression.stdout.split(/\r?\n/).filter((line) => line.startsWith('ALLNEWMTS_G004_BUILD_FAILURE='));
-  assert.equal(markerLines.length, 1, 'the inherited story boundary must receive exactly one complete marker');
-  const suffix = markerLines[0].slice('ALLNEWMTS_G004_BUILD_FAILURE='.length);
+  assert.doesNotMatch(inherited, /UI_FORWARDING_PLANTED_SECRET/, 'raw child diagnostics must not cross the wrapper boundary');
+  const markerLines = regression.stdout.split(/\r?\n/).filter((line) => line.startsWith('ALLNEWMTS_UI_BUILD_FAILURE='));
+  assert.equal(markerLines.length, 1, 'the inherited suite boundary must receive exactly one complete marker');
+  const suffix = markerLines[0].slice('ALLNEWMTS_UI_BUILD_FAILURE='.length);
   assert.ok(Buffer.byteLength(suffix) <= 524_512, 'forwarded envelope exceeds its transport cap');
   const envelope = JSON.parse(suffix);
   assert.deepEqual(Object.keys(envelope).sort(), ['buildFailureEvidence', 'buildFailureEvidenceSha256', 'cleanupErrorCount', 'schema']);
-  assert.equal(envelope.schema, 'allnewmts.g004.build-failure-envelope.v1');
+  assert.equal(envelope.schema, 'allnewmts.ui.build-failure-envelope.v1');
   const canonicalEvidence = JSON.stringify(envelope.buildFailureEvidence);
   assert.ok(Buffer.byteLength(canonicalEvidence) <= 524_288, 'forwarded evidence exceeds its canonical cap');
   assert.equal(createHash('sha256').update(canonicalEvidence).digest('hex'), envelope.buildFailureEvidenceSha256);
-  const summaryLine = regression.stdout.split(/\r?\n/).find((line) => line.startsWith('G004_BUILD_FAILURE_FORWARDING_REGRESSION='));
+  const summaryLine = regression.stdout.split(/\r?\n/).find((line) => line.startsWith('UI_BUILD_FAILURE_FORWARDING_REGRESSION='));
   assert.ok(summaryLine, 'forwarding regression emitted no summary');
-  const summary = JSON.parse(summaryLine.slice('G004_BUILD_FAILURE_FORWARDING_REGRESSION='.length));
+  const summary = JSON.parse(summaryLine.slice('UI_BUILD_FAILURE_FORWARDING_REGRESSION='.length));
   assert.equal(summary.status, 'PASS');
   assert.equal(summary.immediateSamePrimaryThrow, true);
   assert.equal(summary.realChildTransport, true);
@@ -470,7 +448,7 @@ test('G004 UI wrapper forwards only canonical bounded build-failure evidence thr
     markerByteIdentity: true,
     markersForwarded: 1,
     producerPrefixes: 1,
-    schema: 'allnewmts.g004.generic-failure-evidence.v1',
+    schema: 'allnewmts.ui.generic-failure-evidence.v1',
     writerFailure: {
       byteCap: 1024,
       aggregateErrorsOrdered: true,
@@ -484,7 +462,7 @@ test('G004 UI wrapper forwards only canonical bounded build-failure evidence thr
       productionPhases: ['development-build', 'package-custodian', 'environment-selection', 'offline-dependencies', 'prebuild', 'pods', 'nested-swiftpm', 'build-settings', 'compiled-build', 'simulator-boot', 'metro', 'app-install', 'app-launch', 'runtime-marker', 'cleanup'],
       redacted: true,
       samePrimary: true,
-      schema: 'allnewmts.g004.generic-failure-evidence.v1',
+      schema: 'allnewmts.ui.generic-failure-evidence.v1',
       cleanupOnlyPhase: 'cleanup',
       unknownPhaseFallback: 'development-build',
       writerCalls: 1,
@@ -531,11 +509,13 @@ test('ExpoModulesCore Xcode 26.3 compatibility patch is exact and idempotent', (
   assert.equal(scripts['preverify:ui'], scripts.postinstall);
 });
 
-test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe', () => {
+test('SWIFTPM nested SwiftPM sandbox repair is repository-anchored and hostile-safe', () => {
   const repoRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
-  const runnerPath = fileURLToPath(new URL('../scripts/run-g004-development-build.mjs', import.meta.url));
+  const runnerPath = fileURLToPath(new URL('../scripts/run-ui-development-build.mjs', import.meta.url));
   const runner = fs.readFileSync(runnerPath, 'utf8');
-  const tmpRoot = path.join(repoRoot, '.omx/tmp');
+  const workspaceRoot = path.join(repoRoot, '.allnewmts');
+  const workspacePresentBefore = fs.existsSync(workspaceRoot);
+  const tmpRoot = path.join(repoRoot, '.allnewmts/tmp');
   const tmpPresentBefore = fs.existsSync(tmpRoot);
   const beforeEntries = fs.existsSync(tmpRoot) ? fs.readdirSync(tmpRoot).sort() : [];
   const installedFiles = [
@@ -552,10 +532,10 @@ test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe
     maxBuffer: 10 * 1024 * 1024,
     timeout: 90000
   });
-  assert.equal(regression.error, undefined, `G011 nofollow regression could not run: ${regression.error?.message}`);
-  assert.equal(regression.status, 0, `G011 nofollow regression failed:\n${regression.stdout}${regression.stderr}`);
-  const evidence = JSON.parse(regression.stdout.trim().replace(/^G004_DEVELOPMENT_BUILD=/, ''));
-  assert.equal(evidence.schema, 'allnewmts.g011.nofollow-regression.v1');
+  assert.equal(regression.error, undefined, `SWIFTPM nofollow regression could not run: ${regression.error?.message}`);
+  assert.equal(regression.status, 0, `SWIFTPM nofollow regression failed:\n${regression.stdout}${regression.stderr}`);
+  const evidence = JSON.parse(regression.stdout.trim().replace(/^UI_DEVELOPMENT_BUILD=/, ''));
+  assert.equal(evidence.schema, 'allnewmts.swiftpm.nofollow-regression.v1');
   assert.deepEqual(evidence.cases, [
     'absent-roots', 'present-roots', 'absolute-symlink', 'escaping-symlink', 'fifo-socket', 'duplicate-inode',
     'final-substitution', 'ancestor-substitution', 'escaped-writes', 'mode-byte-drift', 'primary-restore-order',
@@ -615,7 +595,7 @@ test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe
     assert.deepEqual(value.afterEntries, value.beforeEntries);
     assert.deepEqual(value.anchors.after, value.anchors.before);
     assert.deepEqual(Object.keys(value.attestation).sort(), ['cleanupComplete', 'finalRecordSha256', 'journalRecordCount', 'journalSchema', 'journalSha256', 'lastPersistedState', 'schema']);
-    assert.deepEqual([value.attestation.schema, value.attestation.journalRecordCount, value.attestation.lastPersistedState], ['allnewmts.g011.cleanup-complete.v1', 1, 'ANCHORED']);
+    assert.deepEqual([value.attestation.schema, value.attestation.journalRecordCount, value.attestation.lastPersistedState], ['allnewmts.swiftpm.cleanup-complete.v1', 1, 'ANCHORED']);
   }
   const anchorEvidence = evidence.integration.repositoryAnchors;
   assert.deepEqual(anchorEvidence.success.after, anchorEvidence.success.before);
@@ -624,10 +604,10 @@ test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe
     assert.equal(oracle.ambientTmp, '/var/folders/allnewmts-hostile-alias');
     assert.equal(oracle.varAliasExcluded, true);
     assert.equal(oracle.physicalRepository, repoRoot);
-    assert.equal(oracle.repositoryTmp, path.join(repoRoot, '.omx/tmp'));
-    assert.equal(oracle.omx.present, true);
+    assert.equal(oracle.repositoryTmp, path.join(repoRoot, '.allnewmts/tmp'));
+    assert.equal(oracle.workspace.present, workspacePresentBefore);
     assert.equal(oracle.tmp.present, tmpPresentBefore);
-    for (const anchor of [oracle.omx, ...(oracle.tmp.present ? [oracle.tmp] : [])]) {
+    for (const anchor of [...(oracle.workspace.present ? [oracle.workspace] : []), ...(oracle.tmp.present ? [oracle.tmp] : [])]) {
       assert.equal(anchor.identity.type, 'directory');
       assert.match(anchor.identity.mode, /^[0-7]{4}$/);
       assert.match(anchor.identity.dev, /^\d+$/);
@@ -635,6 +615,7 @@ test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe
       assert.ok(anchor.inventory.length > 0);
       assert.deepEqual(anchor.inventory[0], { mode: anchor.identity.mode, path: '', type: 'directory' });
     }
+    if (!oracle.workspace.present) assert.deepEqual(oracle.workspace, { identity: null, inventory: [], present: false });
     if (!oracle.tmp.present) assert.deepEqual(oracle.tmp, { identity: null, inventory: [], present: false });
   }
   assert.deepEqual([evidence.integration.pendingRequest.pendingCount, evidence.integration.pendingRequest.runnerExists], [0, false]);
@@ -737,7 +718,7 @@ test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe
     assert.deepEqual(boundary[mode].cleanupErrors, [{ errorCode: 'ERUNTIMEERROR', path: '<boundary>', phase: 'cleanup' }]);
   }
   assert.deepEqual(Object.keys(evidence.terminal).sort(), ['cleanupComplete', 'finalRecordSha256', 'journalRecordCount', 'journalSchema', 'journalSha256', 'lastPersistedState', 'schema']);
-  assert.deepEqual([evidence.terminal.cleanupComplete, evidence.terminal.journalRecordCount, evidence.terminal.lastPersistedState, evidence.terminal.journalSchema], [true, 5, 'RESTORED', 'allnewmts.g011.custodian-journal.v1']);
+  assert.deepEqual([evidence.terminal.cleanupComplete, evidence.terminal.journalRecordCount, evidence.terminal.lastPersistedState, evidence.terminal.journalSchema], [true, 5, 'RESTORED', 'allnewmts.swiftpm.custodian-journal.v1']);
   assert.match(evidence.terminal.finalRecordSha256, /^[a-f0-9]{64}$/);
   assert.match(evidence.terminal.journalSha256, /^[a-f0-9]{64}$/);
   assert.deepEqual(evidence.integration.cleanupSignals, ['TERM', 'KILL']);
@@ -747,9 +728,9 @@ test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe
   assert.deepEqual(Object.fromEntries(installedFiles.map((file) => [file, createHash('sha256').update(fs.readFileSync(path.join(repoRoot, file))).digest('hex')])), installedHashes, 'private regression changed installed ExpoModulesJSI sources');
   assert.match(runner, /os\.open\('\.',os\.O_RDONLY\|O_DIRECTORY\|O_NOFOLLOW\)/);
   assert.match(runner, /\/usr\/bin\/python3/);
-  assert.match(runner, /hashlib\.sha256\(source\)\.hexdigest\(\)!=expected[\s\S]+exec\(compile\(source,'<allnewmts-g011-custodian>'/);
+  assert.match(runner, /hashlib\.sha256\(source\)\.hexdigest\(\)!=expected[\s\S]+exec\(compile\(source,'<allnewmts-swiftpm-custodian>'/);
   assert.doesNotMatch(runner, /allnewmts_nofollow\.py|os\.execve\(/, 'verified custodian source must execute without a mutable pathname reopen');
-  assert.match(runner, /allnewmts-g011-'\+secrets\.token_hex\(16\)/);
+  assert.match(runner, /allnewmts-swiftpm-'\+secrets\.token_hex\(16\)/);
   assert.match(runner, /fs\.writeSync\(process\.stdout\.fd[\s\S]+Atomics\.wait/);
   assert.match(runner, /--disable-sandbox[\s\S]+--disable-netrc[\s\S]+--disable-keychain[\s\S]+--disable-prefetching[\s\S]+--disable-scm-to-registry-transformation/);
   assert.match(runner, /\["arm64","x86_64"\][\s\S]+lipo[\s\S]+install_name_tool[\s\S]+dsymutil[\s\S]+dwarfdump/);
@@ -758,7 +739,7 @@ test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe
   assert.match(shimSource, /args=\["swift","build"[\s\S]+subprocess\.run\(args,executable=tool\("swift"\)/, 'the verified physical Swift executable must retain Swift driver argv[0] semantics');
   assert.doesNotMatch(shimSource, /args=\[tool\("swift"\),"build"/, 'the realpath-resolved swift-frontend target cannot be used as argv[0]');
   assert.match(runner, /def promote_swiftpm\(\):[\s\S]+write_owned\(\["Info\.plist"\],FRAMEWORK_INFO_PLIST,0o644,framework,framework_chain\)[\s\S]+\["ExpoModulesJSI","Info\.plist"\][\s\S]+module staging shape mismatch[\s\S]+header staging shape mismatch/);
-  assert.match(runner, /ALLNEWMTS_G011_PROMOTE=1[\s\S]+promote_swiftpm[\s\S]+PROMOTED/);
+  assert.match(runner, /ALLNEWMTS_SWIFTPM_PROMOTE=1[\s\S]+promote_swiftpm[\s\S]+PROMOTED/);
   assert.match(runner, /open_chain_bound[\s\S]+recheck_chain\(package_chain\)[\s\S]+inventory_root_bound[\s\S]+backup inventory mismatch[\s\S]+remove_at_bound[\s\S]+root restoration mismatch/);
   assert.match(shimSource, /def load_contract[\s\S]+platform 7[\s\S]+minos 16\.4[\s\S]+install name mismatch[\s\S]+load_contract\(universal,arch/);
   assert.match(shimSource, /def sdk\(\):[\s\S]+--show-sdk-path[\s\S]+selected SDK identity changed[\s\S]+"--sdk",sdk\(\)/);
@@ -777,15 +758,15 @@ test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe
   assert.match(runner, /elif op=="restore_package"[\s\S]+restore_full[\s\S]+elif op=="package_inventory": value=run_worker\("inventory-worker",120,package_fd\)[\s\S]+elif op=="promote_swiftpm": value=launch_promotion[\s\S]+run_worker\("regression-worker",120,regression_fd/);
   assert.match(runner, /if mutation_armed and not restored:[\s\S]+restore_full\("failure"\)[\s\S]+response=\{"error"[\s\S]+respond\(response\)/);
   assert.match(runner, /const closeInputOnce = \(\) =>[\s\S]+child\.stdin\.end\(\)[\s\S]+while \(pending\.length\) pending\.shift\(\)\.reject\(error\);[\s\S]+closeInputOnce\(\)/);
-  assert.match(runner, /def cleanup_terminal[\s\S]+os\.close\(runner_fd\)[\s\S]+os\.close\(tmp_fd\)[\s\S]+os\.close\(omx_fd\)[\s\S]+os\.close\(repo_fd\)[\s\S]+cleanupComplete/);
+  assert.match(runner, /def cleanup_terminal[\s\S]+os\.close\(runner_fd\)[\s\S]+os\.close\(tmp_fd\)[\s\S]+os\.close\(workspace_fd\)[\s\S]+os\.close\(repo_fd\)[\s\S]+cleanupComplete/);
   assert.match(runner, /def case_oracle\(\):[\s\S]+"outside"[\s\S]+"residue"[\s\S]+"root"[\s\S]+"whole"/);
   assert.match(runner, /def write_owned[\s\S]+mkdir_chain_bound[\s\S]+write-owned-after-traversal[\s\S]+observed!=data[\s\S]+same\(final_fd,final_path\)/);
   assert.match(runner, /def artifact_record[\s\S]+artifact-before-file-open[\s\S]+same\(opened_stat,after\)[\s\S]+artifact substitution/);
   assert.match(runner, /write_owned\(\["write-link","owned"\][\s\S]+heldAncestorRejected[\s\S]+def drift_fixture[\s\S]+baseline-after-source-inventory[\s\S]+restore-before-final-verification[\s\S]+coordinatorFailures/);
-  assert.match(runner, /function repositoryAnchorOracle[\s\S]+if \(type === 'directory'\) for \(const name of fs\.readdirSync\(target\)[\s\S]+stableOmxInventory[\s\S]+const snapshotAnchor[\s\S]+error\?\.code === 'ENOENT'[\s\S]+present: false[\s\S]+const omxInventory = stableOmxInventory\(\)[\s\S]+tmp: snapshotAnchor\(tmp\)/);
+  assert.match(runner, /function repositoryAnchorOracle[\s\S]+if \(type === 'directory'\) for \(const name of fs\.readdirSync\(target\)[\s\S]+stableWorkspaceInventory[\s\S]+const snapshotAnchor[\s\S]+error\?\.code === 'ENOENT'[\s\S]+present: false[\s\S]+const workspaceInventory = stableWorkspaceInventory\(\)[\s\S]+tmp: snapshotAnchor\(tmp\)/);
   assert.match(runner, /def journal_append[\s\S]+write_all\(journal_fd,raw\); os\.fsync\(journal_fd\)[\s\S]+journal_readback\(\)/);
   assert.match(runner, /const custodianRequestTimeoutMs = 300000;[\s\S]+op: 'promote_swiftpm' \}, 125000/);
-  assert.match(runner, /baselineRootAggregates[\s\S]+previousRecordSha256[\s\S]+allnewmts\.g011\.cleanup-complete\.v1/);
+  assert.match(runner, /baselineRootAggregates[\s\S]+previousRecordSha256[\s\S]+allnewmts\.swiftpm\.cleanup-complete\.v1/);
   assert.match(runner, /\/usr\/bin\/xcode-select/);
   assert.match(runner, /function containedPhysicalPath[\s\S]+realpathSync[\s\S]+escaped selected Xcode/);
   assert.match(runner, /function validateFinalExpoModulesJsiXcframework/);
@@ -800,7 +781,7 @@ test('G011 nested SwiftPM sandbox repair is repository-anchored and hostile-safe
   assert.match(runner, /assert\.deepEqual\(evidence\.diskSliceIdentifiers, finalSliceIdentifiers\)/);
   assert.match(runner, /diskSliceIdentifiers: fs\.readdirSync\(xcframework, \{ withFileTypes: true \}\)[\s\S]+filter\(\(entry\) => entry\.isDirectory\(\)\)/);
   const developmentSource = runner.match(/async function developmentBuild\(\) \{[\s\S]*?\n\}/)?.[0] ?? '';
-  assert.match(developmentSource, /temp = fs\.mkdtempSync\(path\.join\(os\.tmpdir\(\), 'allnewmts-g004-development-build-'\)\);[\s\S]+nofollow = await startNoFollowSession\(\);[\s\S]+await nofollow\.request\(\{ op: 'arm' \}\);[\s\S]+expo[\s\S]+pod', 'install'/, 'established G004 temp and repository ios lifecycle must remain separate from the armed G011 custodian');
+  assert.match(developmentSource, /temp = fs\.mkdtempSync\(path\.join\(os\.tmpdir\(\), 'allnewmts-ui-development-build-'\)\);[\s\S]+nofollow = await startNoFollowSession\(\);[\s\S]+await nofollow\.request\(\{ op: 'arm' \}\);[\s\S]+expo[\s\S]+pod', 'install'/, 'established UI temp and repository ios lifecycle must remain separate from the armed SWIFTPM custodian');
 });
 
 test('policy rejects product CDN mutation without globally banning non-CDN remote work', () => {

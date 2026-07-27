@@ -119,7 +119,7 @@ type RegistryPropertyDescriptor = Readonly<{
 }>;
 
 type ControlDescriptor = Readonly<{
-  decision: 'include' | 'defer';
+  decision: 'include' | 'unsupported';
   sourceTags: readonly string[];
   normalizedType: 'Label' | 'Edit' | 'Button' | 'unsupported';
   properties: readonly RegistryPropertyDescriptor[];

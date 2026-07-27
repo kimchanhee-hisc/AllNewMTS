@@ -123,13 +123,13 @@ phase('adapter-parity', () => {
   assert.equal(run(swiftGoldenExecutable, [adapterConfig, adapterEvent], { env: { ...process.env, DYLD_LIBRARY_PATH: temp } }).trim(), expectedGolden);
 
   const productionKotlinRoot = path.join(root, 'modules/allnewmts-lua/android/src/main/java');
-  const verificationKotlinRoot = path.join(root, 'modules/allnewmts-lua/android/src/g002/java');
+  const verificationKotlinRoot = path.join(root, 'modules/allnewmts-lua/android/src/verification/java');
   const productionKotlin = filesUnder(productionKotlinRoot, '.kt');
   const verificationKotlin = filesUnder(verificationKotlinRoot, '.kt');
   assert.ok(productionKotlin.every((file) => !/AllNewMTSLuaModule\.kt$/.test(file) && !read(path.relative(root, file)).includes('Function("evaluate")')));
   assert.deepEqual(verificationKotlin.map((file) => path.basename(file)), ['AllNewMTSLuaModule.kt']);
   const gradleSourceSets = read('modules/allnewmts-lua/android/build.gradle');
-  assert.match(gradleSourceSets, /EXPO_PUBLIC_G002_NATIVE_HARNESS[\s\S]+src\/g002\/java/);
+  assert.match(gradleSourceSets, /EXPO_PUBLIC_NATIVE_HARNESS[\s\S]+src\/verification\/java/);
 
   const javaHome = process.env.JAVA_HOME || '/Applications/Android Studio.app/Contents/jbr/Contents/Home';
   const java = path.join(javaHome, 'bin/java');
@@ -151,8 +151,8 @@ phase('adapter-parity', () => {
     'native/test/runtime_kotlin_module_golden_test.kt'
   ];
   run(java, ['-cp',`${gradleLib}/*`,'org.jetbrains.kotlin.cli.jvm.K2JVMCompiler','-no-stdlib','-no-reflect','-jvm-target','17','-classpath',kotlinStdlib,'-d',kotlinClasses,...kotlinSources]);
-  const g002Classes = path.join(temp, 'g002-kotlin-classes'); fs.mkdirSync(g002Classes);
-  run(java, ['-cp',`${gradleLib}/*`,'org.jetbrains.kotlin.cli.jvm.K2JVMCompiler','-no-stdlib','-no-reflect','-jvm-target','17','-classpath',kotlinStdlib,'-d',g002Classes,'native/test/runtime_expo_kotlin_g002_stubs.kt',...verificationKotlin], { env: { ...process.env, EXPO_PUBLIC_G002_NATIVE_HARNESS: '1' } });
+  const harnessClasses = path.join(temp, 'harness-kotlin-classes'); fs.mkdirSync(harnessClasses);
+  run(java, ['-cp',`${gradleLib}/*`,'org.jetbrains.kotlin.cli.jvm.K2JVMCompiler','-no-stdlib','-no-reflect','-jvm-target','17','-classpath',kotlinStdlib,'-d',harnessClasses,'native/test/runtime_expo_kotlin_harness_stubs.kt',...verificationKotlin], { env: { ...process.env, EXPO_PUBLIC_NATIVE_HARNESS: '1' } });
 
   const hostJni = path.join(temp, 'runtime-host-jni.o');
   run(process.env.CXX || 'c++', ['-std=c++17','-Wall','-Wextra','-Werror','-fPIC','-idirafter',javaInclude,...include,'-c','modules/allnewmts-lua/android/runtime_jni.cpp','-o',hostJni]);
@@ -178,10 +178,10 @@ phase('adapter-parity', () => {
   run(cmake,['--build',build,'--target','allnewmts_lua','-j','4']);
 });
 
-phase('narrow-g002-smokes', () => {
-  const objects=[compileC('modules/allnewmts-lua/shared/allnewmts_lua.c','g002-core',['-DALLNEWMTS_LUA_TESTING']),compileC('modules/allnewmts-lua/ios/allnewmts_lua_ios_adapter.c','g002-ios'),compileC('modules/allnewmts-lua/android/allnewmts_lua_android_adapter.c','g002-android'),compileC('native/test/g002_narrow_smoke_test.c','g002-test'),...common];
-  const smoke=path.join(temp,'g002-smoke');run(process.env.CC||'cc',[...objects,provider,'-lm','-o',smoke]);assert.match(run(smoke,[]),/PASS narrow G002 smokes/);
+phase('narrow-harness-smokes', () => {
+  const objects=[compileC('modules/allnewmts-lua/shared/allnewmts_lua.c','harness-core',['-DALLNEWMTS_LUA_TESTING']),compileC('modules/allnewmts-lua/ios/allnewmts_lua_ios_adapter.c','harness-ios'),compileC('modules/allnewmts-lua/android/allnewmts_lua_android_adapter.c','harness-android'),compileC('native/test/verification_harness_smoke_test.c','harness-test'),...common];
+  const smoke=path.join(temp,'harness-smoke');run(process.env.CC||'cc',[...objects,provider,'-lm','-o',smoke]);assert.match(run(smoke,[]),/PASS narrow verification harness smokes/);
 });
 
 cleanupTemp();
-console.log('PASS verify:runtime (focused; no story, UI, network, upstream adoption, or full native aggregator)');
+console.log('PASS verify:runtime (focused; no UI, network, upstream adoption, or full native aggregator)');

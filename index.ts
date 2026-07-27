@@ -7,9 +7,9 @@ import App from './App';
 // the environment is set up appropriately
 registerRootComponent(App);
 
-if (process.env.EXPO_PUBLIC_G002_NATIVE_HARNESS === '1') {
+if (process.env.EXPO_PUBLIC_NATIVE_HARNESS === '1') {
   setTimeout(async () => {
-    const { runGate0Runtime } = await import('./modules/allnewmts-lua/src/gate0-runtime');
-    runGate0Runtime();
+    const { runVerificationHarness } = await import('./modules/allnewmts-lua/src/verification-harness-runtime');
+    runVerificationHarness();
   }, 0);
 }

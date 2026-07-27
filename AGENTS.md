@@ -6,7 +6,7 @@ Read the canonical owner before changing its contract:
 - Host/runtime semantics: [`docs/specs/runtime-contract.md`](docs/specs/runtime-contract.md)
 - Tests, evidence, and remote boundaries: [`docs/testing.md`](docs/testing.md)
 - Interpreter decision: [`docs/adr/0001-official-lua-5.1.5.md`](docs/adr/0001-official-lua-5.1.5.md)
-- Gate-0 source/build truth: [`native/lua-source-manifest.json`](native/lua-source-manifest.json)
+- Native Lua source/build truth: [`native/lua-source-manifest.json`](native/lua-source-manifest.json)
 - Machine contracts: [`contracts/host-api.json`](contracts/host-api.json), [`contracts/control-registry.json`](contracts/control-registry.json), and [`verification/manifest.json`](verification/manifest.json)
 - Immutable oracle provenance: [`test/oracles/manifest.json`](test/oracles/manifest.json)
 
@@ -19,9 +19,9 @@ MVigsEngine material may be located, opened, and inspected, but must not be used
 
 ## Work protocol
 
-1. Keep the task bounded to one active goal. Update its canonical Markdown owner before or with contract changes.
-2. Use `npm run verify:fast` while editing and one `npm run verify:story -- <goal-id>` for acceptance. Fast output never proves story or milestone readiness.
-3. Record scope, tier, commands/results, deterministic diffs, risks, cleanup, and rollback. A separate non-implementing reviewer owns `APPROVE`/`CLEAR`.
-4. Do not use MVigsEngine material; copy legacy implementations; author a Lua interpreter; add identity- or OS-selected behavior; or deploy, upload, mutate, delete, purge, invalidate, configure, or access the product CDN by FTP/SFTP. Non-CDN remote work is allowed only inside an active feature's credential and safety contract.
+1. Update the canonical Markdown owner before or with contract changes.
+2. Use `npm run verify:fast` while editing and `npm run verify:ci` for complete acceptance.
+3. Record relevant commands/results, deterministic diffs, risks, cleanup, and rollback.
+4. Do not use MVigsEngine material; copy legacy implementations; author a Lua interpreter; add identity- or OS-selected behavior; or deploy, upload, mutate, delete, purge, invalidate, configure, or access the product CDN by FTP/SFTP. Non-CDN remote work requires an explicit credential and safety contract.
 
-XMF is the only active external input role. XMS, CtlImage, product CDN reads, live services, UI conformance, and packaging remain deferred to their manifest owners. G002 remains only the guarded create/evaluate/destroy native harness; G003 owns the separate production create/dispatch/destroy runtime.
+XMF is the implemented external input role. XMS and CtlImage currently return explicit unsupported diagnostics. Networking is not held behind a project status; implementation must update its product contract, credentials, safety boundary, and deterministic tests. The guarded `create`/`evaluate`/`destroy` native harness remains verification-only and separate from the production `create`/`dispatch`/`destroy` runtime.

@@ -403,18 +403,18 @@
     },
     {
       "path": "index.ts",
-      "bytes": 519,
-      "sha256": "ba1e17ac268528869bc374b5f05dc2c24d3e4bd85d2cb0e92d03de4170539a20"
+      "bytes": 543,
+      "sha256": "57f49cadf640971d70c8b0745c23dfba6cb5e18a4c1ef87baa49d6e3d570c37e"
     },
     {
       "path": "modules/allnewmts-lua/AllNewMTSLua.podspec",
-      "bytes": 1473,
-      "sha256": "2d8e94df39ab675698d85bd8e24f021d40772e10acb3bbf0ff1fba87bb77e376"
+      "bytes": 1468,
+      "sha256": "e2063f95153c60309567ef43eb9d0fdb79e8effb4f59827d8149c27125273087"
     },
     {
       "path": "modules/allnewmts-lua/android/CMakeLists.txt",
-      "bytes": 1841,
-      "sha256": "d60034fb11022b73ede6bf0580d59246879254567bff1f8dcdb81d871e329e37"
+      "bytes": 1831,
+      "sha256": "dd4098f9867db02eab5db161b6afe5ab9bfa28c0dcb21fdc550025f4438303c1"
     },
     {
       "path": "modules/allnewmts-lua/android/allnewmts_lua_android_adapter.c",
@@ -428,8 +428,8 @@
     },
     {
       "path": "modules/allnewmts-lua/android/build.gradle",
-      "bytes": 861,
-      "sha256": "2a52e5e5a9239201d39f07c5828df42dc58a24d5d9131ae172c6c958e9a7df38"
+      "bytes": 864,
+      "sha256": "050ff86d63b351b6cc16873d64f4edfc9fc4053d8363c41d0737642f174815ee"
     },
     {
       "path": "modules/allnewmts-lua/android/jni.cpp",
@@ -442,9 +442,9 @@
       "sha256": "68bf0daac52d678c840521f324001cc59fce76e27b1fedad885df5b775716adf"
     },
     {
-      "path": "modules/allnewmts-lua/android/src/g002/java/com/allnewmts/lua/AllNewMTSLuaModule.kt",
-      "bytes": 862,
-      "sha256": "dca7b0051fcd7c7bbcc2240b24b061e95962f23394de2e9284c5398fc8e7d7c5"
+      "path": "modules/allnewmts-lua/android/src/verification/java/com/allnewmts/lua/AllNewMTSLuaModule.kt",
+      "bytes": 907,
+      "sha256": "684c072a33f69d136761be42cfbb004ffd2e6867f76200c2ecb05c5a1fb98644"
     },
     {
       "path": "modules/allnewmts-lua/android/src/main/AndroidManifest.xml",
@@ -572,29 +572,29 @@
       "sha256": "8253b4d98ad7342cfc3d9ed6085be83e64acb624b3e838c122b42785435ff271"
     },
     {
-      "path": "modules/allnewmts-lua/src/gate0-fixture.generated.ts",
-      "bytes": 1214,
-      "sha256": "d1bcde1acaef0d6c59af967284968cb88f55aea872b7b9831e23a13c168df4b7"
+      "path": "modules/allnewmts-lua/src/verification-fixture.generated.ts",
+      "bytes": 1228,
+      "sha256": "38041eb278680964366504390e0e3bb72787240b06bb9b2cb7343b79866aacdb"
     },
     {
-      "path": "modules/allnewmts-lua/src/gate0-harness.ts",
-      "bytes": 235,
-      "sha256": "c92670b6c28c39f5e0323ec0df8dd3f50cb21787729c02bd60a777ad8e45d6b7"
+      "path": "modules/allnewmts-lua/src/verification-harness.ts",
+      "bytes": 242,
+      "sha256": "493bb3c0464840e6f078574e7f8807e38022dcff93da3c66b5e7d28eaf81ca6d"
     },
     {
-      "path": "modules/allnewmts-lua/src/gate0-runtime.ts",
-      "bytes": 725,
-      "sha256": "c60ef55d4d5b95cb1f84e611391af80c67882dc30f65509a460c519c2c95413c"
+      "path": "modules/allnewmts-lua/src/verification-harness-runtime.ts",
+      "bytes": 845,
+      "sha256": "a74845aedb433fa9bd8d76dace8ef3fda32fbabb4c802c40972bfed9a151c863"
     },
     {
       "path": "modules/allnewmts-lua/src/index.ts",
-      "bytes": 108,
-      "sha256": "2c8fa9234973eb396323aea1f8ce7239315abb283b4ef758547f7b5e79ea1912"
+      "bytes": 144,
+      "sha256": "28ec0f0a5334df95537adb61ddf7843de59e02054ea2552f501a6e807e70720d"
     },
     {
       "path": "modules/allnewmts-lua/src/runtime.ts",
-      "bytes": 631,
-      "sha256": "bcdbd41c927aa64330db710223239bd67e9a5685ea463623279056ab76fc439c"
+      "bytes": 636,
+      "sha256": "f9d0d7701e782506cb989d7a56682dd653388a818ccb950240d85fc4b8393c8a"
     },
     {
       "path": "native/resources/error.lua",
@@ -632,9 +632,9 @@
       "sha256": "88f13bee87fa95422082a5fe60e17c6da0cb878f0f3d3f597dd001f4f9b46573"
     },
     {
-      "path": "native/test/g002_narrow_smoke_test.c",
-      "bytes": 860,
-      "sha256": "88843ee73856efab7decd6feeb10df1eec5c422d396f490be90860ac806b3204"
+      "path": "native/test/verification_harness_smoke_test.c",
+      "bytes": 876,
+      "sha256": "94e42ddad3f6783e04f69c800aa2541ef2aeefa504e5419647ad0730f073587c"
     },
     {
       "path": "native/test/native_harness_test.c",
@@ -662,9 +662,9 @@
       "sha256": "e4a90e6552a30afa3930eea53232e0e8d3f647ca85cbc707f9456148219f1b78"
     },
     {
-      "path": "native/test/runtime_expo_kotlin_g002_stubs.kt",
-      "bytes": 643,
-      "sha256": "8ee8daaa75dc36eb9ec6058ecb8999d6215091a5ee62ebb0b8d4f93d62230970"
+      "path": "native/test/runtime_expo_kotlin_harness_stubs.kt",
+      "bytes": 698,
+      "sha256": "bc9ed610540983b801e7bc56cf8f282c129de3bfe7d09fa2a25597aeec9d7788"
     },
     {
       "path": "native/test/runtime_expo_kotlin_stubs.kt",

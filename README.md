@@ -4,6 +4,6 @@ AllNewMTS renders externally authored XMF and unchanged Lua through a shared Rea
 
 Start with [`AGENTS.md`](AGENTS.md). It routes product, runtime, testing, ADR, machine-contract, and oracle ownership without duplicating those contracts.
 
-The current native slice is the local, guarded official Lua 5.1.5 Gate-0 harness only; production runtime and UI work remain deferred.
+The project includes the production runtime/UI path and a separate, opt-in native Lua verification harness.
 
-For ordinary development run `npm run verify:fast`. Story acceptance uses exactly one `npm run verify:story -- <goal-id>`; milestone readiness requires the milestone tier.
+Run `npm run verify:fast` while editing and `npm run verify:ci` for the complete local verification suite.

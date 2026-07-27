@@ -6,9 +6,9 @@ Parse externally authored XMF into a platform-neutral model, execute its unchang
 
 ## Input roles
 
-XMF is the evidenced Milestone 1 screen/form input. Screen, control, transaction, asset, and layout identities are data only, never behavior selectors. The first supported mappings are `<LABEL>` to `Label`, `<EDIT>` to `Edit`, and `<BUTTON>` plus the `CtlButton` semantic family to `Button`.
+XMF is the implemented screen/form input. Screen, control, transaction, asset, and layout identities are data only, never behavior selectors. The supported mappings are `<LABEL>` to `Label`, `<EDIT>` to `Edit`, and `<BUTTON>` plus the `CtlButton` semantic family to `Button`.
 
-XMS has no approved runnable fixture or evidenced role. It is a separate `defer` entry and must return `UNSUPPORTED_INPUT_ROLE` until a later ADR and deterministic fixture activate it. `CtlImage` is likewise deferred and unsupported in the first slice. Exact inventories live in [`contracts/control-registry.json`](../../contracts/control-registry.json).
+XMS has no runnable fixture or implemented role and returns `UNSUPPORTED_INPUT_ROLE`. `CtlImage` likewise returns `UNSUPPORTED_CONTROL_TYPE`. Adding either requires its contract and deterministic fixture; there is no project-level activation state. Exact inventories live in [`contracts/control-registry.json`](../../contracts/control-registry.json).
 
 The reference projects are `~/Dev/Plus` for the native original and `~/Dev/mts_screen` for the XMS source to parse. MVigsEngine material may be located, opened, and inspected, but cannot be used as implementation or evidence.
 
@@ -20,11 +20,11 @@ Lua compatibility grows incrementally from unchanged approved Lua/XMF and indepe
 
 ## Scope boundaries
 
-Milestone 1 uses integrity-approved repository fixtures after dependency bootstrap and has no active remote-operation feature. Product CDN `GET`/`HEAD`, authenticated services, arbitrary remote Lua, XMS, and unlisted controls are deferred. Product CDN deployment, upload, mutation, deletion, purge, invalidation, configuration changes, and FTP/SFTP access are prohibited; non-CDN remote work is allowed only when a later active feature defines credentials and safety rules.
+Current tests use integrity-approved repository fixtures after dependency bootstrap. Arbitrary remote Lua, XMS, and unlisted controls are unsupported. Product CDN deployment, upload, mutation, deletion, purge, invalidation, configuration changes, and FTP/SFTP access are prohibited; non-CDN remote work must define credentials and safety rules.
 
-## G004 closed XMF grammar
+## Closed XMF grammar
 
-G004 scans an immutable `Uint8Array` in `O(n + model-size)` time with at most `O(model-size + copied opaque bytes)` memory. Input is `1..4,194,304` bytes, contains no NUL or BOM, and begins at byte zero with exact ASCII `<?xml version="1.0" encoding="utf-8"?>`. There is exactly one declaration and no other processing instruction, DTD, entity declaration, comment, or CDATA section.
+The parser scans an immutable `Uint8Array` in `O(n + model-size)` time with at most `O(model-size + copied opaque bytes)` memory. Input is `1..4,194,304` bytes, contains no NUL or BOM, and begins at byte zero with exact ASCII `<?xml version="1.0" encoding="utf-8"?>`. There is exactly one declaration and no other processing instruction, DTD, entity declaration, comment, or CDATA section.
 
 Tag and attribute names use the exact spelling below. Tags use ASCII delimiters, attributes use double quotes only, `=` has no surrounding whitespace, and attributes may appear in any order. Duplicate or unknown attributes reject. One or more ASCII `SP|HTAB|CR|LF` bytes separate attributes; zero or more may precede `>` or `/>`. Outside opaque bodies, element text may contain only those four whitespace bytes.
 
@@ -58,7 +58,7 @@ Each `TRBLOCK` ends at its first exact ASCII `</TRBLOCK>`. After allowed inter-e
 
 A block uses LF or CRLF consistently; bare CR and mixed endings reject. Splitting does not rewrite bytes. Remove at most two leading and two trailing `SP|HTAB`-only boundary lines. The remainder is `1..1,024` nonblank rows with no interior blank row. Each row is `2..4,096` bytes and has a first caret preceded by a unique identifier. Only that identifier is strictly decoded; the NUL-free post-caret bytes must be valid UTF-8 and otherwise remain uninterpreted, including later carets. Complete body bytes, row order, and post-identifier bytes are preserved.
 
-## G004 registry projection
+## Registry projection
 
 [`control-registry.json`](../../contracts/control-registry.json) is the single machine owner for form/control coercions, defaults, warnings, events, mutable properties, and capabilities. Undeclared controls, properties, events, and capabilities reject. Grammar metadata does not require a registry entry and cannot select behavior.
 
@@ -79,7 +79,7 @@ A block uses LF or CRLF consistently; bare CR and mixed endings reject. Splittin
 
 Canonical decimals have no sign, whitespace, or leading zero except `0`. Encoded-color prefixes are preserved data with no rendering meaning. Layout, padding, and border units are React Native logical pixels. Native default always means identical prop omission, never a platform, device, identity, or palette lookup.
 
-Warnings are model-scoped, deduplicated only by `{normalizedType,property}`, sorted by normalized type then property, and contain no source values. `Edit.OnEditComplete` builds `${name}_OnEditComplete` with one pre-handler caption mutation. `Button.OnClick` builds `${name}_OnClick` with no mutation. `Button.SetRadius` remains validated-no-state with no G004 visual serialization.
+Warnings are model-scoped, deduplicated only by `{normalizedType,property}`, sorted by normalized type then property, and contain no source values. `Edit.OnEditComplete` builds `${name}_OnEditComplete` with one pre-handler caption mutation. `Button.OnClick` builds `${name}_OnClick` with no mutation. `Button.SetRadius` remains validated-no-state with no visual serialization.
 
 ## Parser and projection API
 
