@@ -68,6 +68,73 @@ Dependencies are added only for an active evidenced slice: prefer existing or na
 
 Later non-CDN transport is allowed only after its own scope, endpoint, credential, safety, and test contract is activated. Product CDN deployment or mutation and FTP/SFTP access to the product CDN remain prohibited; this is not a global ban on non-CDN communication.
 
+## Deferred networking implementation direction
+
+This section records a candidate implementation direction for a future networking goal; it does not activate transport in Gate 3. It was extracted read-only from Plus commit `d479c4b20dcadf50429722db7e56fd9dd1b5ff15`. The source trace is Android `Main/MTSMain/.../job/JobConnectServer.kt`, `JobProcessManager.kt`, and `JobTransaction.kt`, `Core/mVigsCoreLib/.../PacketHeaderHanwha.kt`, `HanwhaPacketMngr.kt`, `HanwhaSession.kt`, `HttpAgentManager.kt`, and `CtlChartEx.kt`, plus `Main/MTSMain/.../RNNetworkingModule.kt` and the `GD1000Q1.qry`/`GD1000QZ.qry` assets; iOS uses the corresponding `ExtLib/SmartMTS/Classes/Job`, `ExtLib/SmartCoreLib/Classes/Net`, `ExtLib/SmartCoreLib/Classes/Control/CtlChartEx.swift`, and `Plus/Module/Networking/NetworkingModule.swift` paths. The React Native trace additionally includes `src/infra/networking/trSpec/types.ts`, `serializeTrSpecToQry.ts`, and `RequestInfo.ts`. MVigsEngine material is excluded from this evidence. Before activation, independently re-author or freeze the selected wire vectors, update the public contracts, and run the local scenarios in [`docs/testing.md`](../testing.md); legacy source remains observational rather than normative.
+
+One native transport coordinator owns connection state, the receive accumulator, request correlation, MCI session values, REST credentials, and realtime registrations. React Native and Lua submit logical transaction or subscription commands only. They do not create socket frames, credentials, common HTTP headers, retry loops, or a direct HTTP fallback. The coordinator has one shared behavior across adapters; endpoints, credentials, channel detail, and candidate servers are injected product data, never OS-selected behavior.
+
+### MCI connection and reconnect
+
+The observed connection sequence is:
+
+1. Select one configured MCI server candidate and open the session.
+2. On socket connection, send command type `I` through the reserved command-request path with a five-second response timeout.
+3. Require an exact 125-byte MCI-init body and parse fixed-width fields in order: public IP `32`, private IP `32`, MCI handle `8`, date `8`, time `12`, type `1`, and IP `32`. Validate the complete body before atomically publishing any value. The original falls back from private to public IP when a private-IP segment is `0`; that normalization needs its own frozen fixture before activation.
+4. Publish the MCI handle and host date/time, then force an AccessKey/AccessToken refresh. `JobConnectServer` succeeds only after both MCI init and REST authentication succeed.
+5. Continue the common process. Initial connect is `CheckSystem -> ConnectServer -> KeyExchange -> AppVersion -> CheckNotice -> VersionCheck -> MasterData -> SetupMain -> Login -> RunMain`; reconnect is `CheckSystem -> ConnectServer -> KeyExchange -> AppVersion -> ReconnectVersionCheck -> Login`. Business requests are admitted only after the selected process reaches its ready state.
+
+Each connection attempt owns a generation. Disconnect, loss, timeout, or MCI-init failure closes the current session, invalidates the generation, and ignores its late socket, init, or token callbacks. The current Android and iOS sources both use up to five automatic retries with a one-second delay, advancing to the next configured candidate before each retry. Exhaustion keeps the same connect job in an explicit user-retry state; user retry clears retry and candidate state and starts a new generation. All timers use an injected clock in tests.
+
+Reconnect runs the full reconnect process above, not only a raw socket reopen. It first cancels outstanding request correlation and realtime wire registrations. It never blindly replays a state-changing transaction. After login succeeds, still-live logical realtime scopes may register again from their current registry; closed scopes and stale callbacks remain canceled. Candidate ordering must be deterministic in tests. The original random starting candidate and force-server controls are deployment concerns, not shared runtime semantics.
+
+### MCI socket frame and header construction
+
+Frames are byte-oriented and fixed-width:
+
+- Bytes `0..7` are `TLG_LNG`, eight ASCII decimal digits containing the number of following bytes. A receiver parses `TLG_LNG + 8`, waits for that many bytes, consumes exactly one frame, and continues so partial and coalesced socket reads behave identically.
+- A request header is 321 bytes: length `8`, system-base `49`, GUID `32`, transaction-info `97`, and user-info `135`. A normal response places a `179`-byte message section after that header, so its data body begins at byte `500`.
+- A frame is at most `7,423` bytes, leaving `7,102` body bytes per request frame. A single frame uses partition `S` and frame count `000`. Multiple frames use `F`, zero or more `C`, then `E`, with one-based three-digit frame counts and the original body length in the eight-digit `ORG_PACKET_LNG`; every fragment recomputes `TLG_LNG`.
+- Fixed text fields are space-filled and bounded to their declared byte widths. Decimal length, request, frame, and certificate-length fields are zero-padded. Decoding rejects non-decimal length prefixes, overflow, undersized headers, invalid partition sequences, inconsistent original lengths, duplicate or out-of-order frames, and values that cannot fit their field.
+
+The native header builder, not the caller, fills common fields. System-base fields include transaction type, encryption/compression flags, synchronous call type, destination interface, certificate/IP flags and length, partition metadata, protocol version, transaction check, continuation, and media codes. The 32-byte GUID is MCI handle `8` plus host timestamp `20` plus a four-digit serial. Transaction-info includes bounded TR ID, screen fields, host date/time, four-digit request ID, MCI handle, byte order, environment, continuation, and transaction kind. User-info includes bounded branch/user/login values, HTS ID, device identifier, and the public/private IP values obtained during MCI init.
+
+Normal request, MCI command, and realtime builders share this one encoder. Encryption, compression, certificate signing, and key-exchange bytes remain deferred until independent vectors exist; plaintext tests must still prove their flags and lengths. Plus currently has different iOS and Android channel-detail values, so the shared implementation must not select one by OS. A future product manifest must supply one approved value and one cross-platform golden.
+
+### MCI GID/FID query composition
+
+`GID` is the server-defined group identifier and each group owns server-defined child `FID` field identifiers. A field identity is the pair `(GID, FID)`; an equal numeric `FID` under another `GID` must not be treated as the same field. The approved injected catalog owns each pair's direction, type, byte width, attributes, and required-input status.
+
+`GD1000Q1`, `GD1000QZ`, and `chart1010` are client-owned local bundle names, not server-owned GID/FID identities. A bundle selects one GID and the input/output FID subset needed by one caller, and its name may be created, renamed, or split freely. The two original `GD1000` QRY assets both declare `.SFID`, `SERVERNO=F`, and `GID=1000` for every field while selecting different child FIDs. The chart path assigns the unrelated local name `chart1010` while writing a separately selected `GID` and output FID list into the request. Therefore no prefix, suffix, or number in a local bundle name may select or validate server behavior.
+
+The implementation represents a FID request as `{localBundleId, gid, inputs, outputs}`. `localBundleId` owns only local registry lookup, schema/cache selection, diagnostics, and caller correlation; the socket request ID remains the authoritative wire correlation. `gid` plus the selected input/output `fid` values own server data selection. The client may invent the bundle name and choose a valid subset, but it cannot invent a GID/FID pair or its metadata. Unknown groups, FIDs outside the selected group, duplicate fields, missing required inputs, and conflicting catalog metadata reject before socket I/O.
+
+The observed QRY serializer emits `.SFID` field descriptors with explicit `fid` and `gid` columns. The direct chart builder emits input FID/value entries, a literal `GID` entry, and the requested output FID list, using `0x1F` as the outer delimiter, `0x1E` between entries, and `0x7F` between a key and value. The exact selector/count segment remains deferred until independently frozen. A response whose interface selector is `F` or `H` enters the SFID decoder and maps values through the originating bundle's `(GID, FID)` descriptors. Unknown, unrequested, duplicated, or structurally missing response fields fail closed. A bounded local alias may appear in a header for diagnostics, but changing it must not change the GID/FID selector body or decoded result.
+
+### REST authentication and common headers
+
+The native authentication manager obtains an AccessKey and then an AccessToken, keeps their issue generation, and treats a token as fresh for five minutes. Token preparation has four bounded rounds with request timeouts of 15, 20, 30, and 45 seconds. Fresh-token requests may start immediately; requests arriving during refresh wait in FIFO order without blocking the UI/runtime worker.
+
+For `useCommonHeader=true`, one native builder produces exactly these reserved headers:
+
+- `Authorization`: the current raw AccessToken;
+- `access_key`: the current AccessKey;
+- `Content-Type`: `application/json`;
+- `h_chnl_detl_scd`: the approved product channel-detail value; and
+- `auth_key`: the injected product API auth value.
+
+Callers cannot supply, omit, or override those five fields. With `useCommonHeader=false`, none is synthesized. No credential or literal product secret belongs in JavaScript, Lua, fixtures, diagnostics, or this repository.
+
+An authenticated response with status `401` or `403` invalidates the matching credential generation, performs one shared refresh, and may retry the request once. A second unauthorized result fails that request and the waiting generation. The Plus source applies this to all authenticated requests; the future contract must permit automatic replay of a mutating method only when that request declares an idempotency contract. Transport errors and other HTTP failures do not trigger credential replay.
+
+### Realtime over MCI
+
+Realtime registration and cancellation use the same connected session and 321-byte header. Transaction types are `0` for register, `1` for unregister, `2` for unregister-all, and `P` for pushed data. The observed subset body contains a four-byte header count, one-byte message type, 20-byte service code, four-byte key count, six-byte total key length, and each key followed by NUL. A push starts with the compact 13-byte real header: length `8`, type `1`, encryption `1`, compression `1`, and push-count `2`.
+
+The coordinator keeps one native registration per normalized service/key while logical scopes hold references. The final local reference emits unregister; scope release unregisters all of that scope; reconnect re-registers only still-live scopes after business readiness. Incoming pushes are parsed once and routed by scope, service, and normalized key. Unknown, malformed, stale-generation, or post-release pushes are discarded with bounded value-redacted diagnostics.
+
+Physical socket-library choice, TLS mode, keepalive, crypto algorithms, live endpoints, and credentials are deliberately unresolved because the allowed Plus wrappers do not independently establish them. They require a separately activated networking goal and may not be inferred from MVigsEngine.
+
 ## Production limits
 
 The shared core enforces overflow-safe bounds:

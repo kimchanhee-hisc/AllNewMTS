@@ -83,6 +83,90 @@ The focused verifier pins its generator, UI verifier, Development-Build runner, 
 
 The exact G004 editing sequence is generated-asset `--check`, docs, policy, type, the five phase commands in the order above, Development Build `--preflight`, unit, then fast. `npm run verify:ui` is not separately invoked: exactly one final `npm run verify:story -- G004-build-generic-xmf-ui-path` owns its single UI and Development Build invocations. Fast, phase, stub, and preflight output are diagnostics only.
 
+## Deferred networking test scenarios
+
+This is an extraction-only inventory from the `~/Dev/Plus` React Native test surface and its Android/iOS native networking path. It records local test scenarios, not an activated transport contract. The read-only extraction used Plus commit `d479c4b20dcadf50429722db7e56fd9dd1b5ff15`; the cited React Native paths were clean even though unrelated Plus paths were dirty. The already frozen watchlist sources in [`test/oracles/manifest.json`](../test/oracles/manifest.json) remain byte-identical to the current Plus files. Other cited Plus paths are observations and must be frozen or independently re-authored before they can become acceptance evidence. The extracted candidate implementation direction is recorded separately in the [runtime contract](specs/runtime-contract.md#deferred-networking-implementation-direction).
+
+The three roles are:
+
+- **MCI socket role:** ordinary request/response TRs and client-composed GID/FID bundles crossing `ApiClient.call -> NetworkingModule.call -> RNNetworking.request`. React Native proves the JSON bridge envelope and TR/QRY shapes; the allowed native original establishes the candidate MCI-init, fixed-frame, GID/FID, and reconnect scenarios below. Physical socket-library, TLS, keepalive, and crypto details remain unresolved.
+- **REST API role:** `requestHttpPageData` with an HTTP method, page type, encoding, URL, body, separator, and common-header flag. The native original establishes central AccessKey/AccessToken handling and the five common-header names below; tests always inject synthetic values.
+- **Realtime role:** scoped subscribe/cancel/release requests plus `networkingRealData` and `networkingRealError` native events.
+
+Every scenario below is local and deterministic: replace native transport with a recording fake, use synthetic values, make no DNS or remote connection, and store no credential, token, customer number, account number, or product endpoint. Update TRs run only against a stateful fake. Any later sandbox or live execution requires a separately activated endpoint, credential, mutation, cleanup, and rollback contract as required by the [runtime contract](specs/runtime-contract.md).
+
+### Connection, framing, and shared authentication
+
+| ID | Stimulus | Expected observation |
+| --- | --- | --- |
+| `NET-BOOT-01` | Connect a fake socket, return a valid command response containing a 125-byte MCI-init body, then complete synthetic AccessKey/AccessToken issuance | The first socket write is command type `I`; fields parse as widths `32/32/8/8/12/1/32`; MCI state publishes atomically; `ConnectServer` completes only after forced REST authentication. |
+| `NET-BOOT-02` | Return an MCI-init body of 124 or 126 bytes, invalid date/time width, or fail token issuance after valid init | The connect generation fails without partially publishing new session values or admitting a business TR. |
+| `NET-FRAME-01` | Encode a minimum plaintext normal request with synthetic TR, request, screen, MCI, IP, and user values | Output has an eight-digit ASCII `TLG_LNG=totalBytes-8`, a 321-byte request header, exact field widths/padding, and body bytes unchanged. The same golden is used by both adapters. |
+| `NET-FRAME-02` | Feed one response byte-by-byte, two responses in one read, a non-decimal/overflow length, and a frame shorter than its declared size | Partial input waits and coalesced input emits two ordered frames. A malformed prefix closes that connection generation and dispatches neither it nor trailing bytes. A normal response body starts after byte `500`. |
+| `NET-FRAME-03` | Encode bodies of `7,102` and `7,103` bytes | `7,102` emits one `S/000` frame. `7,103` emits `F/001` then `E/002`; both are at most `7,423` bytes, carry consistent original length, and reassemble byte-identically. |
+| `NET-HEADER-01` | Build command, normal TR, and realtime headers from the same synthetic session snapshot | Native-owned common fields, GUID shape `8+20+4`, host date/time, request ID, MCI handle, and public/private IP agree. A caller cannot inject an over-width field or choose a platform channel detail. |
+| `NET-RECONNECT-01` | Fail every fake connection while advancing an injected clock | Exactly five automatic retries occur one second apart, advancing candidates and generations; late callbacks from older generations do nothing; exhaustion enters explicit user-retry state rather than looping. |
+| `NET-RECONNECT-02` | Trigger user retry, then complete reconnect | Retry/candidate state resets and the observed reconnect order is `CheckSystem -> ConnectServer -> KeyExchange -> AppVersion -> ReconnectVersionCheck -> Login`; pending state-changing TRs are not replayed. |
+| `NET-REST-HDR-01` | Send local GET requests with `useCommonHeader=true` and `false` | `true` sends only native-built reserved values for `Authorization`, `access_key`, `Content-Type`, `h_chnl_detl_scd`, and `auth_key`; `false` synthesizes none. Caller attempts to override a reserved field reject before I/O. |
+| `NET-REST-AUTH-01` | Use a fresh token, an expired token, concurrent requests during refresh, and a `401/403` response | Fresh token starts immediately; one shared refresh uses bounded `15/20/30/45`-second rounds; waiting requests drain FIFO; unauthorized refreshes and retries once only. A mutating method without an idempotency declaration is not replayed. |
+| `NET-REAL-WIRE-01` | Register and unregister two references to one synthetic service/key, then reconnect with one live scope | Registration type is `0`, final-reference cancellation is `1`, the subset body has fixed `4/1/20/4/6` fields plus NUL-terminated keys, and only the live scope registers again after reconnect readiness. |
+
+### GID/FID bundle composition
+
+These scenarios distinguish the server-owned `(GID, FID)` namespace from the freely named client bundle that selects a subset of it. They inspect only in-memory descriptors and a recording socket fake.
+
+| ID | Test message | Expected observation |
+| --- | --- | --- |
+| `NET-FID-01` | Load the original `GD1000Q1` and `GD1000QZ` descriptors | Both are `.SFID`, route to `SERVERNO=F`, and use `GID=1000` for every field. Their output FID subsets differ, proving that neither local name is the server group identity. |
+| `NET-FID-02` | Register a new local bundle named `MYQUOTE` for approved `GID=1000`, required input FIDs `9001/9002`, and a small approved output-FID subset | The registry accepts the arbitrary local name and emits the selected GID/FIDs without a `GD1000` name switch. The name is used only for local schema/cache lookup and diagnostics. |
+| `NET-FID-03` | Send two otherwise identical bundles under different valid local names | Their GID/FID selector bodies and decoded values are byte/field identical; only the local alias or bounded diagnostic header field may differ, and request-ID correlation remains independent. |
+| `NET-FID-04` | Supply an unknown GID, a FID outside its GID, the same `(GID,FID)` twice, a missing required input, conflicting metadata, or mixed groups in a declared one-GID bundle | Validation rejects before header construction or socket I/O. Equal numeric FIDs in two different GIDs remain distinct catalog entries. |
+| `NET-FID-05` | Decode an `F/H` interface response for a registered bundle, then inject an unknown, unrequested, duplicate, or structurally missing field | The valid response maps through that bundle's `(GID,FID)` descriptors. Each invalid variant fails closed without partially publishing output. |
+
+### MCI request/response
+
+The bridge request must contain `apiName`, block-shaped `input`, input/output schemas, required in-memory `qryText`, and only the applicable optional encryption, header, target-block, or asynchronous-realtime fields. For an ordinary TR, `apiName` identifies that transaction; for `.SFID`, it is the freely chosen local bundle name while explicit GID/FID descriptors carry server meaning. The bridge response is `{apiName, success, outputType, outputTypeName, output?, error?, meta?}`. A missing native module or bridge rejection is a transport failure; invalid required input must stop before shared-data lookup or native invocation.
+
+| ID | Test message | Expected observation |
+| --- | --- | --- |
+| `NET-MCI-01` | `TR5197Q1` read with `InRec1.OPER_DT=20260129`, `MKT_ID_SCD=STK` | One `RNNetworking.request`; successful output is returned as the market-info result. This is a Plus developer-screen fixture, not a timeless business date. |
+| `NET-MCI-02` | `BC1303Q2` read with `XTNL_ORG_ID_SCD=01`, `INCL_YN=N` | One request; successful output preserves the bank/security-list blocks. |
+| `NET-MCI-03` | `TR3300Q5` read with synthetic 11-digit `IACN`, synthetic `CUNO`, `DMS_OVRS_USE_SCD=%`, `INQ_SCD=1`, `CRDT_BLN_INQ_SCD=1`, `FEE_INCL_YN=Y`, `STK_QTTN_SCD=1`, and empty `BLN_INQ_SE` | One request; no live-looking Plus account/customer fixture is copied into this repository. |
+| `NET-MCI-04` | `AM1952Q1` and `AM1951Q1` with trimmed synthetic product/token inputs and `CUNO` read from logical shared key `&USER_NUM` | The exact `InRec1` fields reach `ApiClient.call`; missing `&USER_NUM` returns `invalidResponse` without a native call. Success preserves `OutRec1`. |
+| `NET-MCI-05` | `AM1950Q1` with trimmed synthetic `IACN`, `INQ_SCD`, and shared `CUNO` | Blank user inputs stop before shared-data lookup; blank shared `CUNO` stops before native invocation; success preserves the registration/status fields in `OutRec1`. |
+| `NET-MCI-06` | `AM1952U1` with `CUNO`, `PRDT_COD`, `CCRN_PRDT_YN`; `AM1950U1` with `CUNO` plus all 14 required join fields | Run with a recording stateful fake only. Missing fields stop before native invocation; the complete request is emitted once and its success output is preserved. |
+| `NET-MCI-07` | Registered in-memory QRY for each message | Missing registration fails closed with no native file/asset fallback. An original `ENCRYPT` TR adds `Encrypt=1`; a plain TR does not infer it; attempting `Encrypt=0` for an encrypted TR fails before transport. |
+| `NET-MCI-08` | Frozen watchlist sequence `CCS20001 -> CCS20000 -> GD5001QK` | Preserve server group order, de-duplicate instruments by market/exchange/code in registration order, and send one `GD5001QK` snapshot request containing `1..100` items; 101 inputs reject. Frozen evidence is [`WatchlistTransportRequests.test.ts.source`](../test/oracles/sources/plus/typescript/WatchlistTransportRequests.test.ts.source) and [`WatchlistApiService.test.ts.source`](../test/oracles/sources/plus/typescript/WatchlistApiService.test.ts.source). |
+
+### REST API
+
+| ID | Test message | Expected observation |
+| --- | --- | --- |
+| `NET-REST-01` | Strategy-list `GET` using a local URL ending in `/strategy/list?contentType=INVEST` | The recorded bridge payload is exactly `method=GET`, `pageType=json`, `encoding=UTF-8`, empty `body`, empty `parseSeparator`, and `useCommonHeader=true`. |
+| `NET-REST-02` | Native fake returns `success=true` and JSON text in `data` | The HTTP envelope is preserved; the strategy-list service parses `contents`, and the developer scenario can display `url`, `pageType`, and parsed data. |
+| `NET-REST-03` | Native fake returns `success=false` with a structured error | The common-header service returns `requestFailed` and does not parse a success body. |
+| `NET-REST-04` | Native HTTP method is absent or rejects | The caller receives a transport error; no direct `fetch`/`axios` fallback is attempted. |
+| `NET-REST-05` | HTTP succeeds but JSON is malformed or lacks the required strategy shape | Parsing fails deterministically as `invalidResponse`; transport success alone is not scenario success. |
+
+### Realtime subscription
+
+| ID | Test message | Expected observation |
+| --- | --- | --- |
+| `NET-REAL-01` | Subscribe `S00` for input `5930` or `005930` | Normalize to matcher `S00:SHRN_ISCD:005930`; emit one native subscribe payload with `scopeId`, matcher, `apiName=S00`, `InBlock1.CODE`, schemas, and required `qryText`. |
+| `NET-REAL-02` | Emit `networkingRealData` for `scopeId`, `apiName=S00`, and `OutBlock1.SHRN_ISCD=005930` | Deliver only to matching subscriptions and preserve `STCK_PRPR`, `PRDY_VRSS_SIGN`, `PRDY_VRSS`, `PRDY_CTRT`, and `STCK_CNTG_HOUR`; malformed, wrong-scope, wrong-channel, or wrong-code events do not dispatch. |
+| `NET-REAL-03` | Subscribe twice to the same normalized matcher | Native subscribe occurs once, both callbacks receive matching data, the first cancel is local only, and the final cancel invokes native cancel once. |
+| `NET-REAL-04` | Subscribe `005930` and `000660`, then emit one event for each | Native subscribes and callbacks remain separated by matcher. |
+| `NET-REAL-05` | Batch 100 distinct `S00` requests, then emit code `000050` | One native batch call is made and only the indexed candidate runs `matches`; if native batch is unavailable, the documented fallback is individual subscribe calls. |
+| `NET-REAL-06` | Release a scope containing active subscriptions | `cancelAll` invalidates local subscriptions and calls native `releaseRealScope` once. An auto scope releases on its matching route close; a manual scope survives route close until explicit release. |
+| `NET-REAL-07` | Frozen watchlist channel matrix | Generate in-memory subscription QRY for all 32 channels `S00,S02,S03,X00,X02,X50,X52,Y00,Y10,Y20,Y30,Y40,T00,U00,U02,V00,W00,W02,F00,F10,F20,F30,F70,F80,F92,O00,O10,O20,O40,O80,O85,C00`; preserve single versus occurs input, market/exchange/code matcher selection, and caller-supplied scope release. |
+| `NET-REAL-08` | Native subscribe/cancel failure or `networkingRealError` with and without a matcher | Subscribe failure notifies the registered error callback and rejects; cancel failure rejects after local callback removal. A native error event reaches only the matching bucket, or all same-channel buckets when the matcher is absent. These paths are visible in Plus production code but lack a selected Plus unit assertion, so they are required future negative fixtures rather than current acceptance evidence. |
+
+This inventory deliberately does not select a networking library, copy Plus implementations, activate endpoints, or authorize remote tests. When a networking goal is activated, adopt the smallest representative set first: connection plus one MCI-init/frame golden, one custom-named GID/FID bundle, one read-only ordinary MCI query, one local REST GET, and one `S00` subscribe/data/cancel lifecycle; add wider matrices only when that slice requires them.
+
+Extraction record, 2026-07-27: the bounded goal was documentation-only extraction of the three Plus networking roles, their local scenarios, and original-backed implementation direction. Changed paths are this file, [`runtime-contract.md`](specs/runtime-contract.md), and their integrity entries in [`verification/manifest.json`](../verification/manifest.json); implementation, generated files, frozen/oracle bytes, endpoints, credentials, live traffic, CDN work, and MVigsEngine evidence are non-goals. The selected diagnostic tier was fast: `npm run verify:fast` exited `0` in 21.33 s with format 0.16 s, docs 0.15 s, policy 0.41 s, type 0.81 s, and unit 19.27 s; all nine unit tests passed. The one acceptance command already consumed for this goal, `npm run verify:story -- G001A-establish-ai-native-foundation`, exited `1` at the fixture gate in 19.53 s because the immutable oracle manifest names a missing external `mts_screen` path; its preceding format, docs, policy, type, and unit checks passed, and it was not rerun. Deterministic generated/frozen/oracle diffs are `none`. Remaining risk is that Plus legacy observations are not acceptance evidence until selected vectors are independently frozen or re-authored. Cleanup has no active process or temporary output; rollback removes only this networking inventory, the deferred runtime direction, and their two manifest hash updates. Separate non-implementing review and cleanup decisions remain outstanding.
+
+GID/FID follow-up, 2026-07-27: the same documentation-only goal now distinguishes server-owned `(GID,FID)` identities from freely named client bundles and adds five local composition scenarios. No implementation, fixture, generated/oracle byte, remote operation, or new acceptance attempt was added. `npm run verify:fast` exited `0` in 18.93 s: format 0.14 s, docs 0.15 s, policy 0.39 s, type 0.77 s, and unit 17.49 s; all nine unit tests passed. The already consumed Story was not rerun. Remaining risk, cleanup, rollback, and independent review requirements are unchanged.
+
 ## Change protocol
 
 Every change must record:

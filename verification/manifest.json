@@ -412,11 +412,11 @@
     },
     {
       "path": "docs/specs/runtime-contract.md",
-      "sha256": "4b220751c723309b86dcd56872eb05325152f50974b3a7d56a0fec30f9ff7080"
+      "sha256": "d644dd8e8664aa6c7696242e61b5f0205fa4c802364ebc6525282993edb980ad"
     },
     {
       "path": "docs/testing.md",
-      "sha256": "dc535b9b4d3f4338f137dfe9d79d2ad3d356a5da027d5bb8e3d1fc94e2dd68a0"
+      "sha256": "940f724fe3f7ac621d17768288abb41f083bcea9c504b2f2125f67c1e46522d1"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
