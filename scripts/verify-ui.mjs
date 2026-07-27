@@ -11,9 +11,11 @@ import { safeRepoFile, validateSchema } from './verify-foundation.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const phases = ['parser-model', 'projection-render', 'runtime-client', 'unseen-generality', 'module-stub-smoke'];
+const controlModuleFiles = ['button', 'edit', 'image', 'label'].map((name) => `src/controls/${name}.ts`);
+const focusedPhases = [...phases, 'ctlimage', 'control-modules'];
 const argv = process.argv.slice(2);
 const forwardingRegression = argv.length === 1 && argv[0] === '--build-failure-forwarding-regression';
-assert.ok(forwardingRegression || argv.length === 0 || (argv.length === 2 && argv[0] === '--phase' && phases.includes(argv[1])), `usage: node scripts/verify-ui.mjs [--phase ${phases.join('|')}]`);
+assert.ok(forwardingRegression || argv.length === 0 || (argv.length === 2 && argv[0] === '--phase' && focusedPhases.includes(argv[1])), `usage: node scripts/verify-ui.mjs [--phase ${focusedPhases.join('|')}]`);
 const selected = forwardingRegression ? undefined : argv[1];
 const read = (file, encoding) => fs.readFileSync(safeRepoFile(file), encoding);
 const json = (file) => JSON.parse(read(file, 'utf8'));
@@ -308,10 +310,11 @@ const independentGrammar = Object.freeze([
   { parent: 'document', order: 1, tag: 'ROOT', form: 'paired', cardinality: '1', required: [], optional: [], body: 'MAP_INFO,FORM_INFO,CONTROL_INFO,SCRIPT_INFO,DATAIO_INFO; no trailing data' },
   { parent: 'ROOT', order: 1, tag: 'MAP_INFO', form: 'self', cardinality: '1', required: ['scrno', 'scrname', 'version', 'writer', 'scrtype', 'scripttype'], optional: [], body: 'token/text/decimal metadata bounds' },
   { parent: 'ROOT', order: 2, tag: 'FORM_INFO', form: 'self', cardinality: '1', required: ['name', 'bgcolor', 'ly_vert'], optional: [], body: 'identifier,encoded-color,layout' },
-  { parent: 'ROOT', order: 3, tag: 'CONTROL_INFO', form: 'paired', cardinality: '1', required: [], optional: [], body: 'five controls in arbitrary order then TABORDER_INFO; unique names' },
+  { parent: 'ROOT', order: 3, tag: 'CONTROL_INFO', form: 'paired', cardinality: '1', required: [], optional: [], body: 'five controls plus optional IMAGE in arbitrary order then TABORDER_INFO; unique names' },
   { parent: 'CONTROL_INFO', order: 1, tag: 'LABEL', form: 'self', cardinality: '2', required: ['name', 'caption', 'ly_vert'], optional: ['fontsize', 'fontstyle'], body: 'identifier,text<=2048,registry projection' },
   { parent: 'CONTROL_INFO', order: 1, tag: 'EDIT', form: 'self', cardinality: '1', required: ['name', 'hintcaption', 'imetype', 'maxlength', 'leadheight', 'paddinginfo', 'ly_vert'], optional: ['caption'], body: 'identifier,text<=2048,registry projection' },
   { parent: 'CONTROL_INFO', order: 1, tag: 'BUTTON', form: 'self', cardinality: '2', required: ['name', 'caption', 'fgcolor', 'fontsize', 'ly_vert'], optional: ['enable', 'bgcolor', 'bordersize'], body: 'identifier,text<=2048,registry projection' },
+  { parent: 'CONTROL_INFO', order: 1, tag: 'IMAGE', form: 'self', cardinality: '0..1', required: ['name', 'imgpath', 'ly_vert'], optional: [], body: 'identifier,logical-resource-name,layout; static non-focusable projection' },
   { parent: 'CONTROL_INFO', order: 2, tag: 'TABORDER_INFO', form: 'self', cardinality: '1', required: ['horz', 'vert'], optional: [], body: 'backtick list 1..5; unique declared Edit/Button; <=644 bytes' },
   { parent: 'ROOT', order: 4, tag: 'SCRIPT_INFO', form: 'paired', cardinality: '1', required: ['_len', '_ulen'], optional: [], body: 'opaque 0..2097152 bytes; exact single close' },
   { parent: 'ROOT', order: 5, tag: 'DATAIO_INFO', form: 'paired', cardinality: '1', required: [], optional: [], body: 'TRID_INFO then TRIO_INFO' },
@@ -370,6 +373,7 @@ function summary(model) {
     labels: model.controls.filter(({ type }) => type === 'Label').length,
     edits: model.controls.filter(({ type }) => type === 'Edit').length,
     buttons: model.controls.filter(({ type }) => type === 'Button').length,
+    images: model.controls.filter(({ type }) => type === 'Image').length,
     transactionIds: model.transactionIds.length,
     transactions: model.transactions.length,
     blocks: model.transactions.flatMap(({ blocks }) => blocks).length
@@ -417,7 +421,7 @@ function replaceOpaqueBody(bytes, tag, body) {
 }
 
 function assertModel(model, source) {
-  assert.deepEqual(summary(model), { forms: 1, labels: 2, edits: 1, buttons: 2, transactionIds: 2, transactions: 2, blocks: 8 });
+  assert.deepEqual(summary(model), { forms: 1, labels: 2, edits: 1, buttons: 2, images: 0, transactionIds: 2, transactions: 2, blocks: 8 });
   assert.deepEqual(Buffer.from(model.script.bytes), Buffer.from(scriptSlice(source)));
   assert.ok(Buffer.from(model.script.bytes).includes(Buffer.from('&USER_ID')));
   assert.ok(Object.isFrozen(model) && Object.isFrozen(model.controls) && Object.isFrozen(model.transactions));
@@ -430,8 +434,24 @@ function contractRegistry() {
   assert.deepEqual(registry.inputRoles.map(({ name, decision, diagnostic }) => [name, decision, diagnostic]), [
     ['XMF', 'include', null], ['XMS', 'unsupported', 'UNSUPPORTED_INPUT_ROLE']
   ]);
-  assert.deepEqual(registry.controls.filter(({ decision }) => decision === 'include').map(({ normalizedType }) => normalizedType), ['Label', 'Edit', 'Button']);
-  assert.equal(registry.controls.find(({ semanticFamilies }) => semanticFamilies.includes('CtlImage')).diagnostic, 'UNSUPPORTED_CONTROL_TYPE');
+  assert.deepEqual(registry.controls.filter(({ decision }) => decision === 'include').map(({ normalizedType }) => normalizedType), ['Label', 'Edit', 'Button', 'Image']);
+  assert.deepEqual(registry.controls.find(({ normalizedType }) => normalizedType === 'Image'), {
+    id: 'image',
+    decision: 'include',
+    sourceTags: ['IMAGE'],
+    semanticFamilies: ['CtlImage'],
+    normalizedType: 'Image',
+    properties: [
+      { name: 'name', policy: 'identifier', required: true, default: null, maxBytes: 128 },
+      { name: 'imgpath', policy: 'resource-name', required: true, default: null, maxBytes: 256 },
+      { name: 'ly_vert', policy: 'layout', required: true, default: null, maxBytes: 21 }
+    ],
+    mutableProperties: [],
+    events: [],
+    capabilities: ['image-resource', 'layout', 'accessibility-image'],
+    undeclared: 'reject',
+    diagnostic: null
+  });
   assert.deepEqual(registry.controls.flatMap(({ events }) => events.map(({ name, handlerSuffix }) => [name, handlerSuffix])), [
     ['OnEditComplete', '_OnEditComplete'], ['OnClick', '_OnClick']
   ]);
@@ -624,7 +644,7 @@ function parserModel() {
 function projectionRender() {
   const model = modules.xmf.parseXmf(original);
   const descriptors = modules.xmf.toRenderDescriptors(model);
-  assert.deepEqual(descriptors.map(({ component }) => component), model.controls.map(({ type }) => ({ Label: 'Text', Edit: 'TextInput', Button: 'Pressable' })[type]));
+  assert.deepEqual(descriptors.map(({ component }) => component), model.controls.map(({ type }) => ({ Label: 'Text', Edit: 'TextInput', Button: 'Pressable', Image: 'Image' })[type]));
   assert.ok(descriptors.every(({ style, accessibilityLabel }) => style.width > 0 && style.height > 0 && accessibilityLabel));
   const label = descriptors.find(({ component }) => component === 'Text');
   assert.equal(label.event, undefined);
@@ -667,12 +687,14 @@ function projectionRender() {
     assert.throws(() => modules.xmf.toRenderDescriptors(model, state), ({ code }) => code === 'INVALID_PROPERTY');
     assert.deepEqual(modules.xmf.toRenderDescriptors(model), baseline);
   }
-  const renderer = read('src/XmfScreen.tsx', 'utf8');
+  const screen = read('src/XmfScreen.tsx', 'utf8');
+  const renderer = read('src/controls/ControlView.tsx', 'utf8');
   assert.match(renderer, /TextInput/);
   assert.match(renderer, /Pressable/);
-  assert.match(renderer, /toRenderDescriptors\(model,\s*Object\.fromEntries/);
-  assert.doesNotMatch(renderer, /runtimeControls\?\.[^\n]*(?:caption|border|dfgcolor|enabled)|state\.properties\.(?:caption|border|dfgcolor|enabled)/);
-  assert.doesNotMatch(renderer, /Platform\.(?:OS|select)|requireNativeComponent|HS1200P08|edtGroupNm|btnAdd|btnCancel/);
+  assert.match(screen, /toRenderDescriptors\(model,\s*Object\.fromEntries/);
+  assert.match(screen, /<ControlView /);
+  assert.doesNotMatch(`${screen}\n${renderer}`, /runtimeControls\?\.[^\n]*(?:caption|border|dfgcolor|enabled)|state\.properties\.(?:caption|border|dfgcolor|enabled)/);
+  assert.doesNotMatch(`${screen}\n${renderer}`, /Platform\.(?:OS|select)|requireNativeComponent|HS1200P08|edtGroupNm|btnAdd|btnCancel/);
   for (const descriptor of descriptors) {
     assert.equal(Object.hasOwn(descriptor, 'fontSize'), false);
     assert.equal(Object.hasOwn(descriptor, 'fontWeight'), false);
@@ -680,6 +702,88 @@ function projectionRender() {
     assert.equal(Object.hasOwn(descriptor, 'fontFamily'), false);
   }
   return { descriptors: descriptors.length, runtimeTokens: 8, rejectedRuntimeStates: 7, components: ['Text', 'TextInput', 'Pressable'] };
+}
+
+function ctlImage() {
+  const row = '<IMAGE name="imgStatus" imgpath="icon_status" ly_vert="0,0,16,16,1" />';
+  const bytes = mutate(original, '\t\t<TABORDER_INFO', `\t\t${row}\r\n\t\t<TABORDER_INFO`);
+  const model = parses(bytes);
+  assert.deepEqual(summary(model), { forms: 1, labels: 2, edits: 1, buttons: 2, images: 1, transactionIds: 2, transactions: 2, blocks: 8 });
+  const image = model.controls.find(({ type }) => type === 'Image');
+  assert.deepEqual(image, { type: 'Image', name: 'imgStatus', imageResource: 'icon_status', layout: { left: 0, top: 0, width: 16, height: 16 } });
+  assert.ok(Object.isFrozen(image) && Object.isFrozen(image.layout));
+  const descriptor = modules.xmf.toRenderDescriptors(model).find(({ control }) => control === 'imgStatus');
+  assert.deepEqual(descriptor, {
+    key: 'imgStatus',
+    control: 'imgStatus',
+    component: 'Image',
+    imageResource: 'icon_status',
+    style: { left: 0, top: 0, width: 16, height: 16 },
+    accessibilityLabel: 'imgStatus',
+    accessibilityRole: 'image'
+  });
+  assert.throws(() => modules.xmf.toRenderDescriptors(model, { imgStatus: { imgpath: 'other' } }), ({ code }) => code === 'INVALID_PROPERTY');
+  assert.throws(() => modules.xmf.buildControlEvent(image, 'OnClick'), ({ code }) => code === 'INVALID_PROPERTY');
+  for (const [invalid, code] of [
+    [mutate(bytes, 'imgpath="icon_status"', 'imgpath=""'), 'INVALID_PROPERTY'],
+    [mutate(bytes, 'imgpath="icon_status"', 'imgpath="../icon"'), 'INVALID_PROPERTY'],
+    [mutate(bytes, 'imgpath="icon_status"', 'imgpath="https://example.invalid/icon"'), 'INVALID_PROPERTY'],
+    [mutate(bytes, ' imgpath="icon_status"', ''), 'INVALID_STRUCTURE'],
+    [mutate(bytes, ' ly_vert="0,0,16,16,1"', ' unknown="1" ly_vert="0,0,16,16,1"'), 'INVALID_STRUCTURE'],
+    [mutate(bytes, 'name="imgStatus"', 'name="lbl0"'), 'INVALID_STRUCTURE'],
+    [mutate(bytes, '\t\t<TABORDER_INFO', `\t\t${row.replace('imgStatus', 'imgStatus2')}\r\n\t\t<TABORDER_INFO`), 'INVALID_STRUCTURE']
+  ]) rejects(invalid, code);
+  const screen = read('src/XmfScreen.tsx', 'utf8');
+  const renderer = read('src/controls/ControlView.tsx', 'utf8');
+  assert.match(screen, /<ControlView /);
+  assert.match(renderer, /ImageSourcePropType/);
+  assert.match(renderer, /Object\.hasOwn\(imageSources, resource\)/);
+  assert.match(renderer, /UNRESOLVED_IMAGE_RESOURCE/);
+  assert.doesNotMatch(renderer, /source=\{\{\s*uri:|(?:https?|ftp|sftp):\/\//i);
+  return { fixtureSha256: sha256(bytes), imageControls: 1, negativeCases: 7, runtimeProperties: 0, events: 0, remoteOperations: 0 };
+}
+
+function controlModules() {
+  const types = read('src/controls/types.ts', 'utf8');
+  assert.match(types, /interface ControlModule<T extends XmfControl>/);
+  const expected = [
+    ['button', 'ButtonControl', 'Button'],
+    ['edit', 'EditControl', 'Edit'],
+    ['image', 'ImageControl', 'Image'],
+    ['label', 'LabelControl', 'Label']
+  ];
+  for (const [file, controlType, normalizedType] of expected) {
+    const source = read(`src/controls/${file}.ts`, 'utf8');
+    assert.match(source, new RegExp(`ControlModule<${controlType}>`));
+    assert.match(source, new RegExp(`type: '${normalizedType}'`));
+    assert.match(source, /create:/);
+    assert.match(source, /project:/);
+    assert.doesNotMatch(source, /Platform\.(?:OS|select)|require\(|import\(|readdir|glob|(?:https?|ftp|sftp):\/\//i);
+  }
+  const dispatch = read('src/controls/index.ts', 'utf8');
+  for (const [file, , normalizedType] of expected) {
+    assert.match(dispatch, new RegExp(`from './${file}'`));
+    assert.equal((dispatch.match(new RegExp(`case '${normalizedType}'`, 'g')) ?? []).length, 2);
+  }
+  assert.doesNotMatch(dispatch, /require\(|import\(|readdir|glob|Platform\.(?:OS|select)/);
+  const parser = read('src/xmf.ts', 'utf8');
+  assert.match(parser, /return createControl\(descriptor\.normalizedType,/);
+  assert.match(parser, /projectControl\(control, normalized\.get\(control\.name\) \?\? \{\}\)/);
+  assert.doesNotMatch(parser, /descriptor\.normalizedType === '(?:Label|Edit|Button|Image)'/);
+  const screen = read('src/XmfScreen.tsx', 'utf8');
+  assert.match(screen, /<ControlView key=\{descriptor\.key\}/);
+  assert.doesNotMatch(screen, /<(?:Text|TextInput|Pressable|Image)\b|switch \(descriptor\.component\)/);
+
+  const model = parses(original);
+  assert.deepEqual(summary(model), { forms: 1, labels: 2, edits: 1, buttons: 2, images: 0, transactionIds: 2, transactions: 2, blocks: 8 });
+  assert.deepEqual(modules.xmf.toRenderDescriptors(model).map(({ component }) => component), ['Text', 'Text', 'TextInput', 'Pressable', 'Pressable']);
+  const imageBytes = mutate(original, '\t\t<TABORDER_INFO', '\t\t<IMAGE name="imgStatus" imgpath="icon_status" ly_vert="0,0,16,16,1" />\r\n\t\t<TABORDER_INFO');
+  const imageModel = parses(imageBytes);
+  assert.deepEqual(imageModel.controls.find(({ type }) => type === 'Image'), {
+    type: 'Image', name: 'imgStatus', imageResource: 'icon_status', layout: { left: 0, top: 0, width: 16, height: 16 }
+  });
+  assert.equal(modules.xmf.toRenderDescriptors(imageModel).find(({ control }) => control === 'imgStatus').component, 'Image');
+  return { modules: expected.length, explicitCreateCases: expected.length, explicitProjectionCases: expected.length, reactNativeBoundaries: 1, dynamicRegistrations: 0, osSelections: 0 };
 }
 
 function clientGolden(runtimeId = '1') {
@@ -895,7 +999,7 @@ function unseenBytes() {
 }
 
 function productionHashes() {
-  return Object.fromEntries(['src/xmf.ts', 'src/runtime-client.ts', 'src/XmfScreen.tsx', 'App.tsx', 'contracts/control-registry.json']
+  return Object.fromEntries(['src/xmf.ts', 'src/runtime-client.ts', 'src/XmfScreen.tsx', 'src/controls/ControlView.tsx', ...controlModuleFiles, 'src/controls/index.ts', 'src/controls/types.ts', 'App.tsx', 'contracts/control-registry.json']
     .map((file) => [file, sha256(read(file))]));
 }
 
@@ -1072,11 +1176,11 @@ function assetAndComposition() {
   assert.equal(host?.getText(source), `{ openLinkData: '', sharedData: {}, itemCodeInfo: [] }`);
   assert.equal(transactions?.getText(source), `[{ id: 'T_ALPHA', blocks: [{ id: 'input', fields: ['value'] }, { id: 'output', fields: ['value'] }] }]`);
   assert.match(controls?.getText(source) ?? '', /^model\.controls\.flatMap/);
-  assert.match(controls?.getText(source) ?? '', /case 'Label': return \[\];[\s\S]+case 'Edit':[\s\S]+case 'Button':/);
+  assert.match(controls?.getText(source) ?? '', /case 'Label': return \[\];[\s\S]+case 'Edit':[\s\S]+case 'Button':[\s\S]+case 'Image': return \[\];/);
   return { sourceSha256: expectedSourceHash, generatedBytes: values.length, appAstValueFlow: true, createCalls: callText('client.create').length };
 }
 
-const work = { 'parser-model': parserModel, 'projection-render': projectionRender, 'runtime-client': runtimeClient, 'unseen-generality': unseenGenerality, 'module-stub-smoke': moduleStubSmoke };
+const work = { 'parser-model': parserModel, 'projection-render': projectionRender, 'runtime-client': runtimeClient, 'unseen-generality': unseenGenerality, 'module-stub-smoke': moduleStubSmoke, ctlimage: ctlImage, 'control-modules': controlModules };
 try {
   if (selected) {
     await phase(selected, work[selected]);

@@ -26,6 +26,8 @@
     "verify:native": "node scripts/verify-native.mjs",
     "verify:provenance": "node scripts/verify-foundation.mjs provenance",
     "verify:ui": "node scripts/verify-ui.mjs",
+    "verify:ctlimage": "node scripts/verify-ui.mjs --phase ctlimage",
+    "verify:control-modules": "node scripts/verify-ui.mjs --phase control-modules",
     "verify:fast": "node scripts/verify-foundation.mjs fast",
     "verify:ci": "node scripts/verify-foundation.mjs ci",
     "start": "expo start",

@@ -61,6 +61,7 @@ function isProductBehavioralFile(mode, file) {
     !file.startsWith('contracts/') &&
     !file.startsWith('verification/') &&
     !file.startsWith('test/oracles/') &&
+    file !== 'src/generated/approved-xmf.ts' &&
     !file.startsWith(pinnedThirdPartyRoot) &&
     !['scripts/generate-synthetic-xmf.mjs', 'scripts/verify-fixtures.mjs'].includes(file);
 }
@@ -289,6 +290,7 @@ for (const file of productionFiles()) {
   assert.equal(hit, undefined, `production static anti-hardcoding tripwire (${hit}): ${file}`);
 }
 assert.equal(isProductBehavioralFile('100644', 'modules/allnewmts-lua/vendor/lua-5.1.5/src/lapi.h'), false, 'pinned third-party source entered product behavior scan');
+assert.equal(isProductBehavioralFile('100644', 'src/generated/approved-xmf.ts'), false, 'generated XMF data entered product behavior scan');
 assert.equal(isProductBehavioralFile('100644', 'src/product-behavior.ts'), true, 'product-authored source escaped behavior scan');
 assert.equal(hardcodingHit('const transaction = "CCS20000";'), 'CCS20000', 'product-authored hardcoding tripwire weakened');
 assert.equal(hardcodingHit(productBehaviorText('native/lua-source-manifest.json', '{"sha256":"9907000000000000000000000000000000000000000000000000000000000000"}')), undefined, 'integrity hash bytes entered product behavior scan');

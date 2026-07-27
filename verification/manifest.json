@@ -189,6 +189,46 @@
       "budgetSeconds": 1200
     },
     {
+      "id": "ctlimage",
+      "packageScript": "verify:ctlimage",
+      "command": "npm run verify:ctlimage",
+      "argv": [
+        "node",
+        "scripts/verify-ui.mjs",
+        "--phase",
+        "ctlimage"
+      ],
+      "inputs": [
+        "XMF Image grammar and registry",
+        "static image model and projection",
+        "caller-supplied resource table"
+      ],
+      "outputs": [
+        "static Image and resource-boundary evidence"
+      ],
+      "budgetSeconds": 120
+    },
+    {
+      "id": "control-modules",
+      "packageScript": "verify:control-modules",
+      "command": "npm run verify:control-modules",
+      "argv": [
+        "node",
+        "scripts/verify-ui.mjs",
+        "--phase",
+        "control-modules"
+      ],
+      "inputs": [
+        "control registry",
+        "explicit control modules",
+        "React Native component boundary"
+      ],
+      "outputs": [
+        "control dispatch and projection evidence"
+      ],
+      "budgetSeconds": 120
+    },
+    {
       "id": "provenance",
       "packageScript": "verify:provenance",
       "command": "npm run verify:provenance",
@@ -229,6 +269,8 @@
         "native",
         "runtime",
         "ui",
+        "ctlimage",
+        "control-modules",
         "provenance"
       ],
       "budgetSeconds": 3600
@@ -249,7 +291,7 @@
     },
     {
       "path": "docs/specs/xmf-lua-runtime.md",
-      "sha256": "b14a715e8dad852f9e681b11e55b9fa3967fcad7448820995e4dd0d57131f558"
+      "sha256": "cdf2f852928e19b46d959c994256fb840b4652e278e25625303a42c08d911e4d"
     },
     {
       "path": "docs/specs/runtime-contract.md",
@@ -257,7 +299,7 @@
     },
     {
       "path": "docs/testing.md",
-      "sha256": "4bab6b513ea74cbe5280891290dcf9a3ec1611e905296c10935daf79dcabedd4"
+      "sha256": "dffeb210702da299647e058f46ac9bc057c13cbec3583b9697b3e1269cfe72c9"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
@@ -277,11 +319,11 @@
     },
     {
       "path": "contracts/control-registry.json",
-      "sha256": "05a6be302dd470a0cd4cb02849d0552ec9854844b86142022e5df0cacd927de2"
+      "sha256": "07b80da682c27a145fa2cc17d7ca63bcde3b7b4d3dce84dc325c91409da29417"
     },
     {
       "path": "contracts/control-registry.schema.json",
-      "sha256": "f8adbfa4a19a76f05f41453872120757db1f85d3a177a0fe31541ad687dfbbe2"
+      "sha256": "fd2b7a25e170a866329c9c71fdc647b703c8f51f69d6c58ac7572c425389640d"
     },
     {
       "path": "native/lua-source-manifest.json",
@@ -297,7 +339,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "ca34739e56af518ac5a882dbb89024661df8dbb76d7c160f7ec44543d354e57b"
+      "sha256": "2b88db109f0a2ade4e4d6ee2bb387c887a4638f1b36891fb7d7400072a1a1476"
     },
     {
       "path": "scripts/generate-xmf-assets.mjs",
@@ -321,7 +363,7 @@
     },
     {
       "path": "scripts/verify-foundation.mjs",
-      "sha256": "b50e464f474e087e3a6a58d948466a578d50ef1e4041a14d3b86d6813008ff64"
+      "sha256": "d73fa5003ec22ebaba91bc11d017f3d56ad73f360e05e2cfae7c27d941369ab5"
     },
     {
       "path": "scripts/verify-native.mjs",
@@ -333,11 +375,11 @@
     },
     {
       "path": "scripts/verify-ui.mjs",
-      "sha256": "f7b2961fd00e16aba1c67a81202a763e78586d13fe07ad3ac789dc915f09f07a"
+      "sha256": "d309a9dae466e0596dbf00372cfd49e0b1169a75a5fa7505b9ca6f18b8e6a9e5"
     },
     {
       "path": "test/foundation.test.mjs",
-      "sha256": "d7f4d7ca88465b23c010e21f00dbdc77fd8bb8e81454dd1fc692e6b296bd5c15"
+      "sha256": "1ba1486731a145e0acd6683ecf88e9e832809680a60c34a9da1f2faadf7f256c"
     },
     {
       "path": "test/ui/runtime-client-golden.json",

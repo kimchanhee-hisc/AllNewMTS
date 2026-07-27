@@ -276,9 +276,9 @@ export function verifyContractInventories(host, controls) {
   const families = included.flatMap(({ semanticFamilies }) => semanticFamilies);
   unique(tags, 'included source tag');
   unique(families, 'included semantic family');
-  assert.deepEqual(included.map(({ normalizedType }) => normalizedType).sort(), ['Button', 'Edit', 'Label']);
-  assert.deepEqual(tags.sort(), ['BUTTON', 'EDIT', 'LABEL']);
-  assert.deepEqual(families, ['CtlButton']);
+  assert.deepEqual(included.map(({ normalizedType }) => normalizedType).sort(), ['Button', 'Edit', 'Image', 'Label']);
+  assert.deepEqual(tags.sort(), ['BUTTON', 'EDIT', 'IMAGE', 'LABEL']);
+  assert.deepEqual(families, ['CtlButton', 'CtlImage']);
   for (const control of controls.controls.filter(({ decision }) => decision !== 'include')) {
     assert.ok(control.diagnostic, `control contract: ${control.id} must have an unsupported diagnostic`);
   }
@@ -327,7 +327,7 @@ function verifyDocs() {
 
   verifySuites(manifest);
   assert.deepEqual(manifest.suites.fast.checks, ['format', 'docs', 'policy', 'type', 'unit']);
-  assert.deepEqual(manifest.suites.ci.checks, ['format', 'docs', 'policy', 'type', 'unit', 'fixtures', 'native', 'runtime', 'ui', 'provenance']);
+  assert.deepEqual(manifest.suites.ci.checks, ['format', 'docs', 'policy', 'type', 'unit', 'fixtures', 'native', 'runtime', 'ui', 'ctlimage', 'control-modules', 'provenance']);
 
   assert.equal(host.inventoryStatus, 'active');
   assert.deepEqual(host.publicApis.map(({ name }) => name), [
@@ -345,8 +345,9 @@ function verifyDocs() {
   assert.deepEqual(registry.Edit.sourceTags, ['EDIT']);
   assert.deepEqual(registry.Button.sourceTags, ['BUTTON']);
   assert.deepEqual(registry.Button.semanticFamilies, ['CtlButton']);
-  assert.deepEqual(registry.unsupported.semanticFamilies, ['CtlImage']);
-  assert.equal(registry.unsupported.decision, 'unsupported');
+  assert.deepEqual(registry.Image.sourceTags, ['IMAGE']);
+  assert.deepEqual(registry.Image.semanticFamilies, ['CtlImage']);
+  assert.equal(registry.Image.decision, 'include');
 
   verifyIntegrityInventory(manifest);
   console.log('PASS docs: owners, links, schemas, commands, contracts, and hashes agree');

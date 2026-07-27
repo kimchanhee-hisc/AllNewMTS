@@ -27,7 +27,7 @@ test('suite, command, inventory, and path contracts fail closed', () => {
   validateSchema(schema, manifest);
   verifySuites(manifest);
   assert.deepEqual(manifest.suites.fast.checks, ['format', 'docs', 'policy', 'type', 'unit']);
-  assert.ok(manifest.suites.ci.checks.includes('ui'));
+  assert.ok(['ui', 'ctlimage', 'control-modules'].every((check) => manifest.suites.ci.checks.includes(check)));
   assert.deepEqual(manifest.integrity.map(({ path: file }) => file).sort(), [...expectedIntegrityPaths].sort());
   const uiFiles = [
     'scripts/generate-xmf-assets.mjs',
