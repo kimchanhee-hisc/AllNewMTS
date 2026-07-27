@@ -311,6 +311,17 @@ bool boundedString(const Json *value, std::string &output, size_t limit = kEvent
   return true;
 }
 
+bool imageResource(const std::string &value) {
+  return value.size() <= 2048 && std::none_of(value.begin(), value.end(), [](unsigned char byte) {
+    return byte <= 0x1f || byte == 0x7f;
+  });
+}
+
+bool boundedInteger(const Json *value, double minimum, double maximum) {
+  return value && value->kind == Json::Kind::Number && std::isfinite(value->number) &&
+         std::floor(value->number) == value->number && value->number >= minimum && value->number <= maximum;
+}
+
 bool identifierString(const Json *value, std::string &output,
                       size_t limit = kEventBytes) {
   return boundedString(value, output, limit) && !output.empty() &&
@@ -456,10 +467,11 @@ bool parseConfig(const uint8_t *bytes, size_t size, Config &config, uint32_t &co
   }
   const Json *controls = member(root, "controls");
   if (!controls || controls->kind != Json::Kind::Array) return false;
+  size_t image_count = 0;
   for (const Json &control : controls->array) {
     if (!exactKeys(control, {"id", "properties", "type"})) return false;
     std::string id, type;
-    if (!identifierString(member(control, "id"), id) || reservedGlobal(id) || !identifierString(member(control, "type"), type, 16) || (type != "Button" && type != "Edit")) return false;
+    if (!identifierString(member(control, "id"), id) || reservedGlobal(id) || !identifierString(member(control, "type"), type, 16) || (type != "Button" && type != "Edit" && type != "Image")) return false;
     const Json *properties = member(control, "properties"); if (!properties || properties->kind != Json::Kind::Object) return false;
     ControlState state; state.type = type;
     if (type == "Button") {
@@ -468,10 +480,28 @@ bool parseConfig(const uint8_t *bytes, size_t size, Config &config, uint32_t &co
       if (!boundedString(member(*properties, "border"), border) || !boundedString(member(*properties, "dfgcolor"), color) || !enabled || enabled->kind != Json::Kind::Boolean) return false;
       Scalar a; a.kind=Scalar::Kind::String; a.string=border; state.properties["border"]=a; a.string=color; state.properties["dfgcolor"]=a;
       Scalar b; b.kind=Scalar::Kind::Boolean; b.boolean=enabled->boolean; state.properties["enabled"]=b;
-    } else {
+    } else if (type == "Edit") {
       if (!exactKeys(*properties, {"caption"})) return false;
       std::string caption; if (!boundedString(member(*properties, "caption"), caption)) return false;
       Scalar a; a.kind=Scalar::Kind::String; a.string=caption; state.properties["caption"]=a;
+    } else {
+      if (++image_count > 64) return false;
+      if (!exactKeys(*properties, {"autosize", "circle", "enabled", "height", "imgpath", "imagetarget", "left", "top", "visible", "width"})) return false;
+      std::string resource;
+      const Json *autosize=member(*properties,"autosize"),*circle=member(*properties,"circle"),*enabled=member(*properties,"enabled"),*visible=member(*properties,"visible");
+      const Json *target=member(*properties,"imagetarget"),*left=member(*properties,"left"),*top=member(*properties,"top"),*width=member(*properties,"width"),*height=member(*properties,"height");
+      if (!boundedString(member(*properties,"imgpath"),resource,2048) || !imageResource(resource) ||
+          !autosize || autosize->kind!=Json::Kind::Boolean || !circle || circle->kind!=Json::Kind::Boolean ||
+          !enabled || enabled->kind!=Json::Kind::Boolean || !visible || visible->kind!=Json::Kind::Boolean ||
+          !boundedInteger(target,0,3) || !boundedInteger(left,-8192,8192) || !boundedInteger(top,-8192,8192) ||
+          !boundedInteger(width,0,8192) || !boundedInteger(height,0,8192)) return false;
+      Scalar value;value.kind=Scalar::Kind::String;value.string=resource;state.properties["imgpath"]=value;
+      value.kind=Scalar::Kind::Number;value.number=target->number;state.properties["imagetarget"]=value;
+      value.number=left->number;state.properties["left"]=value;value.number=top->number;state.properties["top"]=value;
+      value.number=width->number;state.properties["width"]=value;value.number=height->number;state.properties["height"]=value;
+      value.kind=Scalar::Kind::Boolean;value.boolean=visible->boolean;state.properties["visible"]=value;
+      value.boolean=enabled->boolean;state.properties["enabled"]=value;value.boolean=autosize->boolean;state.properties["autosize"]=value;
+      value.boolean=circle->boolean;state.properties["circle"]=value;
     }
     size_t control_charge=id.size()+type.size()+kContainerCharge;for(const auto &property:state.properties)control_charge+=property.first.size()+(property.second.kind==Scalar::Kind::String?property.second.string.size():sizeof(Scalar))+kContainerCharge;
     if(!arena.charge(control_charge)){code=ALLNEWMTS_RUNTIME_RESOURCE_LIMIT;return false;} if (!config.controls.emplace(std::move(id), std::move(state)).second) return false;
@@ -764,7 +794,12 @@ class Runtime : public std::enable_shared_from_this<Runtime> {
     auto found = committed_.controls.find(id); if (found == committed_.controls.end()) return false;
     bool valid = (found->second.type == "Edit" && property == "caption" && value.kind == Scalar::Kind::String) ||
                  (found->second.type == "Button" && (property == "border" || property == "dfgcolor") && value.kind == Scalar::Kind::String) ||
-                 (found->second.type == "Button" && property == "enabled" && value.kind == Scalar::Kind::Boolean);
+                 (found->second.type == "Button" && property == "enabled" && value.kind == Scalar::Kind::Boolean) ||
+                 (found->second.type == "Image" && property == "imgpath" && value.kind == Scalar::Kind::String && imageResource(value.string)) ||
+                 (found->second.type == "Image" && property == "imagetarget" && value.kind == Scalar::Kind::Number && value.number >= 0 && value.number <= 3 && std::floor(value.number) == value.number) ||
+                 (found->second.type == "Image" && (property == "visible" || property == "enabled" || property == "autosize" || property == "circle") && value.kind == Scalar::Kind::Boolean) ||
+                 (found->second.type == "Image" && (property == "left" || property == "top") && value.kind == Scalar::Kind::Number && value.number >= -8192 && value.number <= 8192 && std::floor(value.number) == value.number) ||
+                 (found->second.type == "Image" && (property == "width" || property == "height") && value.kind == Scalar::Kind::Number && value.number >= 0 && value.number <= 8192 && std::floor(value.number) == value.number);
     if (!valid || !stage_->charge(id.size()+property.size()+(value.kind==Scalar::Kind::String?value.string.size():sizeof(value))+kContainerCharge)) { if (valid) stage_limit_=true; return false; }
     stage_->controls[id][property] = std::move(value); return true;
   }
@@ -925,8 +960,32 @@ extern "C" int allnewmts_runtime_lua_control_call(AllNewMTSLuaControlRef *ref,in
   if(!ref||!ref->runtime||!state||!output)return ALLNEWMTS_LUA_ARGUMENT;auto *runtime=static_cast<Runtime *>(ref->runtime);
   return caught([&]{
     if(!runtime->hostReady())return ALLNEWMTS_LUA_ARGUMENT;std::string id(ref->id,ref->id_size),key;const ControlState *control=runtime->readControl(id);if(!control)return ALLNEWMTS_LUA_LOOKUP;
-    if(operation==0){if(lua_gettop(state)!=2||!luaString(state,2,key))return ALLNEWMTS_LUA_ARGUMENT;if(control->type=="Edit"&&key=="caption"){const Scalar *value=runtime->readControlProperty(id,key);if(!value)return ALLNEWMTS_LUA_LOOKUP;luaValue(*value,output);return ALLNEWMTS_LUA_OK;}if(control->type=="Button"&&key=="SetRadius"){output->kind=ALLNEWMTS_LUA_VALUE_METHOD;return ALLNEWMTS_LUA_OK;}return ALLNEWMTS_LUA_LOOKUP;}
-    if(operation==1){if(lua_gettop(state)!=3||!luaString(state,2,key)||control->type!="Button")return ALLNEWMTS_LUA_ARGUMENT;if(key=="enable")key="enabled";Scalar value;bool boolean=key=="enabled";if((key!="border"&&key!="dfgcolor"&&key!="enabled")||!luaScalar(state,3,value,boolean))return ALLNEWMTS_LUA_ARGUMENT;return runtime->setControl(id,key,std::move(value))?ALLNEWMTS_LUA_OK:(runtime->stageLimited()?ALLNEWMTS_LUA_LIMIT:ALLNEWMTS_LUA_LOOKUP);}
+    if(operation==0){
+      if(lua_gettop(state)!=2||!luaString(state,2,key))return ALLNEWMTS_LUA_ARGUMENT;
+      bool readable=(control->type=="Edit"&&key=="caption")||(control->type=="Image"&&(key=="imgpath"||key=="visible"||key=="left"||key=="top"||key=="width"||key=="height"));
+      if(readable){const Scalar *value=runtime->readControlProperty(id,key);if(!value)return ALLNEWMTS_LUA_LOOKUP;luaValue(*value,output);return ALLNEWMTS_LUA_OK;}
+      if(control->type=="Button"&&key=="SetRadius"){output->kind=ALLNEWMTS_LUA_VALUE_METHOD;return ALLNEWMTS_LUA_OK;}
+      return ALLNEWMTS_LUA_LOOKUP;
+    }
+    if(operation==1){
+      if(lua_gettop(state)!=3||!luaString(state,2,key))return ALLNEWMTS_LUA_ARGUMENT;
+      Scalar value;
+      if(control->type=="Button"){
+        if(key=="enable")key="enabled";bool boolean=key=="enabled";
+        if((key!="border"&&key!="dfgcolor"&&key!="enabled")||!luaScalar(state,3,value,boolean))return ALLNEWMTS_LUA_ARGUMENT;
+      }else if(control->type=="Image"){
+        if(key=="enable")key="enabled";
+        if(key=="imgpath"){
+          value.kind=Scalar::Kind::String;if(!luaString(state,3,value.string)||!imageResource(value.string))return ALLNEWMTS_LUA_ARGUMENT;
+        }else if(key=="visible"||key=="enabled"||key=="autosize"||key=="circle"){
+          if(lua_type(state,3)!=LUA_TBOOLEAN)return ALLNEWMTS_LUA_ARGUMENT;value.kind=Scalar::Kind::Boolean;value.boolean=lua_toboolean(state,3)!=0;
+        }else if(key=="imagetarget"||key=="left"||key=="top"||key=="width"||key=="height"){
+          value.kind=Scalar::Kind::Number;if(!luaFinite(state,3,value.number)||std::floor(value.number)!=value.number)return ALLNEWMTS_LUA_ARGUMENT;
+          if((key=="imagetarget"&&(value.number<0||value.number>3))||((key=="left"||key=="top")&&(value.number<-8192||value.number>8192))||((key=="width"||key=="height")&&(value.number<0||value.number>8192)))return ALLNEWMTS_LUA_ARGUMENT;
+        }else return ALLNEWMTS_LUA_ARGUMENT;
+      }else return ALLNEWMTS_LUA_ARGUMENT;
+      return runtime->setControl(id,key,std::move(value))?ALLNEWMTS_LUA_OK:(runtime->stageLimited()?ALLNEWMTS_LUA_LIMIT:ALLNEWMTS_LUA_LOOKUP);
+    }
     if(operation==2){double first,last;std::string value;if(lua_gettop(state)!=10||control->type!="Button"||!luaFinite(state,2,first)||!luaString(state,3,value)||!luaString(state,4,value)||!luaString(state,5,value)||lua_type(state,6)!=LUA_TBOOLEAN||!luaString(state,7,value)||!luaString(state,8,value)||!luaString(state,9,value)||!luaFinite(state,10,last))return ALLNEWMTS_LUA_ARGUMENT;return ALLNEWMTS_LUA_OK;}
     return ALLNEWMTS_LUA_ARGUMENT;
   });

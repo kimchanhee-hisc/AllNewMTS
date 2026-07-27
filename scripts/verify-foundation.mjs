@@ -140,6 +140,7 @@ function foundationFiles() {
     'AGENTS.md',
     'README.md',
     'docs/specs/xmf-lua-runtime.md',
+    'docs/specs/controls/image.md',
     'docs/specs/runtime-contract.md',
     'docs/specs/networking-contract.md',
     'docs/testing.md',
@@ -174,6 +175,7 @@ export const expectedIntegrityPaths = [
   'AGENTS.md',
   'README.md',
   'docs/specs/xmf-lua-runtime.md',
+  'docs/specs/controls/image.md',
   'docs/specs/runtime-contract.md',
   'docs/specs/networking-contract.md',
   'docs/testing.md',
@@ -266,7 +268,12 @@ export function verifyVerifierPaths(manifest, readVerifier = read) {
 }
 
 export function verifyContractInventories(host, controls) {
-  unique(host.publicApis.map(({ name }) => name), 'Host API name');
+  unique(host.evidence.map(({ id }) => id), 'Host evidence id');
+  for (const evidence of host.evidence) {
+    assert.equal(sha256(fs.readFileSync(safeRepoFile(evidence.path, `Host evidence ${evidence.id}`))), evidence.sha256, `Host evidence drift: ${evidence.id}`);
+  }
+  unique(host.publicApis.map(({ id }) => id), 'Host API id');
+  unique(host.publicApis.map(({ kind, name }) => `${kind}:${name}`), 'Host API operation');
   unique(host.compatibilityDecisions.map(({ id }) => id), 'Host decision id');
   unique(controls.inputRoles.map(({ name }) => name), 'input role');
   unique(controls.controls.map(({ id }) => id), 'control id');
@@ -337,7 +344,9 @@ function verifyDocs() {
   assert.deepEqual(host.publicApis.map(({ name }) => name), [
     'Form.GetOpenLinkData', 'Form.GetSharedData', 'Form.GetItemCodeInfo', 'Form.MsgBoxEx', 'Form.Toast', 'Form.SendReturnToParent', 'Form.CloseForm',
     'DATAMANAGER.RequestTranData', 'DATAMANAGER.SetDataValue', 'DATAMANAGER.GetDataCount', 'DATAMANAGER.GetDataValue', 'Trim', 'dofile',
-    'Edit.caption', 'Button.border', 'Button.dfgcolor', 'Button.enable', 'Button.SetRadius'
+    'Edit.caption', 'Button.border', 'Button.dfgcolor', 'Button.enable', 'Button.SetRadius',
+    'Image.imgpath', 'Image.imgpath', 'Image.visible', 'Image.visible', 'Image.left', 'Image.left', 'Image.top', 'Image.top',
+    'Image.width', 'Image.width', 'Image.height', 'Image.height', 'Image.imagetarget', 'Image.enable', 'Image.autosize', 'Image.circle'
   ]);
   assert.ok(host.publicApis.every(({ decision, affectedPlatforms, test }) => decision === 'include' && affectedPlatforms.join(',') === 'ios,android' && test));
   verifyContractInventories(host, controls);

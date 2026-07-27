@@ -1,6 +1,7 @@
 export type XmfRect = Readonly<{ left: number; top: number; width: number; height: number }>;
 export type XmfPadding = Readonly<{ top: number; right: number; bottom: number; left: number }>;
 export type XmfColor = Readonly<{ source: string; prefix: string; value: string }>;
+export type ImageResourceTarget = 0 | 1 | 2 | 3;
 
 export type XmfControlBase = Readonly<{ name: string; layout: XmfRect }>;
 export type LabelControl = XmfControlBase & Readonly<{
@@ -28,6 +29,14 @@ export type ButtonControl = XmfControlBase & Readonly<{
 export type ImageControl = XmfControlBase & Readonly<{
   type: 'Image';
   imageResource: string;
+  imageTarget: ImageResourceTarget;
+  defaultImageResource: string;
+  visible: boolean;
+  enabled: boolean;
+  autosize: boolean;
+  circle: boolean;
+  backgroundColor?: XmfColor;
+  borderRadius: number;
 }>;
 export type XmfControl = LabelControl | EditControl | ButtonControl | ImageControl;
 
@@ -37,12 +46,18 @@ export type XmfRenderDescriptor = Readonly<{
   component: 'Text' | 'TextInput' | 'Pressable' | 'Image';
   text?: string;
   imageResource?: string;
+  imageTarget?: ImageResourceTarget;
+  defaultImageResource?: string;
+  visible?: boolean;
+  resizeMode?: 'contain' | 'stretch';
+  circle?: boolean;
   placeholder?: string;
   maxLength?: number;
   enabled?: boolean;
   foregroundColor?: string;
   backgroundColor?: string;
   borderWidth?: number;
+  borderRadius?: number;
   padding?: XmfPadding;
   style: XmfRect;
   accessibilityLabel: string;

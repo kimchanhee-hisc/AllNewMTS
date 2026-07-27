@@ -6,6 +6,8 @@ React Native and Lua observe one Host API, state, event, command, error, lifecyc
 
 When platform histories disagree, choose the smallest approved shared result: `normalize`, evidence-required `safe-union`, explicit `reject`, or `unsupported`. Platform code alone never justifies a union. Each decision needs one shared fixture and golden used unchanged by both adapters. Exact decisions and the public surface live in [`contracts/host-api.json`](../../contracts/host-api.json).
 
+Control-specific parsing, resource resolution, mutability, rendering, accessibility, and diagnostics are outside this shared contract. The implemented Image slice is owned by [`controls/image.md`](controls/image.md).
+
 ## Semantic reimplementation
 
 Include behavior only when approved unchanged XMF/Lua, engine-independent fixtures, an independent golden, a selected-slice transitive dependency, or an essential safety/resource invariant requires it. Legacy code may raise a question but is not normative and is never copied or translated.
@@ -52,7 +54,7 @@ Completion/error admission validates `{runtimeId, requestToken, tranId}`, lifecy
 
 ## Active Host boundary
 
-[`host-api.json`](../../contracts/host-api.json) is the deny-by-default executable ledger. Production exposes exactly seven `Form` functions, four `DATAMANAGER` functions, `Trim`, manifest `dofile`, and five generic control boundaries. Calls use strict arity and approved Lua types with no implicit platform coercion. Flags and modes accept only evidenced literals. Missing providers, undeclared transaction fields, unknown APIs/members, and invalid shapes fail inside the protected event with bounded value-redacted diagnostics.
+[`host-api.json`](../../contracts/host-api.json) is the deny-by-default executable ledger. Production exposes exactly 34 operations: seven `Form` functions, four `DATAMANAGER` functions, `Trim`, manifest `dofile`, five existing generic control operations, and sixteen Image property operations owned by the [Image contract](controls/image.md). Calls use strict arity and approved Lua types with no implicit platform coercion. Flags and modes accept only evidenced literals. Missing providers, undeclared transaction fields, unknown APIs/members, and invalid shapes fail inside the protected event with bounded value-redacted diagnostics.
 
 `Trim` returns approved strings unchanged. A direct value with leading or trailing ASCII whitespace is rejected because no approved trim pair establishes a whitespace policy; `gf_Trim(nil)` returns before reaching Host. The protected boundary preserves exact hidden identities for the Host tables, their declared function members, `Trim`, manifest `dofile`, and Host/control metatables; same-type replacement, raw member addition/replacement, global alias replacement, and metatable mutation invalidate the event. `Button.SetRadius` validates the exact evidenced argument shape but remains a validated-no-state capability with no serialized or visual effect; a later visual contract must explicitly activate one. Control dispatch keys only normalized type plus property/method; instance names are data.
 
@@ -60,7 +62,7 @@ Completion/error admission validates `{runtimeId, requestToken, tranId}`, lifecy
 
 The generic client subscribes before `create`, admits only the production binding's bounded JSON/result shapes, and owns two revisions. The admission revision advances synchronously only when `dispatch` returns `OK` with the expected next `reservedRevision`; the applied revision advances only when one matching, valid, next-revision canonical result is accepted. Rejected or stale admissions, unrelated runtime IDs, malformed or out-of-order results, and unknown control, command, or property shapes cannot partially replace visible state. Destroy closes intake first, waits for native destroy, removes the listener exactly once, clears the runtime identity, and makes later dispatch/result application fail safely.
 
-The app composition uses the fixed manifest resource `fixtures/runtime-conformance.lua`, value-redacted empty Host providers, parsed model data for generic `Edit` and `Button` controls, and one inert declared `T_ALPHA` input/output field pair. App startup calls `create` once and dispatches no handler or transaction event. Control identities and operating system remain data and never select client, renderer, binding, configuration, or behavior.
+The app composition uses the fixed manifest resource `fixtures/runtime-conformance.lua`, value-redacted empty Host providers, parsed model data for generic `Edit`, `Button`, and `Image` controls, and one inert declared `T_ALPHA` input/output field pair. App startup calls `create` once and dispatches no handler or transaction event. Control identities and operating system remain data and never select client, renderer, binding, configuration, or behavior.
 
 Transaction values preserve the evidenced `string|number` union, indices are finite nonnegative integers, and schemas supplied at create declare every accessible transaction/block/field. Providers are immutable native maps; JavaScript never answers or re-enters a synchronous Host call. Transport does not execute in a Host function.
 

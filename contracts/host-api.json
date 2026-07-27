@@ -8,7 +8,7 @@
     {
       "id": "oracle-manifest",
       "path": "test/oracles/manifest.json",
-      "sha256": "34074c014bc7dbc0de7bffeaaa64847c5c540d9d98a46ff5f74dea3495700f7a"
+      "sha256": "dde692c6c2f810837f153b0a231d1debacce64beb62c3d50fc7857260ca2e271"
     },
     {
       "id": "approved-xmf",
@@ -54,6 +54,16 @@
       "id": "golden-error",
       "path": "test/oracles/golden/transaction-error.json",
       "sha256": "db1b1fec55ab1baa112d26a1b8c1941fdd3762a03e06be735cf8d6a4589f2c08"
+    },
+    {
+      "id": "image-runtime-fixture",
+      "path": "native/resources/image-runtime.lua",
+      "sha256": "0d208fc76bc804c2c2b0e316024ed292434b57c73ef7f763fa1f9b6a22a47985"
+    },
+    {
+      "id": "image-runtime-golden",
+      "path": "native/test/image-runtime-golden.json",
+      "sha256": "e1c107a06bfdc56fe61b586bd75c75d2641951d90381484421598840893cb0cf"
     }
   ],
   "limits": {
@@ -1344,9 +1354,154 @@
       ],
       "resolution": "normalize",
       "test": "runtime-control-boundary"
+    },
+    {
+      "id": "image-imgpath-get", "kind": "property-get", "name": "Image.imgpath", "decision": "include",
+      "arity": { "min": 0, "max": 0 }, "parameters": [], "returns": [{ "type": "string", "count": "1" }],
+      "effects": { "mode": "read-only", "rollback": "not-applicable", "command": "none", "lifecycle": "none" },
+      "diagnostics": ["HOST_ARGUMENT_ERROR", "RESOURCE_LIMIT"], "genericResolution": "control-type-registry",
+      "evidence": [{ "source": "image-runtime-fixture", "locator": "ImageState" }, { "source": "image-runtime-golden", "locator": "snapshot.state.controls.Hero" }],
+      "rationale": "Read the canonical Image resource key.", "affectedPlatforms": ["ios", "android"], "resolution": "normalize", "test": "image-runtime-golden"
+    },
+    {
+      "id": "image-imgpath-set", "kind": "property-set", "name": "Image.imgpath", "decision": "include",
+      "arity": { "min": 1, "max": 1 }, "parameters": [{ "name": "value", "type": "string", "required": true, "coercion": "none", "restrictions": ["maxBytes=2048", "controlCharacters=reject"] }], "returns": [{ "type": "none", "count": "0" }],
+      "effects": { "mode": "staged", "rollback": "discard-on-error", "command": "none", "lifecycle": "none" },
+      "diagnostics": ["HOST_ARGUMENT_ERROR", "RESOURCE_LIMIT"], "genericResolution": "control-type-registry",
+      "evidence": [{ "source": "image-runtime-fixture", "locator": "ImageState" }, { "source": "image-runtime-golden", "locator": "snapshot.state.controls.Hero" }],
+      "rationale": "Stage the exact Image resource key.", "affectedPlatforms": ["ios", "android"], "resolution": "normalize", "test": "image-runtime-golden"
+    },
+    {
+      "id": "image-visible-get", "kind": "property-get", "name": "Image.visible", "decision": "include",
+      "arity": { "min": 0, "max": 0 }, "parameters": [], "returns": [{ "type": "boolean", "count": "1" }],
+      "effects": { "mode": "read-only", "rollback": "not-applicable", "command": "none", "lifecycle": "none" },
+      "diagnostics": ["HOST_ARGUMENT_ERROR", "RESOURCE_LIMIT"], "genericResolution": "control-type-registry",
+      "evidence": [{ "source": "image-runtime-fixture", "locator": "ImageState" }, { "source": "image-runtime-golden", "locator": "snapshot.state.controls.Hero" }],
+      "rationale": "Read canonical Image visibility.", "affectedPlatforms": ["ios", "android"], "resolution": "normalize", "test": "image-runtime-golden"
+    },
+    {
+      "id": "image-visible-set", "kind": "property-set", "name": "Image.visible", "decision": "include",
+      "arity": { "min": 1, "max": 1 }, "parameters": [{ "name": "value", "type": "boolean", "required": true, "coercion": "none", "restrictions": [] }], "returns": [{ "type": "none", "count": "0" }],
+      "effects": { "mode": "staged", "rollback": "discard-on-error", "command": "none", "lifecycle": "none" },
+      "diagnostics": ["HOST_ARGUMENT_ERROR", "RESOURCE_LIMIT"], "genericResolution": "control-type-registry",
+      "evidence": [{ "source": "image-runtime-fixture", "locator": "ImageState" }, { "source": "image-runtime-golden", "locator": "snapshot.state.controls.Hero" }],
+      "rationale": "Stage canonical Image visibility.", "affectedPlatforms": ["ios", "android"], "resolution": "normalize", "test": "image-runtime-golden"
+    },
+    {
+      "id": "image-left-get", "kind": "property-get", "name": "Image.left", "decision": "include",
+      "arity": { "min": 0, "max": 0 }, "parameters": [], "returns": [{ "type": "number", "count": "1" }],
+      "effects": { "mode": "read-only", "rollback": "not-applicable", "command": "none", "lifecycle": "none" },
+      "diagnostics": ["HOST_ARGUMENT_ERROR", "RESOURCE_LIMIT"], "genericResolution": "control-type-registry",
+      "evidence": [{ "source": "image-runtime-fixture", "locator": "ImageState" }, { "source": "image-runtime-golden", "locator": "snapshot.state.controls.Hero" }],
+      "rationale": "Read canonical Image left position.", "affectedPlatforms": ["ios", "android"], "resolution": "normalize", "test": "image-runtime-golden"
+    },
+    {
+      "id": "image-left-set", "kind": "property-set", "name": "Image.left", "decision": "include",
+      "arity": { "min": 1, "max": 1 }, "parameters": [{ "name": "value", "type": "number", "required": true, "coercion": "none", "restrictions": ["finite", "integer", "minimum=-8192", "maximum=8192"] }], "returns": [{ "type": "none", "count": "0" }],
+      "effects": { "mode": "staged", "rollback": "discard-on-error", "command": "none", "lifecycle": "none" },
+      "diagnostics": ["HOST_ARGUMENT_ERROR", "RESOURCE_LIMIT"], "genericResolution": "control-type-registry",
+      "evidence": [{ "source": "image-runtime-fixture", "locator": "ImageState" }, { "source": "image-runtime-golden", "locator": "snapshot.state.controls.Hero" }],
+      "rationale": "Stage canonical Image left position.", "affectedPlatforms": ["ios", "android"], "resolution": "normalize", "test": "image-runtime-golden"
+    },
+    {
+      "id": "image-top-get", "kind": "property-get", "name": "Image.top", "decision": "include",
+      "arity": { "min": 0, "max": 0 }, "parameters": [], "returns": [{ "type": "number", "count": "1" }],
+      "effects": { "mode": "read-only", "rollback": "not-applicable", "command": "none", "lifecycle": "none" },
+      "diagnostics": ["HOST_ARGUMENT_ERROR", "RESOURCE_LIMIT"], "genericResolution": "control-type-registry",
+      "evidence": [{ "source": "image-runtime-fixture", "locator": "ImageState" }, { "source": "image-runtime-golden", "locator": "snapshot.state.controls.Hero" }],
+      "rationale": "Read canonical Image top position.", "affectedPlatforms": ["ios", "android"], "resolution": "normalize", "test": "image-runtime-golden"
+    },
+    {
+      "id": "image-top-set", "kind": "property-set", "name": "Image.top", "decision": "include",
+      "arity": { "min": 1, "max": 1 }, "parameters": [{ "name": "value", "type": "number", "required": true, "coercion": "none", "restrictions": ["finite", "integer", "minimum=-8192", "maximum=8192"] }], "returns": [{ "type": "none", "count": "0" }],
+      "effects": { "mode": "staged", "rollback": "discard-on-error", "command": "none", "lifecycle": "none" },
+      "diagnostics": ["HOST_ARGUMENT_ERROR", "RESOURCE_LIMIT"], "genericResolution": "control-type-registry",
+      "evidence": [{ "source": "image-runtime-fixture", "locator": "ImageState" }, { "source": "image-runtime-golden", "locator": "snapshot.state.controls.Hero" }],
+      "rationale": "Stage canonical Image top position.", "affectedPlatforms": ["ios", "android"], "resolution": "normalize", "test": "image-runtime-golden"
+    },
+    {
+      "id": "image-width-get", "kind": "property-get", "name": "Image.width", "decision": "include",
+      "arity": { "min": 0, "max": 0 }, "parameters": [], "returns": [{ "type": "number", "count": "1" }],
+      "effects": { "mode": "read-only", "rollback": "not-applicable", "command": "none", "lifecycle": "none" },
+      "diagnostics": ["HOST_ARGUMENT_ERROR", "RESOURCE_LIMIT"], "genericResolution": "control-type-registry",
+      "evidence": [{ "source": "image-runtime-fixture", "locator": "ImageState" }, { "source": "image-runtime-golden", "locator": "snapshot.state.controls.Hero" }],
+      "rationale": "Read canonical Image width.", "affectedPlatforms": ["ios", "android"], "resolution": "normalize", "test": "image-runtime-golden"
+    },
+    {
+      "id": "image-width-set", "kind": "property-set", "name": "Image.width", "decision": "include",
+      "arity": { "min": 1, "max": 1 }, "parameters": [{ "name": "value", "type": "number", "required": true, "coercion": "none", "restrictions": ["finite", "integer", "minimum=0", "maximum=8192"] }], "returns": [{ "type": "none", "count": "0" }],
+      "effects": { "mode": "staged", "rollback": "discard-on-error", "command": "none", "lifecycle": "none" },
+      "diagnostics": ["HOST_ARGUMENT_ERROR", "RESOURCE_LIMIT"], "genericResolution": "control-type-registry",
+      "evidence": [{ "source": "image-runtime-fixture", "locator": "ImageState" }, { "source": "image-runtime-golden", "locator": "snapshot.state.controls.Hero" }],
+      "rationale": "Stage canonical Image width.", "affectedPlatforms": ["ios", "android"], "resolution": "normalize", "test": "image-runtime-golden"
+    },
+    {
+      "id": "image-height-get", "kind": "property-get", "name": "Image.height", "decision": "include",
+      "arity": { "min": 0, "max": 0 }, "parameters": [], "returns": [{ "type": "number", "count": "1" }],
+      "effects": { "mode": "read-only", "rollback": "not-applicable", "command": "none", "lifecycle": "none" },
+      "diagnostics": ["HOST_ARGUMENT_ERROR", "RESOURCE_LIMIT"], "genericResolution": "control-type-registry",
+      "evidence": [{ "source": "image-runtime-fixture", "locator": "ImageState" }, { "source": "image-runtime-golden", "locator": "snapshot.state.controls.Hero" }],
+      "rationale": "Read canonical Image height.", "affectedPlatforms": ["ios", "android"], "resolution": "normalize", "test": "image-runtime-golden"
+    },
+    {
+      "id": "image-height-set", "kind": "property-set", "name": "Image.height", "decision": "include",
+      "arity": { "min": 1, "max": 1 }, "parameters": [{ "name": "value", "type": "number", "required": true, "coercion": "none", "restrictions": ["finite", "integer", "minimum=0", "maximum=8192"] }], "returns": [{ "type": "none", "count": "0" }],
+      "effects": { "mode": "staged", "rollback": "discard-on-error", "command": "none", "lifecycle": "none" },
+      "diagnostics": ["HOST_ARGUMENT_ERROR", "RESOURCE_LIMIT"], "genericResolution": "control-type-registry",
+      "evidence": [{ "source": "image-runtime-fixture", "locator": "ImageState" }, { "source": "image-runtime-golden", "locator": "snapshot.state.controls.Hero" }],
+      "rationale": "Stage canonical Image height.", "affectedPlatforms": ["ios", "android"], "resolution": "normalize", "test": "image-runtime-golden"
+    },
+    {
+      "id": "image-imagetarget-set", "kind": "property-set", "name": "Image.imagetarget", "decision": "include",
+      "arity": { "min": 1, "max": 1 }, "parameters": [{ "name": "value", "type": "number", "required": true, "coercion": "none", "restrictions": ["finite", "integer", "minimum=0", "maximum=3"] }], "returns": [{ "type": "none", "count": "0" }],
+      "effects": { "mode": "staged", "rollback": "discard-on-error", "command": "none", "lifecycle": "none" },
+      "diagnostics": ["HOST_ARGUMENT_ERROR", "RESOURCE_LIMIT"], "genericResolution": "control-type-registry",
+      "evidence": [{ "source": "image-runtime-fixture", "locator": "ImageState" }, { "source": "image-runtime-golden", "locator": "snapshot.state.controls.Hero" }],
+      "rationale": "Stage the injected Image provider namespace.", "affectedPlatforms": ["ios", "android"], "resolution": "normalize", "test": "image-runtime-golden"
+    },
+    {
+      "id": "image-enable-set", "kind": "property-set", "name": "Image.enable", "decision": "include",
+      "arity": { "min": 1, "max": 1 }, "parameters": [{ "name": "value", "type": "boolean", "required": true, "coercion": "none", "restrictions": [] }], "returns": [{ "type": "none", "count": "0" }],
+      "effects": { "mode": "staged", "rollback": "discard-on-error", "command": "none", "lifecycle": "none" },
+      "diagnostics": ["HOST_ARGUMENT_ERROR", "RESOURCE_LIMIT"], "genericResolution": "control-type-registry",
+      "evidence": [{ "source": "image-runtime-fixture", "locator": "ImageState" }, { "source": "image-runtime-golden", "locator": "snapshot.state.controls.Hero" }],
+      "rationale": "Stage normalized Image enabled state.", "affectedPlatforms": ["ios", "android"], "resolution": "normalize", "test": "image-runtime-golden"
+    },
+    {
+      "id": "image-autosize-set", "kind": "property-set", "name": "Image.autosize", "decision": "include",
+      "arity": { "min": 1, "max": 1 }, "parameters": [{ "name": "value", "type": "boolean", "required": true, "coercion": "none", "restrictions": [] }], "returns": [{ "type": "none", "count": "0" }],
+      "effects": { "mode": "staged", "rollback": "discard-on-error", "command": "none", "lifecycle": "none" },
+      "diagnostics": ["HOST_ARGUMENT_ERROR", "RESOURCE_LIMIT"], "genericResolution": "control-type-registry",
+      "evidence": [{ "source": "image-runtime-fixture", "locator": "ImageState" }, { "source": "image-runtime-golden", "locator": "snapshot.state.controls.Hero" }],
+      "rationale": "Stage deterministic contain or stretch sizing.", "affectedPlatforms": ["ios", "android"], "resolution": "normalize", "test": "image-runtime-golden"
+    },
+    {
+      "id": "image-circle-set", "kind": "property-set", "name": "Image.circle", "decision": "include",
+      "arity": { "min": 1, "max": 1 }, "parameters": [{ "name": "value", "type": "boolean", "required": true, "coercion": "none", "restrictions": [] }], "returns": [{ "type": "none", "count": "0" }],
+      "effects": { "mode": "staged", "rollback": "discard-on-error", "command": "none", "lifecycle": "none" },
+      "diagnostics": ["HOST_ARGUMENT_ERROR", "RESOURCE_LIMIT"], "genericResolution": "control-type-registry",
+      "evidence": [{ "source": "image-runtime-fixture", "locator": "ImageState" }, { "source": "image-runtime-golden", "locator": "snapshot.state.controls.Hero" }],
+      "rationale": "Stage deterministic circular clipping.", "affectedPlatforms": ["ios", "android"], "resolution": "normalize", "test": "image-runtime-golden"
     }
   ],
   "deniedCandidates": [
+    {
+      "id": "image-unsupported-members",
+      "decision": "unsupported",
+      "evidence": [
+        {
+          "source": "image-runtime-fixture",
+          "locator": "ImageDenied and ImageBadTarget"
+        }
+      ],
+      "rationale": "SetCircleBorder and every unlisted Image member stay outside the cross-platform deterministic Host boundary.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "unsupported",
+      "testOrGolden": "image-runtime-golden"
+    },
     {
       "id": "unknown-host-members",
       "decision": "exclude",

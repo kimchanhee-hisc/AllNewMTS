@@ -1,8 +1,8 @@
-import { Image, Pressable, Text, TextInput, type ImageSourcePropType } from 'react-native';
+import { Image, Pressable, Text, TextInput, View, type ImageSourcePropType } from 'react-native';
 import { buildControlEvent, type XmfControlEvent } from '../xmf';
-import type { XmfControl, XmfRenderDescriptor } from './types';
+import type { ImageResourceTarget, XmfControl, XmfRenderDescriptor } from './types';
 
-export type ControlImageSources = Readonly<Record<string, ImageSourcePropType>>;
+export type ControlImageSources = Readonly<Partial<Record<ImageResourceTarget, Readonly<Record<string, ImageSourcePropType>>>>>;
 
 type Props = {
   control: XmfControl;
@@ -32,10 +32,34 @@ export function ControlView({ control, descriptor, imageSources, onControlEvent 
       );
     }
     case 'Image': {
+      if (descriptor.visible === false) return null;
       const resource = descriptor.imageResource;
-      const source = resource && Object.hasOwn(imageSources, resource) ? imageSources[resource] : undefined;
-      if (!resource || source === undefined) throw new Error('UNRESOLVED_IMAGE_RESOURCE');
-      return <Image source={source} accessibilityRole="image" accessibilityLabel={descriptor.accessibilityLabel} resizeMode="contain" style={position(descriptor.style)} />;
+      const target = descriptor.imageTarget ?? 0;
+      const bucket = Object.hasOwn(imageSources, target) ? imageSources[target] : undefined;
+      let source = resource && bucket && Object.hasOwn(bucket, resource) ? bucket[resource] : undefined;
+      const fallback = descriptor.defaultImageResource;
+      const local = Object.hasOwn(imageSources, 0) ? imageSources[0] : undefined;
+      if (source === undefined && fallback && local && Object.hasOwn(local, fallback)) source = local[fallback];
+      if ((resource || fallback) && source === undefined) throw new Error('UNRESOLVED_IMAGE_RESOURCE');
+      const enabled = descriptor.enabled !== false;
+      const size = Math.min(descriptor.style.width, descriptor.style.height);
+      const clip = descriptor.circle
+        ? { position: 'absolute' as const, left: (descriptor.style.width - size) / 2, top: (descriptor.style.height - size) / 2, width: size, height: size, borderRadius: size / 2 }
+        : { width: '100%' as const, height: '100%' as const, borderRadius: descriptor.borderRadius };
+      return (
+        <Pressable
+          disabled={!enabled}
+          accessibilityRole="button"
+          accessibilityLabel={descriptor.accessibilityLabel}
+          accessibilityState={{ disabled: !enabled }}
+          style={position(descriptor.style)}
+          onPress={() => onControlEvent(buildControlEvent(control, 'OnClick'))}
+        >
+          <View pointerEvents="none" style={[clip, { backgroundColor: descriptor.backgroundColor, overflow: 'hidden' }]}>
+            {source === undefined ? null : <Image source={source} accessible={false} resizeMode={descriptor.resizeMode ?? 'contain'} style={{ width: '100%', height: '100%' }} />}
+          </View>
+        </Pressable>
+      );
     }
     default:
       return unreachable(component);

@@ -5,9 +5,9 @@ import type { XmfColor, XmfControl, XmfPadding, XmfRect, XmfRenderDescriptor } f
 export type { XmfColor, XmfControl, XmfPadding, XmfRect, XmfRenderDescriptor } from './controls';
 
 export type XmfWarning = Readonly<{
-  code: 'UNSUPPORTED_PRESENTATION_CODE';
-  normalizedType: 'Label' | 'Edit' | 'Button';
-  property: 'fontsize' | 'fontstyle';
+  code: 'UNSUPPORTED_PRESENTATION_CODE' | 'UNSUPPORTED_IMAGE_PRESENTATION' | 'UNSUPPORTED_IMAGE_METADATA';
+  normalizedType: 'Label' | 'Edit' | 'Button' | 'Image';
+  property: 'fontsize' | 'fontstyle' | 'border' | 'bordersize' | 'tmpdnfiledel';
 }>;
 
 export type XmfField = Readonly<{ name: string; valueBytes: Uint8Array }>;
@@ -70,7 +70,7 @@ type RegistryPropertyDescriptor = Readonly<{
   name: string;
   policy: string;
   required: boolean;
-  default: null | 'empty-string' | 'enabled' | 'native-default' | 'zero' | 'omit';
+  default: null | 'empty-string' | 'enabled' | 'disabled' | 'layout-visibility' | 'native-default' | 'zero' | 'omit';
   maxBytes: number;
 }>;
 
@@ -78,6 +78,7 @@ type ControlDescriptor = Readonly<{
   decision: 'include' | 'unsupported';
   sourceTags: readonly string[];
   normalizedType: 'Label' | 'Edit' | 'Button' | 'Image' | 'unsupported';
+  maxPerScope?: number;
   properties: readonly RegistryPropertyDescriptor[];
   events: readonly Readonly<{
     name: 'OnEditComplete' | 'OnClick';
@@ -89,7 +90,7 @@ type ControlDescriptor = Readonly<{
 type PolicyDescriptor = Readonly<{
   id: string;
   coercion: string;
-  warning: null | 'UNSUPPORTED_PRESENTATION_CODE';
+  warning: null | 'UNSUPPORTED_PRESENTATION_CODE' | 'UNSUPPORTED_IMAGE_PRESENTATION' | 'UNSUPPORTED_IMAGE_METADATA';
 }>;
 
 type Registry = Readonly<{
@@ -360,6 +361,19 @@ function layout(value: string, location: string): XmfRect {
   return Object.freeze({ left: numbers[0], top: numbers[1], width: numbers[2], height: numbers[3] });
 }
 
+type ImageLayout = Readonly<{ rect: XmfRect; visible: boolean }>;
+
+function imageLayout(value: string, location: string): ImageLayout {
+  const parts = value.split(',');
+  if (parts.length !== 5 || !/^(?:0|-?[1-9][0-9]{0,3})$/.test(parts[0]) || !/^(?:0|-?[1-9][0-9]{0,3})$/.test(parts[1]) ||
+      !/^(?:[1-9][0-9]{0,3})$/.test(parts[2]) || !/^(?:[1-9][0-9]{0,3})$/.test(parts[3]) || !/^[01]$/.test(parts[4])) {
+    fail('INVALID_PROPERTY', location);
+  }
+  const numbers = parts.map(Number);
+  if (Math.abs(numbers[0]) > 8_192 || Math.abs(numbers[1]) > 8_192 || numbers[2] > 8_192 || numbers[3] > 8_192) fail('INVALID_PROPERTY', location);
+  return Object.freeze({ rect: Object.freeze({ left: numbers[0], top: numbers[1], width: numbers[2], height: numbers[3] }), visible: parts[4] === '1' });
+}
+
 function padding(value: string, location: string): XmfPadding {
   const parts = value.split(',');
   if (parts.length !== 4 || parts.some((part) => !/^(?:0|[1-9][0-9]{0,3})$/.test(part))) fail('INVALID_PROPERTY', location);
@@ -402,6 +416,21 @@ function coerce(policyId: string, value: string, location: string): unknown {
     case 'two-bits':
       if (/^[01]{2}$/.test(value)) return value;
       break;
+    case 'bounded-image-resource':
+      if (!/[\u0000-\u001f\u007f]/.test(value)) return value;
+      break;
+    case 'image-target-0-3': {
+      const number = canonicalDecimal(value, 3);
+      if (number !== undefined) return number;
+      break;
+    }
+    case 'signed-layout-with-visibility': return imageLayout(value, location);
+    case 'canonical-decimal-0-8192': {
+      const number = canonicalDecimal(value, 8_192);
+      if (number !== undefined) return number;
+      break;
+    }
+    case 'bounded-image-metadata': return undefined;
     default: fail('INVALID_RESOURCE', 'registry');
   }
   fail('INVALID_PROPERTY', location);
@@ -418,6 +447,7 @@ function controlFrom(tag: string, raw: Readonly<Record<string, string>>, warning
     if (source === undefined) {
       if (property.default === 'empty-string') values[property.name] = '';
       else if (property.default === 'enabled') values[property.name] = true;
+      else if (property.default === 'disabled') values[property.name] = false;
       else if (property.default === 'zero') values[property.name] = 0;
       continue;
     }
@@ -426,11 +456,21 @@ function controlFrom(tag: string, raw: Readonly<Record<string, string>>, warning
     const warning = policy(property.policy).warning;
     if (warning) {
       const key = `${descriptor.normalizedType}:${property.name}`;
-      warnings.set(key, Object.freeze({ code: warning, normalizedType: descriptor.normalizedType as 'Label' | 'Edit' | 'Button', property: property.name as 'fontsize' | 'fontstyle' }));
+      warnings.set(key, Object.freeze({
+        code: warning,
+        normalizedType: descriptor.normalizedType as XmfWarning['normalizedType'],
+        property: property.name as XmfWarning['property'],
+      }));
     }
   }
   if (descriptor.normalizedType === 'unsupported') fail('UNSUPPORTED_CONTROL_TYPE', 'control');
-  return createControl(descriptor.normalizedType, { name: values.name as string, layout: values.ly_vert as XmfRect }, values);
+  const parsedLayout = values.ly_vert as XmfRect | ImageLayout;
+  const layoutValue = 'rect' in parsedLayout ? parsedLayout.rect : parsedLayout;
+  if ('rect' in parsedLayout) {
+    if (values.visible !== undefined && values.visible !== parsedLayout.visible) fail('INVALID_PROPERTY', 'control.visible');
+    values.visible = values.visible ?? parsedLayout.visible;
+  }
+  return createControl(descriptor.normalizedType, { name: values.name as string, layout: layoutValue }, values);
 }
 
 function bounded(raw: Readonly<Record<string, string>>, name: string, maximum: number, location: string, minimum = 0): string {
@@ -539,7 +579,8 @@ function parseXmfInternal(source: Uint8Array): XmfModel {
   attributes(scanner.opening('CONTROL_INFO', true, 'controls'), [], [], 'controls');
   const warnings = new Map<string, XmfWarning>();
   const controls: XmfControl[] = [];
-  while (controls.length < 6) {
+  const imageLimit = registry.controls.find(({ normalizedType }) => normalizedType === 'Image')?.maxPerScope ?? 0;
+  while (controls.length < 5 + imageLimit) {
     scanner.whitespace();
     if (starts(bytes, scanner.position, ascii('<TABORDER_INFO'))) break;
     const tag = registry.controls.flatMap(({ sourceTags }) => sourceTags).find((candidate) => starts(bytes, scanner.position, ascii(`<${candidate}`)));
@@ -547,7 +588,7 @@ function parseXmfInternal(source: Uint8Array): XmfModel {
     controls.push(controlFrom(tag, scanner.opening(tag, false, 'control'), warnings));
   }
   const counts = controls.reduce<Record<string, number>>((result, control) => ({ ...result, [control.type]: (result[control.type] ?? 0) + 1 }), {});
-  if (counts.Label !== 2 || counts.Edit !== 1 || counts.Button !== 2 || (counts.Image ?? 0) > 1 || new Set(controls.map(({ name }) => name)).size !== controls.length) fail('INVALID_STRUCTURE', 'controls');
+  if (counts.Label !== 2 || counts.Edit !== 1 || counts.Button !== 2 || (counts.Image ?? 0) > imageLimit || new Set(controls.map(({ name }) => name)).size !== controls.length) fail('INVALID_STRUCTURE', 'controls');
   scanner.whitespace();
   const tabRaw = scanner.opening('TABORDER_INFO', false, 'tab-order');
   attributes(tabRaw, ['horz', 'vert'], [], 'tab-order');
@@ -665,6 +706,11 @@ function runtimeColor(value: unknown): string {
   return encodedColor(value, 'runtime.dfgcolor').value;
 }
 
+const validImagePosition = (value: unknown) => Number.isInteger(value) && Math.abs(value as number) <= 8_192;
+const validImageSize = (value: unknown) => Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 8_192;
+const validImageResource = (value: unknown) =>
+  typeof value === 'string' && encoder.encode(value).length <= 2_048 && !/[\u0000-\u001f\u007f]/.test(value);
+
 export function toRenderDescriptors(model: XmfModel, state: XmfRenderState = {}): readonly XmfRenderDescriptor[] {
   const normalized = new Map<string, Readonly<Record<string, unknown>>>();
   for (const [name, properties] of Object.entries(state)) {
@@ -680,6 +726,27 @@ export function toRenderDescriptors(model: XmfModel, state: XmfRenderState = {})
         ...(properties.border === undefined ? {} : { borderWidth: runtimeBorder(properties.border, control.borderSize) }),
         ...(properties.dfgcolor === undefined ? {} : { disabledForegroundColor: runtimeColor(properties.dfgcolor) }),
         ...(properties.enabled === undefined ? {} : { enabled: properties.enabled }),
+      }));
+    } else if (control.type === 'Image') {
+      if (keys.some((key) => !['imgpath', 'imagetarget', 'visible', 'enabled', 'left', 'top', 'width', 'height', 'autosize', 'circle'].includes(key)) ||
+          (properties.imgpath !== undefined && !validImageResource(properties.imgpath)) ||
+          (properties.imagetarget !== undefined && (!Number.isInteger(properties.imagetarget) || (properties.imagetarget as number) < 0 || (properties.imagetarget as number) > 3)) ||
+          ['visible', 'enabled', 'autosize', 'circle'].some((key) => properties[key] !== undefined && typeof properties[key] !== 'boolean') ||
+          ['left', 'top'].some((key) => properties[key] !== undefined && !validImagePosition(properties[key])) ||
+          ['width', 'height'].some((key) => properties[key] !== undefined && !validImageSize(properties[key]))) {
+        fail('INVALID_PROPERTY', 'runtime.Image');
+      }
+      normalized.set(name, Object.freeze({
+        ...(properties.imgpath === undefined ? {} : { imageResource: properties.imgpath }),
+        ...(properties.imagetarget === undefined ? {} : { imageTarget: properties.imagetarget }),
+        ...(properties.visible === undefined ? {} : { visible: properties.visible }),
+        ...(properties.enabled === undefined ? {} : { enabled: properties.enabled }),
+        ...(properties.left === undefined ? {} : { left: properties.left }),
+        ...(properties.top === undefined ? {} : { top: properties.top }),
+        ...(properties.width === undefined ? {} : { width: properties.width }),
+        ...(properties.height === undefined ? {} : { height: properties.height }),
+        ...(properties.autosize === undefined ? {} : { autosize: properties.autosize }),
+        ...(properties.circle === undefined ? {} : { circle: properties.circle }),
       }));
     } else if (keys.length) {
       fail('INVALID_PROPERTY', `runtime.${control.type}`);

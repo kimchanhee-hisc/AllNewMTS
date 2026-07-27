@@ -128,7 +128,7 @@
     },
     "publicApis": {
       "type": "array",
-      "minItems": 18,
+      "minItems": 34,
       "items": {
         "$ref": "#/$defs/api"
       }
