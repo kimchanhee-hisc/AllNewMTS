@@ -46,12 +46,94 @@ typedef struct {
 typedef struct {
   char public_ip[33];
   char private_ip[33];
+  char selected_private_ip[33];
   char handle[9];
   char date[9];
   char time[13];
   char type[2];
   char ip[33];
 } AllNewMTSMciSession;
+
+typedef struct {
+  size_t offset;
+  size_t size;
+} AllNewMTSMciSfidValue;
+
+typedef struct {
+  size_t record_count;
+  size_t value_count;
+  size_t continuation_offset;
+  size_t continuation_size;
+  size_t payload_size;
+  uint8_t mode;
+  uint8_t page_state;
+} AllNewMTSMciSfidDecoded;
+
+typedef struct {
+  char fid[5];
+  const uint8_t *value;
+  size_t value_size;
+} AllNewMTSMciSfidInput;
+
+typedef struct {
+  char fid[5];
+  uint8_t attribute;
+} AllNewMTSMciSfidOutput;
+
+typedef struct {
+  uint32_t record_count;
+  uint32_t selector_value;
+  uint8_t mode;
+  uint8_t selector_order;
+  const uint8_t *continuation_key;
+  size_t continuation_size;
+} AllNewMTSMciSfidOccurrence;
+
+enum {
+  ALLNEWMTS_MCI_SFID_SELECTOR_VALUE_THEN_COUNT = 0,
+  ALLNEWMTS_MCI_SFID_SELECTOR_COUNT_THEN_VALUE = 1
+};
+
+typedef struct {
+  uint8_t command;
+  char request_id[5];
+  uint8_t interface_id;
+  char hts_id[11];
+  char private_identity[33];
+  const uint8_t *body;
+  size_t body_size;
+} AllNewMTSMciCommandRequest;
+
+typedef struct {
+  uint8_t command;
+  char request_id[5];
+  uint8_t interface_id;
+  uint8_t response_code;
+  size_t body_offset;
+  size_t body_size;
+} AllNewMTSMciCommandResponse;
+
+typedef struct {
+  char transaction_id[9];
+  char request_id[5];
+  uint8_t interface_id;
+  char hts_id[11];
+  char private_identity[33];
+  const uint8_t *body;
+  size_t body_size;
+} AllNewMTSMciTransactionRequest;
+
+typedef struct {
+  char transaction_id[9];
+  char request_id[5];
+  uint8_t interface_id;
+  uint8_t response_code;
+  uint8_t message_output_type;
+  char message_code[10];
+  char supplemental_message_code[10];
+  size_t body_offset;
+  size_t body_size;
+} AllNewMTSMciTransactionResponse;
 
 typedef struct {
   int (*open)(void *context, const char *host, uint16_t port,
@@ -98,10 +180,55 @@ uint32_t allnewmts_mci_build_init_request(const char channel_detail[5],
 uint32_t allnewmts_mci_parse_init_response(
     const uint8_t *frame, size_t frame_size, AllNewMTSMciSession *session);
 
+uint32_t allnewmts_mci_build_sfid_body(
+    const char gid[5], const AllNewMTSMciSfidInput *inputs,
+    size_t input_count, const AllNewMTSMciSfidOutput *outputs,
+    size_t output_count, uint8_t *output, size_t output_capacity,
+    size_t *output_size);
+
+uint32_t allnewmts_mci_build_sfid_occurrence_body(
+    const char gid[5], const AllNewMTSMciSfidInput *inputs,
+    size_t input_count, const AllNewMTSMciSfidOccurrence *occurrence,
+    const AllNewMTSMciSfidOutput *outputs, size_t output_count,
+    uint8_t *output, size_t output_capacity, size_t *output_size);
+
+uint32_t allnewmts_mci_build_transaction_request(
+    const char channel_detail[5], const AllNewMTSMciSession *session,
+    const char request_nonce[10],
+    const AllNewMTSMciTransactionRequest *request, uint8_t *output,
+    size_t output_capacity, size_t *output_size);
+
+uint32_t allnewmts_mci_build_command_request(
+    const char channel_detail[5], const AllNewMTSMciSession *session,
+    const char request_nonce[10], const AllNewMTSMciCommandRequest *request,
+    uint8_t *output, size_t output_capacity, size_t *output_size);
+
+uint32_t allnewmts_mci_parse_command_response(
+    const uint8_t *frame, size_t frame_size,
+    const AllNewMTSMciSession *session,
+    AllNewMTSMciCommandResponse *response);
+
+uint32_t allnewmts_mci_parse_transaction_response(
+    const uint8_t *frame, size_t frame_size,
+    const AllNewMTSMciSession *session,
+    AllNewMTSMciTransactionResponse *response);
+
 uint32_t allnewmts_mci_build_gd1000q1_request(
     const char channel_detail[5], const AllNewMTSMciSession *session,
     const char request_nonce[10], uint8_t *output, size_t output_capacity,
     size_t *output_size);
+
+uint32_t allnewmts_mci_decode_sfid_body(
+    const uint8_t *body, size_t body_size, const char gid[5],
+    const char output_fids[][5], size_t output_count,
+    AllNewMTSMciSfidValue *values, size_t value_capacity,
+    AllNewMTSMciSfidDecoded *decoded);
+
+uint32_t allnewmts_mci_decode_sfid_occurrence_body(
+    const uint8_t *body, size_t body_size, const char gid[5],
+    const char output_fids[][5], size_t output_count,
+    AllNewMTSMciSfidValue *values, size_t value_capacity,
+    AllNewMTSMciSfidDecoded *decoded);
 
 uint32_t allnewmts_mci_parse_gd1000q1_response(
     const uint8_t *frame, size_t frame_size,

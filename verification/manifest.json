@@ -354,11 +354,11 @@
     },
     {
       "path": "docs/specs/networking-contract.md",
-      "sha256": "f7e4d25f66e94a169d5969312ceca4c8040ca33b926823cb5dbc2c46082f8045"
+      "sha256": "5d909051093d0ad8ed5bafbde7ebc7bca0919641d7ecf18f42a625b2d22244a9"
     },
     {
       "path": "docs/testing.md",
-      "sha256": "9d47d636c2c536e3653521b42d3ea14840fa3902f4526d6a50c1e81122332fb9"
+      "sha256": "ba29aebcc9847d08cacfc7251ebd5f8de9dac7c3874b3055745734bb888e77dd"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
@@ -398,7 +398,7 @@
     },
     {
       "path": "native/lua-source-manifest.json",
-      "sha256": "a258266704f8561ffc8c7ded91978b0ad0ff64db3fc2644879c3788c2a82018e"
+      "sha256": "ee7421e8b8e046353483bd749a591e382878825543d9b20dce0c7f1e2416d9dd"
     },
     {
       "path": "native/lua-source-manifest.schema.json",

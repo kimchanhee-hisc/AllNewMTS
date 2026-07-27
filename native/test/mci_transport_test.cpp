@@ -73,8 +73,14 @@ std::vector<uint8_t> initRequestGolden() {
 }
 
 std::vector<uint8_t> gd1000q1Response(char response_code = '0') {
-  const std::vector<uint8_t> body = {
-      0x1f, '0', '0', '0', '4', 0x7f, '7', '0', '0', '0', '0', 0x1f};
+  std::vector<uint8_t> body;
+  for (size_t index = 0; index < 104; ++index) {
+    if (index != 0) body.push_back(0x1e);
+    const char *value =
+        index == 0 ? "003530" : index == 2 ? "+70000" : "";
+    body.insert(body.end(), value, value + std::strlen(value));
+  }
+  body.push_back(0x1f);
   std::vector<uint8_t> frame(
       ALLNEWMTS_MCI_RESPONSE_HEADER_SIZE + body.size(), ' ');
   decimal8(frame.data(), frame.size() - 8);
@@ -87,8 +93,53 @@ std::vector<uint8_t> gd1000q1Response(char response_code = '0') {
   field(frame, 146, 4, "0001");
   field(frame, 150, 8, "MCI00001");
   frame[161] = response_code;
+  frame[321] = '0';
+  field(frame, 322, 9, "MCI000000");
   std::copy(body.begin(), body.end(),
             frame.begin() + ALLNEWMTS_MCI_RESPONSE_HEADER_SIZE);
+  return frame;
+}
+
+std::vector<uint8_t> commandResponse(const char request_id[5],
+                                     size_t token_size,
+                                     char response_code = '0') {
+  std::vector<uint8_t> frame(
+      ALLNEWMTS_MCI_RESPONSE_HEADER_SIZE + token_size, ' ');
+  decimal8(frame.data(), frame.size() - 8);
+  frame[8] = 'X';
+  frame[9] = '2';
+  frame[10] = '0';
+  frame[11] = 'S';
+  frame[12] = 'F';
+  field(frame, 146, 4, request_id);
+  field(frame, 150, 8, "MCI00001");
+  frame[161] = response_code;
+  for (size_t index = 0; index < token_size; ++index)
+    frame[ALLNEWMTS_MCI_RESPONSE_HEADER_SIZE + index] =
+        static_cast<uint8_t>((index * 17 + 3) & 0xff);
+  return frame;
+}
+
+std::vector<uint8_t> ccsResponse(const char transaction_id[9],
+                                 const char request_id[5], size_t frame_size,
+                                 const char *body_prefix = nullptr) {
+  std::vector<uint8_t> frame(frame_size, ' ');
+  decimal8(frame.data(), frame.size() - 8);
+  frame[8] = 'R';
+  frame[9] = '0';
+  frame[10] = '0';
+  frame[11] = 'S';
+  frame[12] = 'M';
+  field(frame, 89, 8, transaction_id);
+  field(frame, 146, 4, request_id);
+  field(frame, 150, 8, "MCI00001");
+  frame[161] = '0';
+  frame[321] = '0';
+  field(frame, 322, 9, "MCI000000");
+  std::fill(frame.begin() + ALLNEWMTS_MCI_RESPONSE_HEADER_SIZE, frame.end(), 0);
+  if (body_prefix)
+    std::memcpy(frame.data() + ALLNEWMTS_MCI_RESPONSE_HEADER_SIZE, body_prefix,
+                std::strlen(body_prefix));
   return frame;
 }
 
@@ -269,7 +320,17 @@ int main(int argc, char **argv) {
                                            &parsed) == ALLNEWMTS_MCI_OK);
   assert(std::strcmp(parsed.public_ip, "203.0.113.1") == 0);
   assert(std::strcmp(parsed.private_ip, "10.0.0.2") == 0);
+  assert(std::strcmp(parsed.selected_private_ip, "203.0.113.1") == 0);
   assert(std::strcmp(parsed.date, "20260129") == 0);
+  response = initResponse();
+  field(response, ALLNEWMTS_MCI_RESPONSE_HEADER_SIZE + 32, 32, "172.16.1.7");
+  assert(allnewmts_mci_parse_init_response(response.data(), response.size(),
+                                           &parsed) == ALLNEWMTS_MCI_OK);
+  assert(std::strcmp(parsed.private_ip, "172.16.1.7") == 0);
+  assert(std::strcmp(parsed.selected_private_ip, "172.16.1.7") == 0);
+  response = initResponse();
+  assert(allnewmts_mci_parse_init_response(response.data(), response.size(),
+                                           &parsed) == ALLNEWMTS_MCI_OK);
   response.pop_back();
   assert(allnewmts_mci_parse_init_response(response.data(), response.size(),
                                            &parsed) ==
@@ -286,38 +347,450 @@ int main(int argc, char **argv) {
                                            &parsed) ==
          ALLNEWMTS_MCI_INIT_INVALID);
 
+  const uint8_t market_value[] = {'O', 'V'};
+  const uint8_t instrument_value[] = {'F', 'X', '@', 'K', 'R', 'W'};
+  const AllNewMTSMciSfidInput generic_inputs[] = {
+      {"9001", market_value, sizeof(market_value)},
+      {"9002", instrument_value, sizeof(instrument_value)},
+      {"9246", nullptr, 0}};
+  const AllNewMTSMciSfidOutput generic_outputs[] = {
+      {"0004", 0}, {"0125", 1}};
+  std::array<uint8_t, 256> generic_body{};
+  size_t generic_body_size = 0;
+  assert(allnewmts_mci_build_sfid_body(
+             "3101", generic_inputs, 3, generic_outputs, 2,
+             generic_body.data(), generic_body.size(), &generic_body_size) ==
+         ALLNEWMTS_MCI_OK);
+  const std::vector<uint8_t> expected_generic_body = {
+      0x1f, '9', '0', '0', '1', 0x7f, 'O', 'V',
+      0x1e, '9', '0', '0', '2', 0x7f, 'F', 'X', '@', 'K', 'R', 'W',
+      0x1e, '9', '2', '4', '6', 0x7f,
+      0x1e, 'G', 'I', 'D', 0x7f, '3', '1', '0', '1',
+      0x1e, '0', '0', '0', '4',
+      0x1e, '*', '0', '1', '2', '5', 0x1f};
+  assert(std::vector<uint8_t>(
+             generic_body.begin(),
+             generic_body.begin() + generic_body_size) ==
+         expected_generic_body);
+  const AllNewMTSMciSfidOccurrence occurrence = {
+      2, 0, 0, ALLNEWMTS_MCI_SFID_SELECTOR_VALUE_THEN_COUNT, nullptr, 0};
+  std::array<uint8_t, 256> occurrence_request_body{};
+  size_t occurrence_request_body_size = 0;
+  assert(allnewmts_mci_build_sfid_occurrence_body(
+             "3101", generic_inputs, 3, &occurrence, generic_outputs, 2,
+             occurrence_request_body.data(), occurrence_request_body.size(),
+             &occurrence_request_body_size) == ALLNEWMTS_MCI_OK);
+  const std::string occurrence_selector = "$0000000000020@000";
+  assert(std::search(
+             occurrence_request_body.begin(),
+             occurrence_request_body.begin() + occurrence_request_body_size,
+             occurrence_selector.begin(), occurrence_selector.end()) !=
+         occurrence_request_body.begin() + occurrence_request_body_size);
+  const AllNewMTSMciSfidOccurrence count_first_occurrence = {
+      2, 2, 0, ALLNEWMTS_MCI_SFID_SELECTOR_COUNT_THEN_VALUE, nullptr, 0};
+  assert(allnewmts_mci_build_sfid_occurrence_body(
+             "3101", generic_inputs, 3, &count_first_occurrence,
+             generic_outputs, 2, occurrence_request_body.data(),
+             occurrence_request_body.size(), &occurrence_request_body_size) ==
+         ALLNEWMTS_MCI_OK);
+  const std::string count_first_selector = "$0002000000020@000";
+  assert(std::search(
+             occurrence_request_body.begin(),
+             occurrence_request_body.begin() + occurrence_request_body_size,
+             count_first_selector.begin(), count_first_selector.end()) !=
+         occurrence_request_body.begin() + occurrence_request_body_size);
+
+  const uint8_t gd3122_market[] = {'O', 'V'};
+  const AllNewMTSMciSfidInput gd3122_inputs[] = {
+      {"9001", gd3122_market, sizeof(gd3122_market)},
+      {"9160", nullptr, 0}};
+  const AllNewMTSMciSfidOutput gd3122_outputs[] = {
+      {"0009", 0}, {"1987", 0}, {"2202", 0}, {"2203", 0}};
+  const AllNewMTSMciSfidOccurrence gd3122_initial = {
+      20, 20, 0, ALLNEWMTS_MCI_SFID_SELECTOR_COUNT_THEN_VALUE, nullptr, 0};
+  assert(allnewmts_mci_build_sfid_occurrence_body(
+             "3122", gd3122_inputs, 2, &gd3122_initial, gd3122_outputs, 4,
+             occurrence_request_body.data(), occurrence_request_body.size(),
+             &occurrence_request_body_size) == ALLNEWMTS_MCI_OK);
+  const std::string gd3122_initial_golden =
+      "\x1f"
+      "9001"
+      "\x7f"
+      "OV"
+      "\x1e"
+      "9160"
+      "\x7f"
+      "\x1e"
+      "GID"
+      "\x7f"
+      "3122"
+      "\x1e"
+      "$0020000000200@000"
+      "\x1e"
+      "0009"
+      "\x1e"
+      "1987"
+      "\x1e"
+      "2202"
+      "\x1e"
+      "2203"
+      "\x1f";
+  assert(occurrence_request_body_size == 63);
+  assert(std::equal(
+      occurrence_request_body.begin(),
+      occurrence_request_body.begin() + occurrence_request_body_size,
+      reinterpret_cast<const uint8_t *>(gd3122_initial_golden.data()),
+      reinterpret_cast<const uint8_t *>(gd3122_initial_golden.data()) +
+          gd3122_initial_golden.size()));
+  const uint8_t gd3122_key[] = {'0', '0', '0', '0', '0', '|',
+                                '0', '0', '0', '2', '1'};
+  const AllNewMTSMciSfidOccurrence gd3122_continuation = {
+      20, 20, 2, ALLNEWMTS_MCI_SFID_SELECTOR_COUNT_THEN_VALUE,
+      gd3122_key, sizeof(gd3122_key)};
+  assert(allnewmts_mci_build_sfid_occurrence_body(
+             "3122", gd3122_inputs, 2, &gd3122_continuation, gd3122_outputs,
+             4, occurrence_request_body.data(), occurrence_request_body.size(),
+             &occurrence_request_body_size) == ALLNEWMTS_MCI_OK);
+  const std::string gd3122_continuation_selector =
+      "$0020000000202@01100000|00021";
+  assert(occurrence_request_body_size == 74);
+  assert(std::search(
+             occurrence_request_body.begin(),
+             occurrence_request_body.begin() + occurrence_request_body_size,
+             gd3122_continuation_selector.begin(),
+             gd3122_continuation_selector.end()) !=
+         occurrence_request_body.begin() + occurrence_request_body_size);
+
+  AllNewMTSMciTransactionRequest generic_request{};
+  std::memcpy(generic_request.transaction_id, "AB3101Q1", 9);
+  std::memcpy(generic_request.request_id, "0042", 5);
+  generic_request.interface_id = 'F';
+  std::memcpy(generic_request.hts_id, "TESTUSER", 9);
+  std::memcpy(generic_request.private_identity, "198.51.100.10", 14);
+  generic_request.body = generic_body.data();
+  generic_request.body_size = generic_body_size;
+  std::array<uint8_t, ALLNEWMTS_MCI_MAX_FRAME_SIZE> generic_frame{};
+  size_t generic_frame_size = 0;
+  assert(allnewmts_mci_build_transaction_request(
+             "CC320", &parsed, "0000000001", &generic_request,
+             generic_frame.data(), generic_frame.size(),
+             &generic_frame_size) == ALLNEWMTS_MCI_OK);
+  assert(generic_frame_size ==
+         ALLNEWMTS_MCI_REQUEST_HEADER_SIZE + generic_body_size);
+  assert(std::string(
+             reinterpret_cast<char *>(generic_frame.data() + 89), 8) ==
+         "AB3101Q1");
+  assert(std::string(
+             reinterpret_cast<char *>(generic_frame.data() + 146), 4) ==
+         "0042");
+  assert(std::string(
+             reinterpret_cast<char *>(generic_frame.data() + 202), 10) ==
+         "TESTUSER  ");
+  assert(std::vector<uint8_t>(
+             generic_frame.begin() + ALLNEWMTS_MCI_REQUEST_HEADER_SIZE,
+             generic_frame.begin() + generic_frame_size) ==
+         expected_generic_body);
+
+  std::array<uint8_t, 53> first_x_token{};
+  std::array<uint8_t, 309> second_x_token{};
+  for (size_t index = 0; index < first_x_token.size(); ++index)
+    first_x_token[index] = static_cast<uint8_t>(index);
+  for (size_t index = 0; index < second_x_token.size(); ++index)
+    second_x_token[index] = static_cast<uint8_t>(255 - (index & 0xff));
+  AllNewMTSMciCommandRequest command_request{};
+  command_request.command = 'X';
+  std::memcpy(command_request.request_id, "0001", 5);
+  command_request.interface_id = 'F';
+  std::memcpy(command_request.hts_id, "NEWMTS", 7);
+  std::memcpy(command_request.private_identity, parsed.selected_private_ip,
+              sizeof(command_request.private_identity));
+  command_request.body = first_x_token.data();
+  command_request.body_size = first_x_token.size();
+  size_t command_frame_size = 0;
+  assert(allnewmts_mci_build_command_request(
+             "CC320", &parsed, "0000000002", &command_request,
+             generic_frame.data(), generic_frame.size(),
+             &command_frame_size) == ALLNEWMTS_MCI_OK);
+  assert(command_frame_size == 374);
+  assert(std::string(reinterpret_cast<char *>(generic_frame.data()), 13) ==
+         "00000366X20SF");
+  assert(std::vector<uint8_t>(
+             generic_frame.begin() + ALLNEWMTS_MCI_REQUEST_HEADER_SIZE,
+             generic_frame.begin() + command_frame_size) ==
+         std::vector<uint8_t>(first_x_token.begin(), first_x_token.end()));
+  assert(std::string(
+             reinterpret_cast<char *>(generic_frame.data() + 146), 4) ==
+         "0001");
+  assert(std::string(
+             reinterpret_cast<char *>(generic_frame.data() + 256), 32) ==
+         "203.0.113.1                     ");
+
+  command_request.body = second_x_token.data();
+  command_request.body_size = second_x_token.size();
+  assert(allnewmts_mci_build_command_request(
+             "CC320", &parsed, "0000000003", &command_request,
+             generic_frame.data(), generic_frame.size(),
+             &command_frame_size) == ALLNEWMTS_MCI_OK);
+  assert(command_frame_size == 630);
+  assert(std::string(reinterpret_cast<char *>(generic_frame.data()), 13) ==
+         "00000622X20SF");
+  assert(std::string(
+             reinterpret_cast<char *>(generic_frame.data() + 146), 4) ==
+         "0001");
+  std::memcpy(command_request.request_id, "0002", 5);
+  assert(allnewmts_mci_build_command_request(
+             "CC320", &parsed, "0000000003", &command_request,
+             generic_frame.data(), generic_frame.size(),
+             &command_frame_size) == ALLNEWMTS_MCI_INVALID_ARGUMENT);
+  std::memcpy(command_request.request_id, "0001", 5);
+
+  AllNewMTSMciCommandResponse command_response{};
+  std::vector<uint8_t> first_x_response = commandResponse("0001", 1153);
+  assert(allnewmts_mci_parse_command_response(
+             first_x_response.data(), first_x_response.size(), &parsed,
+             &command_response) == ALLNEWMTS_MCI_OK);
+  assert(std::strcmp(command_response.request_id, "0001") == 0 &&
+         command_response.command == 'X' &&
+         command_response.interface_id == 'F' &&
+         command_response.body_offset == ALLNEWMTS_MCI_RESPONSE_HEADER_SIZE &&
+         command_response.body_size == 1153);
+  std::vector<uint8_t> second_x_response = commandResponse("0001", 92);
+  assert(allnewmts_mci_parse_command_response(
+             second_x_response.data(), second_x_response.size(), &parsed,
+             &command_response) == ALLNEWMTS_MCI_OK);
+  assert(std::strcmp(command_response.request_id, "0001") == 0 &&
+         command_response.body_size == 92);
+  std::vector<uint8_t> wrong_x_response = commandResponse("0002", 92);
+  assert(allnewmts_mci_parse_command_response(
+             wrong_x_response.data(), wrong_x_response.size(), &parsed,
+             &command_response) == ALLNEWMTS_MCI_TRANSACTION_INVALID);
+  second_x_response[161] = '1';
+  assert(allnewmts_mci_parse_command_response(
+             second_x_response.data(), second_x_response.size(), &parsed,
+             &command_response) == ALLNEWMTS_MCI_TRANSACTION_REJECTED);
+
+  std::array<uint8_t, 17> ccs_body{};
+  std::fill(ccs_body.begin(), ccs_body.end(), ' ');
+  std::memcpy(ccs_body.data(), "00", 2);
+  std::memcpy(ccs_body.data() + 2, parsed.public_ip,
+              std::strlen(parsed.public_ip));
+  AllNewMTSMciTransactionRequest ccs_request{};
+  std::memcpy(ccs_request.transaction_id, "CCS00997", 9);
+  std::memcpy(ccs_request.request_id, "0097", 5);
+  ccs_request.interface_id = 'M';
+  std::memcpy(ccs_request.hts_id, "sampleusr", 10);
+  std::memcpy(ccs_request.private_identity, parsed.selected_private_ip,
+              sizeof(ccs_request.private_identity));
+  ccs_request.body = ccs_body.data();
+  ccs_request.body_size = ccs_body.size();
+  assert(allnewmts_mci_build_transaction_request(
+             "CC320", &parsed, "0000000097", &ccs_request,
+             generic_frame.data(), generic_frame.size(),
+             &generic_frame_size) == ALLNEWMTS_MCI_OK);
+  assert(generic_frame_size == 338);
+  assert(std::string(reinterpret_cast<char *>(generic_frame.data()), 13) ==
+         "00000330S00SM");
+  assert(std::string(
+             reinterpret_cast<char *>(generic_frame.data() + 202), 10) ==
+         "sampleusr ");
+  assert(std::string(
+             reinterpret_cast<char *>(generic_frame.data() + 224), 32) ==
+         "203.0.113.1                     ");
+  assert(std::string(
+             reinterpret_cast<char *>(generic_frame.data() + 256), 32) ==
+         "203.0.113.1                     ");
+  assert(std::equal(ccs_body.begin(), ccs_body.end(),
+                    generic_frame.begin() + ALLNEWMTS_MCI_REQUEST_HEADER_SIZE));
+
+  AllNewMTSMciTransactionResponse ccs_response{};
+  std::vector<uint8_t> ccs_frame = ccsResponse("CCS00997", "0097", 692, "00");
+  assert(allnewmts_mci_parse_transaction_response(
+             ccs_frame.data(), ccs_frame.size(), &parsed, &ccs_response) ==
+         ALLNEWMTS_MCI_OK);
+  assert(std::strcmp(ccs_response.transaction_id, "CCS00997") == 0 &&
+         std::strcmp(ccs_response.request_id, "0097") == 0 &&
+         ccs_response.interface_id == 'M' &&
+         ccs_response.message_output_type == '0' &&
+         std::strcmp(ccs_response.message_code, "MCI000000") == 0 &&
+         ccs_response.body_offset == ALLNEWMTS_MCI_RESPONSE_HEADER_SIZE &&
+         ccs_response.body_size == 192 &&
+         ccs_frame[ccs_response.body_offset] == '0' &&
+         ccs_frame[ccs_response.body_offset + 1] == '0');
+
+  std::array<uint8_t, 651> ccs00996_body{};
+  std::fill(ccs00996_body.begin(), ccs00996_body.end(), ' ');
+  std::memcpy(ccs00996_body.data(), "sampleusr", 9);
+  AllNewMTSMciTransactionRequest ccs00996_request{};
+  std::memcpy(ccs00996_request.transaction_id, "CCS00996", 9);
+  std::memcpy(ccs00996_request.request_id, "0096", 5);
+  ccs00996_request.interface_id = 'M';
+  std::memcpy(ccs00996_request.hts_id, "sampleusr", 10);
+  std::memcpy(ccs00996_request.private_identity, "R00000000000", 13);
+  ccs00996_request.body = ccs00996_body.data();
+  ccs00996_request.body_size = ccs00996_body.size();
+  assert(allnewmts_mci_build_transaction_request(
+             "CC321", &parsed, "0000000096", &ccs00996_request,
+             generic_frame.data(), generic_frame.size(),
+             &generic_frame_size) == ALLNEWMTS_MCI_OK);
+  assert(generic_frame_size == 972);
+  assert(std::string(reinterpret_cast<char *>(generic_frame.data()), 13) ==
+         "00000964S00SM");
+  assert(std::string(reinterpret_cast<char *>(generic_frame.data() + 43), 8) ==
+         "CC3CC321");
+  assert(std::string(reinterpret_cast<char *>(generic_frame.data() + 256),
+                     32) == "R00000000000                    ");
+  std::vector<uint8_t> ccs00996_frame = ccsResponse("CCS00996", "0096", 580);
+  assert(allnewmts_mci_parse_transaction_response(
+             ccs00996_frame.data(), ccs00996_frame.size(), &parsed,
+             &ccs_response) == ALLNEWMTS_MCI_OK);
+  assert(std::strcmp(ccs_response.transaction_id, "CCS00996") == 0 &&
+         std::strcmp(ccs_response.request_id, "0096") == 0 &&
+         ccs_response.interface_id == 'M' &&
+         std::strcmp(ccs_response.message_code, "MCI000000") == 0 &&
+         ccs_response.body_offset == ALLNEWMTS_MCI_RESPONSE_HEADER_SIZE &&
+         ccs_response.body_size == 80);
+
   std::array<uint8_t, ALLNEWMTS_MCI_MAX_FRAME_SIZE> quote_request{};
   size_t quote_request_size = 0;
   assert(allnewmts_mci_build_gd1000q1_request(
+             "CC320", nullptr, "0000000001", quote_request.data(),
+             quote_request.size(),
+             &quote_request_size) == ALLNEWMTS_MCI_INVALID_ARGUMENT);
+  assert(allnewmts_mci_build_gd1000q1_request(
              "CC320", &parsed, "0000000001", quote_request.data(),
-             quote_request.size(), &quote_request_size) ==
-         ALLNEWMTS_MCI_OK);
-  assert(quote_request_size == 379);
+             quote_request.size(), &quote_request_size) == ALLNEWMTS_MCI_OK);
+  assert(quote_request_size == 890);
   assert(std::string(reinterpret_cast<char *>(quote_request.data() + 43), 8) ==
          "CC3CC320");
   assert(std::string(reinterpret_cast<char *>(quote_request.data() + 57), 32) ==
          "MCI00001202601291201020000000001");
   assert(std::string(reinterpret_cast<char *>(quote_request.data() + 89), 8) ==
          "GD1000Q1");
-  const std::vector<uint8_t> quote_body = {
-      0x1f, '9', '0', '0', '1', 0x7f, 'J',
-      0x1e, '9', '0', '0', '2', 0x7f, '0', '0', '5', '9', '3', '0',
-      0x1e, 'G', 'I', 'D', 0x7f, '1', '0', '0', '0',
-      0x1e, '$', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0',
-      '1', '0', '@', '0', '0', '0',
-      0x1e, '0', '0', '0', '9',
-      0x1e, '0', '0', '0', '4', 0x1f};
-  assert(std::vector<uint8_t>(
-             quote_request.begin() + ALLNEWMTS_MCI_REQUEST_HEADER_SIZE,
-             quote_request.begin() + quote_request_size) == quote_body);
+  const uint8_t expected_quote_body_hash[32] = {
+      0x51, 0x04, 0x1b, 0x75, 0x5c, 0x77, 0xe1, 0x44,
+      0x72, 0x3b, 0x95, 0xe9, 0x30, 0x69, 0x42, 0x3d,
+      0xee, 0xb0, 0x5c, 0x0a, 0xd1, 0x3c, 0x2f, 0x1f,
+      0xc1, 0x10, 0x9b, 0xca, 0xa5, 0x02, 0x1f, 0x82};
+  uint8_t quote_body_hash[32];
+  allnewmts_sha256(
+      quote_request.data() + ALLNEWMTS_MCI_REQUEST_HEADER_SIZE,
+      quote_request_size - ALLNEWMTS_MCI_REQUEST_HEADER_SIZE,
+      quote_body_hash);
+  assert(std::memcmp(quote_body_hash, expected_quote_body_hash,
+                     sizeof(quote_body_hash)) == 0);
   assert(allnewmts_mci_build_gd1000q1_request(
              "CC320", &parsed, "bad-nonce!", quote_request.data(),
              quote_request.size(), &quote_request_size) ==
          ALLNEWMTS_MCI_INVALID_ARGUMENT);
   std::vector<uint8_t> quote_response = gd1000q1Response();
+  AllNewMTSMciTransactionResponse generic_response{};
+  assert(allnewmts_mci_parse_transaction_response(
+             quote_response.data(), quote_response.size(), &parsed,
+             &generic_response) == ALLNEWMTS_MCI_OK);
+  assert(std::strcmp(generic_response.transaction_id, "GD1000Q1") == 0 &&
+         std::strcmp(generic_response.request_id, "0001") == 0 &&
+         generic_response.interface_id == 'F' &&
+         generic_response.body_offset == ALLNEWMTS_MCI_RESPONSE_HEADER_SIZE);
   assert(allnewmts_mci_parse_gd1000q1_response(
              quote_response.data(), quote_response.size(), &parsed) ==
          ALLNEWMTS_MCI_OK);
+  const char quote_fids[][5] = {"0004", "0005"};
+  const std::vector<uint8_t> positional_body = {
+      '+', '7', '0', '0', '0', '0', 0x1e, 0x1f};
+  AllNewMTSMciSfidValue quote_values[2]{};
+  AllNewMTSMciSfidDecoded quote_decoded{};
+  assert(allnewmts_mci_decode_sfid_body(
+             positional_body.data(), positional_body.size(), "1000",
+             quote_fids, 2, quote_values, 2, &quote_decoded) ==
+         ALLNEWMTS_MCI_OK);
+  assert(quote_decoded.record_count == 1 &&
+         quote_decoded.value_count == 2 &&
+         quote_decoded.continuation_size == 0);
+  assert(std::string(
+             reinterpret_cast<const char *>(positional_body.data() +
+                                            quote_values[0].offset),
+             quote_values[0].size) == "+70000");
+  assert(quote_values[1].size == 0);
+  const char arbitrary_fids[][5] = {"8123", "9456"};
+  const std::vector<uint8_t> arbitrary_body = {'A', 0x1e, 0x1f};
+  assert(allnewmts_mci_decode_sfid_body(
+             arbitrary_body.data(), arbitrary_body.size(), "3101",
+             arbitrary_fids, 2, quote_values, 2, &quote_decoded) ==
+         ALLNEWMTS_MCI_OK);
+  assert(quote_values[0].size == 1 && quote_values[1].size == 0);
+  std::vector<uint8_t> occurrence_response_body = {
+      '$', '0', '0', '0', '0', '0', '0', '1', '1', '0', '0', '0',
+      '2', '0', 0x02, '0', '0', '3', 'K', 'E', 'Y',
+      '1', '0', '0', 0x1e, '1', 0x1d,
+      '2', '0', '0', 0x1e, 0x1f};
+  AllNewMTSMciSfidValue occurrence_values[4]{};
+  assert(allnewmts_mci_decode_sfid_occurrence_body(
+             occurrence_response_body.data(), occurrence_response_body.size(),
+             "3101", arbitrary_fids, 2, occurrence_values, 4,
+             &quote_decoded) == ALLNEWMTS_MCI_OK);
+  assert(quote_decoded.record_count == 2 &&
+         quote_decoded.value_count == 4 &&
+         quote_decoded.continuation_offset == 18 &&
+         quote_decoded.continuation_size == 3 &&
+         quote_decoded.payload_size == 11 && quote_decoded.mode == 0 &&
+         quote_decoded.page_state == 0x02 &&
+         occurrence_values[3].size == 0);
+  occurrence_response_body[13] = '2';
+  occurrence_response_body[14] = 0x03;
+  assert(allnewmts_mci_decode_sfid_occurrence_body(
+             occurrence_response_body.data(), occurrence_response_body.size(),
+             "3101", arbitrary_fids, 2, occurrence_values, 4,
+             &quote_decoded) == ALLNEWMTS_MCI_OK);
+  assert(quote_decoded.mode == 2 && quote_decoded.page_state == 0x03);
+  occurrence_response_body[14] = 0x01;
+  assert(allnewmts_mci_decode_sfid_occurrence_body(
+             occurrence_response_body.data(), occurrence_response_body.size(),
+             "3101", arbitrary_fids, 2, occurrence_values, 4,
+             &quote_decoded) == ALLNEWMTS_MCI_OK);
+  assert(quote_decoded.mode == 2 && quote_decoded.page_state == 0x01);
+  occurrence_response_body[14] = '@';
+  assert(allnewmts_mci_decode_sfid_occurrence_body(
+             occurrence_response_body.data(), occurrence_response_body.size(),
+             "3101", arbitrary_fids, 2, occurrence_values, 4,
+             &quote_decoded) ==
+         ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID);
+  occurrence_response_body[14] = 0x01;
+  occurrence_response_body[8] = '0';
+  assert(allnewmts_mci_decode_sfid_occurrence_body(
+             occurrence_response_body.data(), occurrence_response_body.size(),
+             "3101", arbitrary_fids, 2, occurrence_values, 4,
+             &quote_decoded) ==
+         ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID);
+  const char invalid_fids[][5] = {"9X99"};
+  assert(allnewmts_mci_decode_sfid_body(
+             arbitrary_body.data(), arbitrary_body.size(), "3101",
+             invalid_fids, 1, quote_values, 2, &quote_decoded) ==
+         ALLNEWMTS_MCI_TRANSACTION_INVALID);
+  const char duplicate_fids[][5] = {"0004", "0004"};
+  assert(allnewmts_mci_decode_sfid_body(
+             positional_body.data(), positional_body.size(), "1000",
+             duplicate_fids, 2, quote_values, 2, &quote_decoded) ==
+         ALLNEWMTS_MCI_TRANSACTION_INVALID);
+  assert(allnewmts_mci_decode_sfid_body(
+             positional_body.data(), positional_body.size(), "1000",
+             quote_fids, 2, quote_values, 1, &quote_decoded) ==
+         ALLNEWMTS_MCI_RESOURCE_LIMIT);
+  quote_response = gd1000q1Response();
+  quote_response.insert(quote_response.end() - 1, {0x1e, '1'});
+  decimal8(quote_response.data(), quote_response.size() - 8);
+  assert(allnewmts_mci_parse_gd1000q1_response(
+             quote_response.data(), quote_response.size(), &parsed) ==
+         ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID);
+  quote_response = gd1000q1Response();
+  quote_response.back() = 0x1e;
+  assert(allnewmts_mci_parse_gd1000q1_response(
+             quote_response.data(), quote_response.size(), &parsed) ==
+         ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID);
+  quote_response = gd1000q1Response();
+  quote_response[ALLNEWMTS_MCI_RESPONSE_HEADER_SIZE + 8] = 'x';
+  assert(allnewmts_mci_parse_gd1000q1_response(
+             quote_response.data(), quote_response.size(), &parsed) ==
+         ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID);
   quote_response = gd1000q1Response('2');
   assert(allnewmts_mci_parse_gd1000q1_response(
              quote_response.data(), quote_response.size(), &parsed) ==
@@ -483,6 +956,6 @@ int main(int argc, char **argv) {
   server.join();
   ::close(listener);
 
-  std::cout << "PASS MCI beta preflight, init/GD1000Q1 framing, polling, "
-               "auth gate, retry, and loopback TCP\n";
+  std::cout << "PASS MCI beta preflight, init/X/normal framing, SFID "
+               "decoding, polling, auth gate, retry, and loopback TCP\n";
 }
