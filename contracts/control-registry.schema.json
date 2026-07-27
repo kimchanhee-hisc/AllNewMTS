@@ -27,8 +27,8 @@
     },
     "policies": {
       "type": "array",
-      "minItems": 15,
-      "maxItems": 15,
+      "minItems": 21,
+      "maxItems": 21,
       "items": { "$ref": "#/$defs/policy" }
     }
   },
@@ -49,11 +49,11 @@
       "additionalProperties": false,
       "required": ["name", "policy", "required", "default", "maxBytes"],
       "properties": {
-        "name": { "enum": ["name", "caption", "hintcaption", "imetype", "maxlength", "leadheight", "paddinginfo", "ly_vert", "enable", "fgcolor", "bgcolor", "fontsize", "fontstyle", "bordersize", "imgpath"] },
-        "policy": { "enum": ["identifier", "text", "resource-name", "layout", "enabled", "max-length", "padding", "input-mode", "lead-height", "encoded-color", "border-size", "font-size", "font-style"] },
+        "name": { "enum": ["name", "caption", "hintcaption", "imetype", "maxlength", "leadheight", "paddinginfo", "ly_vert", "enable", "fgcolor", "bgcolor", "fontsize", "fontstyle", "bordersize", "imgpath", "imagetarget", "defaultimg", "visible", "autosize", "circle", "borderradius", "border", "tmpdnfiledel"] },
+        "policy": { "enum": ["identifier", "text", "resource-name", "layout", "enabled", "max-length", "padding", "input-mode", "lead-height", "encoded-color", "border-size", "font-size", "font-style", "image-resource", "image-target", "image-layout", "image-radius", "image-presentation-omit", "image-metadata-omit"] },
         "required": { "type": "boolean" },
-        "default": { "enum": [null, "empty-string", "enabled", "native-default", "zero", "omit"] },
-        "maxBytes": { "enum": [1, 2, 3, 6, 13, 19, 21, 128, 256, 2048] }
+        "default": { "enum": [null, "empty-string", "enabled", "disabled", "layout-visibility", "native-default", "zero", "omit"] },
+        "maxBytes": { "enum": [1, 2, 3, 4, 6, 13, 16, 19, 21, 28, 128, 256, 2048] }
       }
     },
     "event": {
@@ -88,12 +88,14 @@
         "sourceTags": { "type": "array", "items": { "enum": ["LABEL", "EDIT", "BUTTON", "IMAGE"] }, "uniqueItems": true },
         "semanticFamilies": { "type": "array", "items": { "enum": ["CtlButton", "CtlImage"] }, "uniqueItems": true },
         "normalizedType": { "enum": ["Label", "Edit", "Button", "Image", "unsupported"] },
+        "maxPerScope": { "const": 64 },
         "properties": { "type": "array", "items": { "$ref": "#/$defs/property" } },
-        "mutableProperties": { "type": "array", "items": { "enum": ["caption", "border", "dfgcolor", "enable"] }, "uniqueItems": true },
+        "mutableProperties": { "type": "array", "items": { "enum": ["caption", "border", "dfgcolor", "enable", "imgpath", "imagetarget", "visible", "left", "top", "width", "height", "autosize", "circle"] }, "uniqueItems": true },
         "events": { "type": "array", "items": { "$ref": "#/$defs/event" }, "uniqueItems": true },
-        "capabilities": { "type": "array", "items": { "enum": ["text", "layout", "accessibility-label", "text-input", "focus", "press", "enabled-state", "SetRadius", "accessibility-button", "image-resource", "accessibility-image"] }, "uniqueItems": true },
+        "capabilities": { "type": "array", "items": { "enum": ["text", "layout", "accessibility-label", "text-input", "focus", "press", "enabled-state", "SetRadius", "accessibility-button", "image-resource", "accessibility-image", "image-provider-target", "image-fallback", "runtime-layout", "visibility", "image-resize", "image-circle"] }, "uniqueItems": true },
         "undeclared": { "const": "reject" },
-        "diagnostic": { "enum": [null, "UNSUPPORTED_CONTROL_TYPE"] }
+        "diagnostic": { "enum": [null, "UNSUPPORTED_CONTROL_TYPE"] },
+        "migration": { "$ref": "#/$defs/migration" }
       }
     },
     "policy": {
@@ -101,11 +103,56 @@
       "additionalProperties": false,
       "required": ["id", "coercion", "projection", "unsupported", "warning"],
       "properties": {
-        "id": { "enum": ["identifier", "text", "resource-name", "layout", "enabled", "max-length", "padding", "input-mode", "lead-height", "encoded-color", "border-size", "font-size", "font-style", "runtime-border", "runtime-disabled-color"] },
-        "coercion": { "enum": ["identifier", "bounded-text", "logical-resource-name", "layout-rect", "zero-one-boolean", "canonical-decimal-1-262144", "padding-quad-0-1024", "exact-zero", "encoded-rgb", "canonical-decimal-0-255", "ascii-digits-1-3", "two-bits", "runtime-border-token", "runtime-color-token"] },
-        "projection": { "enum": ["data", "resolver-key", "logical-pixels", "enabled", "max-length", "native-default", "rgb", "omit", "rgb-or-token"] },
+        "id": { "enum": ["identifier", "text", "resource-name", "layout", "enabled", "max-length", "padding", "input-mode", "lead-height", "encoded-color", "border-size", "font-size", "font-style", "runtime-border", "runtime-disabled-color", "image-resource", "image-target", "image-layout", "image-radius", "image-presentation-omit", "image-metadata-omit"] },
+        "coercion": { "enum": ["identifier", "bounded-text", "logical-resource-name", "layout-rect", "zero-one-boolean", "canonical-decimal-1-262144", "padding-quad-0-1024", "exact-zero", "encoded-rgb", "canonical-decimal-0-255", "ascii-digits-1-3", "two-bits", "runtime-border-token", "runtime-color-token", "bounded-image-resource", "image-target-0-3", "signed-layout-with-visibility", "canonical-decimal-0-8192", "bounded-image-metadata"] },
+        "projection": { "enum": ["data", "resolver-key", "logical-pixels", "enabled", "max-length", "native-default", "rgb", "omit", "rgb-or-token", "provider-key", "provider-namespace"] },
         "unsupported": { "enum": ["reject", "omit-with-warning"] },
-        "warning": { "enum": [null, "UNSUPPORTED_PRESENTATION_CODE"] }
+        "warning": { "enum": [null, "UNSUPPORTED_PRESENTATION_CODE", "UNSUPPORTED_IMAGE_PRESENTATION", "UNSUPPORTED_IMAGE_METADATA"] }
+      }
+    },
+    "migration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["corpus", "candidates"],
+      "properties": {
+        "corpus": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["plus", "android", "ios", "mtsScreen", "xmfFiles", "imageTags"],
+          "properties": {
+            "plus": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "android": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "ios": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "mtsScreen": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "xmfFiles": { "const": 3070 },
+            "imageTags": { "const": 4612 }
+          }
+        },
+        "candidates": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/migrationCandidate" }
+        }
+      }
+    },
+    "migrationCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "name", "nativePlatforms", "xmfUses", "luaUses", "decision", "resolution", "rationale", "test"],
+      "properties": {
+        "kind": { "enum": ["property", "method", "event", "resource-mode"] },
+        "name": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
+        "nativePlatforms": {
+          "type": "array",
+          "items": { "enum": ["ios", "android"] },
+          "uniqueItems": true
+        },
+        "xmfUses": { "type": "number", "minimum": 0 },
+        "luaUses": { "type": "number", "minimum": 0 },
+        "decision": { "enum": ["include", "exclude", "unsupported"] },
+        "resolution": { "enum": ["normalize", "reject", "unsupported"] },
+        "rationale": { "type": "string", "minLength": 1 },
+        "test": { "type": "string", "minLength": 1 }
       }
     }
   }

@@ -4,11 +4,15 @@
 
 Parse externally authored XMF into a platform-neutral model, execute its unchanged Lua with the approved embedded runtime, and render supported controls through one React Native registry. The migration reconstructs observable bridge and control semantics; it does not port legacy native view code or historical implementation structure.
 
+The primary goal is behavioral migration from the existing product, not best-effort rendering of `mts_screen`. Every selected control or runtime slice must examine both the relevant native original under `~/Dev/Plus` to extract candidate behavior, APIs, events, lifecycle, and resource semantics, and the relevant XMF/XMS/Lua under `~/Dev/mts_screen` to establish authored inputs, call patterns, and required combinations. Neither source is sufficient alone.
+
+The reconciled platform-neutral contract and deterministic evidence select the behavior to implement. Native code is observational input to that specification and must be independently reimplemented in the shared React Native/native-core architecture, never copied, transliterated, or preserved as historical platform structure.
+
 ## Input roles
 
-XMF is the implemented screen/form input. Screen, control, transaction, asset, and layout identities are data only, never behavior selectors. The supported mappings are `<LABEL>` to `Label`, `<EDIT>` to `Edit`, `<BUTTON>` plus the `CtlButton` semantic family to `Button`, and `<IMAGE>` plus the `CtlImage` semantic family to `Image`.
+XMF is the implemented screen/form input. Screen, control, transaction, asset, and layout identities are data only, never behavior selectors. The supported mappings are `<LABEL>` to `Label`, `<EDIT>` to `Edit`, `<BUTTON>` plus the `CtlButton` semantic family to `Button`, and `<IMAGE>` plus the `CtlImage` semantic family to [`Image`](controls/image.md).
 
-XMS has no runnable fixture or implemented role and returns `UNSUPPORTED_INPUT_ROLE`. CtlImage support is limited to the static model and projection below; it does not add an XMS container role or project-level activation state. Exact inventories live in [`contracts/control-registry.json`](../../contracts/control-registry.json).
+XMS has no runnable fixture or implemented role and returns `UNSUPPORTED_INPUT_ROLE`. `CtlImage` is a semantic-family classification rather than an accepted source tag; a direct `<CTLIMAGE>` element is unsupported. Image support is limited to the linked control contract and does not add an XMS container role or project-level activation state. Exact inventories live in [`contracts/control-registry.json`](../../contracts/control-registry.json).
 
 The reference projects are `~/Dev/Plus` for the native original and `~/Dev/mts_screen` for the XMS source to parse. MVigsEngine material may be located, opened, and inspected, but cannot be used as implementation or evidence.
 
@@ -37,11 +41,11 @@ Attribute raw bytes are capped at `4,096`. Values use fatal UTF-8 decoding, reje
 | document | `ROOT`, paired, exactly 1 | none | none | After declaration and ASCII whitespace, owns the five children below in exact order; no trailing non-whitespace bytes. |
 | `ROOT` child 1 | `MAP_INFO`, self-closing, exactly 1 | `scrno` token; `scrname` UTF-8 `1..512` bytes; `version` decimal `1..3` digits; `writer` UTF-8 `1..256` bytes; `scrtype` decimal `1..3` digits; `scripttype` decimal `1..3` digits | none | Values are preserved metadata; only `scrno` is screen identity data and none selects behavior. |
 | `ROOT` child 2 | `FORM_INFO`, self-closing, exactly 1 | `name` identifier; `bgcolor` encoded color; `ly_vert` layout tuple | none | `name` is identity data; projection uses registry policies. |
-| `ROOT` child 3 | `CONTROL_INFO`, paired, exactly 1 | none | none | First exactly five controls in arbitrary order—exactly 2 `LABEL`, 1 `EDIT`, 2 `BUTTON`—and optionally 1 `IMAGE`, then exactly 1 `TABORDER_INFO`; names are unique. |
+| `ROOT` child 3 | `CONTROL_INFO`, paired, exactly 1 | none | none | First exactly five base controls in arbitrary order—exactly 2 `LABEL`, 1 `EDIT`, 2 `BUTTON`—plus `0..64` `IMAGE`, then exactly 1 `TABORDER_INFO`; names are unique. |
 | `CONTROL_INFO` | `LABEL`, self-closing, exactly 2 | `name`; `caption` UTF-8 `0..2,048` bytes; `ly_vert` | `fontsize` ASCII `[0-9]{1,3}`; `fontstyle` ASCII `[01]{2}` | Registry-owned projection. |
 | `CONTROL_INFO` | `EDIT`, self-closing, exactly 1 | `name`; `hintcaption` UTF-8 `0..2,048` bytes; `imetype`; `maxlength`; `leadheight`; `paddinginfo`; `ly_vert` | `caption` UTF-8 `0..2,048` bytes | Missing caption uses registry default `""`. |
 | `CONTROL_INFO` | `BUTTON`, self-closing, exactly 2 | `name`; `caption` UTF-8 `0..2,048` bytes; `fgcolor`; `fontsize`; `ly_vert` | `enable`; `bgcolor`; `bordersize` | Missing enable is enabled. |
-| `CONTROL_INFO` | `IMAGE`, self-closing, at most 1 | `name`; `imgpath` logical resource name; `ly_vert` | none | Static, non-focusable image projection; source materialization is caller-supplied. |
+| `CONTROL_INFO` | `IMAGE`, self-closing, `0..64` | Registry-required `name` and `ly_vert` | Registry-declared Image attributes only | The exact attribute set, defaults, coercions, and semantics are owned by the [`Image` contract](controls/image.md) and machine registry. |
 | `CONTROL_INFO` final child | `TABORDER_INFO`, self-closing, exactly 1 | `horz`; `vert` | none | Backtick-delimited `1..5` unique declared Edit/Button identifiers, no empty segment or edge delimiter, decoded maximum `644` bytes; Labels and Images are forbidden. |
 | `ROOT` child 4 | `SCRIPT_INFO`, paired, exactly 1 | `_len` decimal10; `_ulen` decimal10 | none | Preserved metadata; opaque body `0..2,097,152` bytes. |
 | `ROOT` child 5 | `DATAIO_INFO`, paired, exactly 1 | none | none | Owns exactly `TRID_INFO` then `TRIO_INFO`. |
@@ -51,7 +55,7 @@ Attribute raw bytes are capped at `4,096`. Values use fatal UTF-8 decoding, reje
 | `TRIO_INFO` | `TRAN`, paired, exactly 2 | `name` identifier; `title` UTF-8 `0..512` bytes; `realdata` decimal10; `dessvr` token capped at 32 bytes; `occurslen` decimal10; `memfieldlen` decimal10 | none | Exactly four blocks: two `in`, two `out`; per direction one omits `occurs` and one has `occurs="1"`; order is data. |
 | `TRIO_INFO/TRAN` | `TRBLOCK`, paired, exactly 4 | `name` identifier; `inout` exact `in\|out`; `_len` decimal10; `_ulen` decimal10 | `occurs`, exact `"1"` | Names unique per transaction; lengths are preserved only; opaque body `1..262,144` bytes. |
 
-There are exactly five or six controls, two transactions, eight blocks, at most 8,192 field rows, and at most 64 diagnostics occupying at most 65,536 UTF-8 bytes. `_len` and `_ulen` are bounded preserved metadata, not asserted byte lengths.
+There are `5..69` controls, two transactions, eight blocks, at most 8,192 field rows, and at most 64 diagnostics occupying at most 65,536 UTF-8 bytes. `_len` and `_ulen` are bounded preserved metadata, not asserted byte lengths.
 
 ### Opaque bodies
 
@@ -68,8 +72,7 @@ A block uses LF or CRLF consistently; bare CR and mixed endings reject. Splittin
 | Property | Accepted representation | Missing/default | Unsupported present value |
 | --- | --- | --- | --- |
 | `caption`, `hintcaption`, `name` | Fatal UTF-8 bounded data | caption `""`; accessibility hint falls back to name; name required | reject |
-| `imgpath` | ASCII `[A-Za-z0-9_][A-Za-z0-9_.-]{0,255}` logical resource name | required | reject paths, URLs, empty, non-ASCII, or over-limit values |
-| `ly_vert` | Five canonical decimals: left/top `0..8192`, width/height `1..8192`, visible exact `1` | required | reject |
+| non-Image `ly_vert` | Five canonical decimals: left/top `0..8192`, width/height `1..8192`, visible exact `1` | required | reject |
 | `enable` | absent/`"1"` true; `"0"` false | enabled | reject |
 | `maxlength` | canonical `[1-9][0-9]{0,5}`, value `1..262144` | only a declared registry default | reject |
 | `paddinginfo` | Four canonical decimals, each `0..1024` | four zeros when declared | reject |
@@ -83,10 +86,10 @@ A block uses LF or CRLF consistently; bare CR and mixed endings reject. Splittin
 
 Canonical decimals have no sign, whitespace, or leading zero except `0`. Encoded-color prefixes are preserved data with no rendering meaning. Layout, padding, and border units are React Native logical pixels. Native default always means identical prop omission, never a platform, device, identity, or palette lookup.
 
-Warnings are model-scoped, deduplicated only by `{normalizedType,property}`, sorted by normalized type then property, and contain no source values. `Edit.OnEditComplete` builds `${name}_OnEditComplete` with one pre-handler caption mutation. `Button.OnClick` builds `${name}_OnClick` with no mutation. `Button.SetRadius` remains validated-no-state with no visual serialization.
+Warnings are model-scoped, deduplicated only by `{normalizedType,property}`, sorted by normalized type then property, and contain no source values. `Edit.OnEditComplete` builds `${name}_OnEditComplete` with one pre-handler caption mutation. Button and Image `OnClick` build `${name}_OnClick` with no mutation. `Button.SetRadius` remains validated-no-state with no visual serialization.
 
-`Image` is static and non-focusable. It has no event or runtime-mutable property. Its `imgpath` is a logical resource key only and cannot trigger file, URL, product-CDN, or platform lookup. `XmfScreen` accepts an explicit resource-to-React-Native-source table and rejects a missing entry before exposing the image. Asset inventory, source generation, resize modes, download targets, fallbacks, borders, circles, zoom, runtime `imgpath` mutation, and XMS archive decoding are unsupported.
+Control-specific parsing meaning, runtime behavior, rendering, accessibility, errors, security boundaries, and unsupported features belong to their control owner. The implemented Image slice is owned by [`controls/image.md`](controls/image.md).
 
 ## Parser and projection API
 
-`parseXmf` returns one immutable normalized model only after complete grammar, cardinality, uniqueness, correlation, registry, coercion, and diagnostic checks. `ingestApprovedXmf` admits only an integrity-approved byte asset record and rejects invalid count/hash metadata before parsing. `toRenderDescriptors` projects `Label`, `Edit`, `Button`, and static `Image` using React Native core descriptor data and validates all supplied runtime state before returning any descriptors. `buildControlEvent` uses registry event descriptors. `XmfParseError` exposes only a fixed code and structural location; it never includes captions, scripts, transaction rows, or source values.
+`parseXmf` returns one immutable normalized model only after complete grammar, cardinality, uniqueness, correlation, registry, coercion, and diagnostic checks. `ingestApprovedXmf` admits only an integrity-approved byte asset record and rejects invalid count/hash metadata before parsing. `toRenderDescriptors` projects every included normalized control using React Native core descriptor data and validates all supplied runtime state before returning any descriptors. `buildControlEvent` uses registry event descriptors. `XmfParseError` exposes only a fixed code and structural location; it never includes captions, scripts, transaction rows, or source values.

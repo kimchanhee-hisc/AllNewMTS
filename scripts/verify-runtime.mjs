@@ -39,10 +39,12 @@ phase('contract-ledger', () => {
     snapshot: { runtimeId: '1', revision: '1', status: 'ok', event: 'Noop', lifecycle: 'OPEN', state: { controls: {}, data: {} } },
     commands: [], diagnostics: []
   }, 'runtime result sample');
-  assert.equal(host.inventoryStatus, 'active'); assert.equal(host.publicApis.length, 18);
+  assert.equal(host.inventoryStatus, 'active'); assert.equal(host.publicApis.length, 34);
   assert.deepEqual(host.publicApis.map(({ name }) => name), [
     'Form.GetOpenLinkData','Form.GetSharedData','Form.GetItemCodeInfo','Form.MsgBoxEx','Form.Toast','Form.SendReturnToParent','Form.CloseForm',
-    'DATAMANAGER.RequestTranData','DATAMANAGER.SetDataValue','DATAMANAGER.GetDataCount','DATAMANAGER.GetDataValue','Trim','dofile','Edit.caption','Button.border','Button.dfgcolor','Button.enable','Button.SetRadius'
+    'DATAMANAGER.RequestTranData','DATAMANAGER.SetDataValue','DATAMANAGER.GetDataCount','DATAMANAGER.GetDataValue','Trim','dofile','Edit.caption','Button.border','Button.dfgcolor','Button.enable','Button.SetRadius',
+    'Image.imgpath','Image.imgpath','Image.visible','Image.visible','Image.left','Image.left','Image.top','Image.top','Image.width','Image.width','Image.height','Image.height',
+    'Image.imagetarget','Image.enable','Image.autosize','Image.circle'
   ]);
   assert.ok(host.publicApis.every(({ decision, affectedPlatforms, test }) => decision === 'include' && affectedPlatforms.join(',') === 'ios,android' && test));
 });
@@ -81,6 +83,20 @@ for (const [index, envelope] of emittedEnvelopes.entries()) validateSchema(json(
 phase('core-atomicity', () => assert.match(runtimeOutput,/PASS production runtime conformance/));
 phase('lifecycle-tokens', () => assert.match(runtimeOutput,/PASS production runtime conformance/));
 phase('isolation', () => assert.match(runtimeOutput,/PASS production runtime conformance/));
+
+phase('image-runtime-golden', () => {
+  const imageTest = compileCxx('native/test/image_runtime_golden_test.cpp', 'image-runtime-golden-test');
+  const imageExecutable = path.join(temp, 'image-runtime-golden-test');
+  run(process.env.CXX || 'c++', [imageTest, ...runtimeObjects, provider, '-lm', '-pthread', '-o', imageExecutable]);
+  const hash = sourceManifest.resources.find(({ logicalPath }) => logicalPath === 'fixtures/image-runtime.lua')?.sha256;
+  assert.match(hash ?? '', /^[a-f0-9]{64}$/);
+  const expected = read('native/test/image-runtime-golden.json').trim();
+  const ios = run(imageExecutable, ['ios', hash]).trim();
+  const android = run(imageExecutable, ['android', hash]).trim();
+  assert.equal(ios, expected); assert.equal(android, expected);
+  validateSchema(json('contracts/runtime-result.schema.json'), JSON.parse(ios), 'Image iOS runtime golden');
+  validateSchema(json('contracts/runtime-result.schema.json'), JSON.parse(android), 'Image Android runtime golden');
+});
 
 phase('adapter-parity', () => {
   const adapterGoldenTest = compileCxx('native/test/runtime_adapter_golden_test.cpp', 'runtime-adapter-golden-test');

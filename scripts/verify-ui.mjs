@@ -310,11 +310,11 @@ const independentGrammar = Object.freeze([
   { parent: 'document', order: 1, tag: 'ROOT', form: 'paired', cardinality: '1', required: [], optional: [], body: 'MAP_INFO,FORM_INFO,CONTROL_INFO,SCRIPT_INFO,DATAIO_INFO; no trailing data' },
   { parent: 'ROOT', order: 1, tag: 'MAP_INFO', form: 'self', cardinality: '1', required: ['scrno', 'scrname', 'version', 'writer', 'scrtype', 'scripttype'], optional: [], body: 'token/text/decimal metadata bounds' },
   { parent: 'ROOT', order: 2, tag: 'FORM_INFO', form: 'self', cardinality: '1', required: ['name', 'bgcolor', 'ly_vert'], optional: [], body: 'identifier,encoded-color,layout' },
-  { parent: 'ROOT', order: 3, tag: 'CONTROL_INFO', form: 'paired', cardinality: '1', required: [], optional: [], body: 'five controls plus optional IMAGE in arbitrary order then TABORDER_INFO; unique names' },
+  { parent: 'ROOT', order: 3, tag: 'CONTROL_INFO', form: 'paired', cardinality: '1', required: [], optional: [], body: 'five base controls plus 0..64 IMAGE in arbitrary order then TABORDER_INFO; unique names' },
   { parent: 'CONTROL_INFO', order: 1, tag: 'LABEL', form: 'self', cardinality: '2', required: ['name', 'caption', 'ly_vert'], optional: ['fontsize', 'fontstyle'], body: 'identifier,text<=2048,registry projection' },
   { parent: 'CONTROL_INFO', order: 1, tag: 'EDIT', form: 'self', cardinality: '1', required: ['name', 'hintcaption', 'imetype', 'maxlength', 'leadheight', 'paddinginfo', 'ly_vert'], optional: ['caption'], body: 'identifier,text<=2048,registry projection' },
   { parent: 'CONTROL_INFO', order: 1, tag: 'BUTTON', form: 'self', cardinality: '2', required: ['name', 'caption', 'fgcolor', 'fontsize', 'ly_vert'], optional: ['enable', 'bgcolor', 'bordersize'], body: 'identifier,text<=2048,registry projection' },
-  { parent: 'CONTROL_INFO', order: 1, tag: 'IMAGE', form: 'self', cardinality: '0..1', required: ['name', 'imgpath', 'ly_vert'], optional: [], body: 'identifier,logical-resource-name,layout; static non-focusable projection' },
+  { parent: 'CONTROL_INFO', order: 1, tag: 'IMAGE', form: 'self', cardinality: '0..64', required: ['name', 'ly_vert'], optional: ['imgpath', 'imagetarget', 'defaultimg', 'visible', 'enable', 'autosize', 'circle', 'bgcolor', 'borderradius', 'border', 'bordersize', 'tmpdnfiledel'], body: 'canonical Image owner; exact provider keys and flat layout' },
   { parent: 'CONTROL_INFO', order: 2, tag: 'TABORDER_INFO', form: 'self', cardinality: '1', required: ['horz', 'vert'], optional: [], body: 'backtick list 1..5; unique declared Edit/Button; <=644 bytes' },
   { parent: 'ROOT', order: 4, tag: 'SCRIPT_INFO', form: 'paired', cardinality: '1', required: ['_len', '_ulen'], optional: [], body: 'opaque 0..2097152 bytes; exact single close' },
   { parent: 'ROOT', order: 5, tag: 'DATAIO_INFO', form: 'paired', cardinality: '1', required: [], optional: [], body: 'TRID_INFO then TRIO_INFO' },
@@ -435,35 +435,35 @@ function contractRegistry() {
     ['XMF', 'include', null], ['XMS', 'unsupported', 'UNSUPPORTED_INPUT_ROLE']
   ]);
   assert.deepEqual(registry.controls.filter(({ decision }) => decision === 'include').map(({ normalizedType }) => normalizedType), ['Label', 'Edit', 'Button', 'Image']);
-  assert.deepEqual(registry.controls.find(({ normalizedType }) => normalizedType === 'Image'), {
-    id: 'image',
-    decision: 'include',
-    sourceTags: ['IMAGE'],
-    semanticFamilies: ['CtlImage'],
-    normalizedType: 'Image',
-    properties: [
-      { name: 'name', policy: 'identifier', required: true, default: null, maxBytes: 128 },
-      { name: 'imgpath', policy: 'resource-name', required: true, default: null, maxBytes: 256 },
-      { name: 'ly_vert', policy: 'layout', required: true, default: null, maxBytes: 21 }
-    ],
-    mutableProperties: [],
-    events: [],
-    capabilities: ['image-resource', 'layout', 'accessibility-image'],
-    undeclared: 'reject',
-    diagnostic: null
-  });
+  const image = registry.controls.find(({ normalizedType }) => normalizedType === 'Image');
+  assert.equal(image.maxPerScope, 64);
+  assert.deepEqual(image.properties.map(({ name }) => name), [
+    'name', 'imgpath', 'imagetarget', 'defaultimg', 'visible', 'enable', 'autosize', 'circle',
+    'bgcolor', 'borderradius', 'border', 'bordersize', 'tmpdnfiledel', 'ly_vert'
+  ]);
+  assert.deepEqual(image.mutableProperties, ['imgpath', 'imagetarget', 'visible', 'enable', 'left', 'top', 'width', 'height', 'autosize', 'circle']);
+  assert.deepEqual(image.events, [{ name: 'OnClick', handlerSuffix: '_OnClick', controlMutations: [] }]);
+  assert.ok(image.capabilities.includes('image-provider-target') && image.capabilities.includes('accessibility-button'));
+  assert.equal(image.migration.candidates.length, 53);
+  assert.equal(new Set(image.migration.candidates.map(({ kind, name }) => `${kind}:${name}`)).size, 53);
+  const candidate = (kind, name) => image.migration.candidates.find((item) => item.kind === kind && item.name === name);
+  assert.deepEqual([candidate('method', 'SetCircleBorder').decision, candidate('property', 'circleborder').decision], ['unsupported', 'unsupported']);
+  assert.deepEqual([0, 1, 2, 3].map((target) => candidate('resource-mode', `${target}-${['local', 'http-link', 'http-direct', 'temporary'][target]}`).decision), ['include', 'include', 'include', 'include']);
+  assert.equal(candidate('resource-mode', '4-ci').decision, 'unsupported');
   assert.deepEqual(registry.controls.flatMap(({ events }) => events.map(({ name, handlerSuffix }) => [name, handlerSuffix])), [
-    ['OnEditComplete', '_OnEditComplete'], ['OnClick', '_OnClick']
+    ['OnEditComplete', '_OnEditComplete'], ['OnClick', '_OnClick'], ['OnClick', '_OnClick']
   ]);
   assert.equal(new Set(registry.policies.map(({ id }) => id)).size, registry.policies.length);
   const parserSource = read('src/xmf.ts', 'utf8');
   assert.doesNotMatch(parserSource, /export\s+(?:const|let|var)\s+.*(?:grammar|policy)/i, 'parser must not export a shadow grammar/policy table');
   const contract = read('docs/specs/xmf-lua-runtime.md', 'utf8');
+  const imageContract = read('docs/specs/controls/image.md', 'utf8');
   assert.equal(new Set(independentGrammar.map(({ parent, tag, form }) => `${parent}:${tag}:${form}`)).size, independentGrammar.length);
   for (const row of independentGrammar) {
-    assert.ok(contract.includes(`\`${row.tag}\``), `canonical grammar omits ${row.tag}`);
+    const owner = row.tag === 'IMAGE' ? `${contract}\n${imageContract}` : contract;
+    assert.ok(owner.includes(`\`${row.tag}\``), `canonical grammar omits ${row.tag}`);
     assert.ok(['paired', 'self'].includes(row.form) && row.order > 0 && row.cardinality && row.body);
-    for (const attribute of [...row.required, ...row.optional]) assert.ok(contract.includes(`\`${attribute}\``), `canonical grammar omits ${row.tag}.${attribute}`);
+    for (const attribute of [...row.required, ...row.optional]) assert.ok(owner.includes(`\`${attribute}\``), `canonical grammar omits ${row.tag}.${attribute}`);
   }
   const integrityRoot = path.join(temp, 'integrity-root');
   const integrityOutside = path.join(temp, 'integrity-outside');
@@ -705,42 +705,130 @@ function projectionRender() {
 }
 
 function ctlImage() {
-  const row = '<IMAGE name="imgStatus" imgpath="icon_status" ly_vert="0,0,16,16,1" />';
-  const bytes = mutate(original, '\t\t<TABORDER_INFO', `\t\t${row}\r\n\t\t<TABORDER_INFO`);
+  const contract = read('docs/specs/controls/image.md', 'utf8');
+  for (const heading of [
+    '# Image control contract',
+    '## Parsing and normalized model',
+    '## Resource resolution',
+    '## Runtime behavior',
+    '## Rendering and accessibility',
+    '## Diagnostics and atomicity',
+    '## Security boundary and unsupported behavior',
+    '## Verification'
+  ]) assert.ok(contract.includes(heading), `Image canonical owner omits ${heading}`);
+  for (const boundary of ['<IMAGE>', '<CTLIMAGE>', 'SetCircleBorder', 'UNSUPPORTED_INPUT_ROLE', 'UNSUPPORTED_CONTROL_TYPE', 'INVALID_STRUCTURE', 'INVALID_PROPERTY', 'HOST_ARGUMENT_ERROR', 'HOST_LOOKUP_MISS', 'UNRESOLVED_IMAGE_RESOURCE', 'resizeMode="contain"']) {
+    assert.ok(contract.includes(boundary), `Image canonical owner omits ${boundary}`);
+  }
+  const row = '<IMAGE name="imgStatus" imgpath="https://example.invalid/icon" imagetarget="2" defaultimg="fallback" visible="0" enable="0" autosize="1" circle="1" bgcolor="010:001002003" borderradius="7" border="1" bordersize="2" tmpdnfiledel="1" ly_vert="-4,8,16,20,0" />';
+  const blankRow = '<IMAGE name="imgBlank" ly_vert="20,8,16,20,1" />';
+  const bytes = mutate(original, '\t\t<TABORDER_INFO', `\t\t${row}\r\n\t\t${blankRow}\r\n\t\t<TABORDER_INFO`);
   const model = parses(bytes);
-  assert.deepEqual(summary(model), { forms: 1, labels: 2, edits: 1, buttons: 2, images: 1, transactionIds: 2, transactions: 2, blocks: 8 });
+  assert.deepEqual(summary(model), { forms: 1, labels: 2, edits: 1, buttons: 2, images: 2, transactionIds: 2, transactions: 2, blocks: 8 });
   const image = model.controls.find(({ type }) => type === 'Image');
-  assert.deepEqual(image, { type: 'Image', name: 'imgStatus', imageResource: 'icon_status', layout: { left: 0, top: 0, width: 16, height: 16 } });
+  assert.deepEqual(image, {
+    type: 'Image',
+    name: 'imgStatus',
+    imageResource: 'https://example.invalid/icon',
+    imageTarget: 2,
+    defaultImageResource: 'fallback',
+    visible: false,
+    enabled: false,
+    autosize: true,
+    circle: true,
+    backgroundColor: { source: '010:001002003', prefix: '010', value: 'rgb(1,2,3)' },
+    borderRadius: 7,
+    layout: { left: -4, top: 8, width: 16, height: 20 }
+  });
   assert.ok(Object.isFrozen(image) && Object.isFrozen(image.layout));
+  assert.deepEqual(model.controls.find(({ name }) => name === 'imgBlank'), {
+    type: 'Image', name: 'imgBlank', imageResource: '', imageTarget: 0, defaultImageResource: '',
+    visible: true, enabled: true, autosize: false, circle: false, borderRadius: 0,
+    layout: { left: 20, top: 8, width: 16, height: 20 }
+  });
+  assert.deepEqual(model.warnings.filter(({ normalizedType }) => normalizedType === 'Image'), [
+    { code: 'UNSUPPORTED_IMAGE_PRESENTATION', normalizedType: 'Image', property: 'border' },
+    { code: 'UNSUPPORTED_IMAGE_PRESENTATION', normalizedType: 'Image', property: 'bordersize' },
+    { code: 'UNSUPPORTED_IMAGE_METADATA', normalizedType: 'Image', property: 'tmpdnfiledel' }
+  ]);
   const descriptor = modules.xmf.toRenderDescriptors(model).find(({ control }) => control === 'imgStatus');
   assert.deepEqual(descriptor, {
     key: 'imgStatus',
     control: 'imgStatus',
     component: 'Image',
-    imageResource: 'icon_status',
-    style: { left: 0, top: 0, width: 16, height: 16 },
+    imageResource: 'https://example.invalid/icon',
+    imageTarget: 2,
+    defaultImageResource: 'fallback',
+    visible: false,
+    enabled: false,
+    resizeMode: 'stretch',
+    circle: true,
+    backgroundColor: 'rgb(1,2,3)',
+    borderWidth: 0,
+    borderRadius: 7,
+    style: { left: -4, top: 8, width: 16, height: 20 },
     accessibilityLabel: 'imgStatus',
-    accessibilityRole: 'image'
+    accessibilityRole: 'button',
+    event: 'OnClick'
   });
-  assert.throws(() => modules.xmf.toRenderDescriptors(model, { imgStatus: { imgpath: 'other' } }), ({ code }) => code === 'INVALID_PROPERTY');
-  assert.throws(() => modules.xmf.buildControlEvent(image, 'OnClick'), ({ code }) => code === 'INVALID_PROPERTY');
+  const runtime = modules.xmf.toRenderDescriptors(model, { imgStatus: {
+    imgpath: 'runtime-key', imagetarget: 3, visible: true, enabled: true,
+    left: -8, top: 12, width: 0, height: 48, autosize: false, circle: false
+  } }).find(({ control }) => control === 'imgStatus');
+  assert.deepEqual({
+    imageResource: runtime.imageResource, imageTarget: runtime.imageTarget, visible: runtime.visible, enabled: runtime.enabled,
+    resizeMode: runtime.resizeMode, circle: runtime.circle, borderRadius: runtime.borderRadius, style: runtime.style
+  }, {
+    imageResource: 'runtime-key', imageTarget: 3, visible: true, enabled: true,
+    resizeMode: 'contain', circle: false, borderRadius: 0, style: { left: -8, top: 12, width: 0, height: 48 }
+  });
+  assert.deepEqual(modules.xmf.buildControlEvent(image, 'OnClick'), {
+    handler: 'imgStatus_OnClick', controlMutations: []
+  });
+  const baseline = structuredClone(modules.xmf.toRenderDescriptors(model));
+  for (const state of [
+    { imgStatus: { imagetarget: 4 } },
+    { imgStatus: { visible: 0 } },
+    { imgStatus: { left: -8193 } },
+    { imgStatus: { width: -1 } },
+    { imgStatus: { imgpath: 'x'.repeat(2049) } },
+    { imgStatus: { unknown: true } }
+  ]) {
+    assert.throws(() => modules.xmf.toRenderDescriptors(model, state), ({ code }) => code === 'INVALID_PROPERTY');
+    assert.deepEqual(modules.xmf.toRenderDescriptors(model), baseline);
+  }
+  parses(mutate(bytes, 'imgpath="https://example.invalid/icon"', 'imgpath=""'));
+  parses(mutate(bytes, 'imgpath="https://example.invalid/icon"', `imgpath="${'x'.repeat(2048)}"`));
   for (const [invalid, code] of [
-    [mutate(bytes, 'imgpath="icon_status"', 'imgpath=""'), 'INVALID_PROPERTY'],
-    [mutate(bytes, 'imgpath="icon_status"', 'imgpath="../icon"'), 'INVALID_PROPERTY'],
-    [mutate(bytes, 'imgpath="icon_status"', 'imgpath="https://example.invalid/icon"'), 'INVALID_PROPERTY'],
-    [mutate(bytes, ' imgpath="icon_status"', ''), 'INVALID_STRUCTURE'],
-    [mutate(bytes, ' ly_vert="0,0,16,16,1"', ' unknown="1" ly_vert="0,0,16,16,1"'), 'INVALID_STRUCTURE'],
+    [mutate(bytes, 'imgpath="https://example.invalid/icon"', `imgpath="${'x'.repeat(2049)}"`), 'INVALID_PROPERTY'],
+    [mutate(bytes, 'imagetarget="2"', 'imagetarget="4"'), 'INVALID_PROPERTY'],
+    [mutate(bytes, 'visible="0"', 'visible="1"'), 'INVALID_PROPERTY'],
+    [mutate(bytes, 'borderradius="7"', 'borderradius="8193"'), 'INVALID_PROPERTY'],
+    [mutate(bytes, 'ly_vert="-4,8,16,20,0"', 'ly_vert="-0,8,16,20,0"'), 'INVALID_PROPERTY'],
+    [mutate(bytes, 'ly_vert="-4,8,16,20,0"', 'ly_vert="-4,8,0,20,0"'), 'INVALID_PROPERTY'],
+    [mutate(bytes, ' ly_vert="-4,8,16,20,0"', ' unknown="1" ly_vert="-4,8,16,20,0"'), 'INVALID_STRUCTURE'],
+    [mutate(bytes, ' ly_vert="-4,8,16,20,0"', ' circleborder="1" ly_vert="-4,8,16,20,0"'), 'INVALID_STRUCTURE'],
     [mutate(bytes, 'name="imgStatus"', 'name="lbl0"'), 'INVALID_STRUCTURE'],
-    [mutate(bytes, '\t\t<TABORDER_INFO', `\t\t${row.replace('imgStatus', 'imgStatus2')}\r\n\t\t<TABORDER_INFO`), 'INVALID_STRUCTURE']
+    [mutate(bytes, 'name="imgBlank"', 'name="imgStatus"'), 'INVALID_STRUCTURE']
   ]) rejects(invalid, code);
+  const rows = (count) => Array.from({ length: count }, (_, index) => `\t\t<IMAGE name="img${index}" ly_vert="0,0,1,1,1" />`).join('\r\n');
+  parses(mutate(original, '\t\t<TABORDER_INFO', `${rows(64)}\r\n\t\t<TABORDER_INFO`));
+  rejects(mutate(original, '\t\t<TABORDER_INFO', `${rows(65)}\r\n\t\t<TABORDER_INFO`), 'INVALID_STRUCTURE');
   const screen = read('src/XmfScreen.tsx', 'utf8');
   const renderer = read('src/controls/ControlView.tsx', 'utf8');
   assert.match(screen, /<ControlView /);
   assert.match(renderer, /ImageSourcePropType/);
-  assert.match(renderer, /Object\.hasOwn\(imageSources, resource\)/);
+  assert.match(renderer, /Object\.hasOwn\(imageSources, target\)/);
+  assert.match(renderer, /Object\.hasOwn\(bucket, resource\)/);
+  assert.match(renderer, /Object\.hasOwn\(imageSources, 0\)/);
+  assert.match(renderer, /Object\.hasOwn\(local, fallback\)/);
+  assert.match(renderer, /if \(descriptor\.visible === false\) return null/);
+  assert.match(renderer, /left: \(descriptor\.style\.width - size\) \/ 2/);
+  assert.match(renderer, /top: \(descriptor\.style\.height - size\) \/ 2/);
+  assert.match(renderer, /accessibilityState=\{\{ disabled: !enabled \}\}/);
+  assert.match(renderer, /accessible=\{false\}/);
   assert.match(renderer, /UNRESOLVED_IMAGE_RESOURCE/);
   assert.doesNotMatch(renderer, /source=\{\{\s*uri:|(?:https?|ftp|sftp):\/\//i);
-  return { fixtureSha256: sha256(bytes), imageControls: 1, negativeCases: 7, runtimeProperties: 0, events: 0, remoteOperations: 0 };
+  return { fixtureSha256: sha256(bytes), imageControls: 2, maximumImages: 64, negativeCases: 17, runtimeProperties: 10, events: 1, remoteOperations: 0 };
 }
 
 function controlModules() {
@@ -780,7 +868,9 @@ function controlModules() {
   const imageBytes = mutate(original, '\t\t<TABORDER_INFO', '\t\t<IMAGE name="imgStatus" imgpath="icon_status" ly_vert="0,0,16,16,1" />\r\n\t\t<TABORDER_INFO');
   const imageModel = parses(imageBytes);
   assert.deepEqual(imageModel.controls.find(({ type }) => type === 'Image'), {
-    type: 'Image', name: 'imgStatus', imageResource: 'icon_status', layout: { left: 0, top: 0, width: 16, height: 16 }
+    type: 'Image', name: 'imgStatus', imageResource: 'icon_status', imageTarget: 0, defaultImageResource: '',
+    visible: true, enabled: true, autosize: false, circle: false, borderRadius: 0,
+    layout: { left: 0, top: 0, width: 16, height: 16 }
   });
   assert.equal(modules.xmf.toRenderDescriptors(imageModel).find(({ control }) => control === 'imgStatus').component, 'Image');
   return { modules: expected.length, explicitCreateCases: expected.length, explicitProjectionCases: expected.length, reactNativeBoundaries: 1, dynamicRegistrations: 0, osSelections: 0 };
@@ -961,6 +1051,26 @@ async function runtimeClient() {
   await afterDestroy.client.destroy();
   assert.equal(afterDestroy.evidence.destroyed, 1);
 
+  const imageGolden = json('native/test/image-runtime-golden.json');
+  const imageConfig = {
+    ...config,
+    entry: { path: 'fixtures/image-runtime.lua', sha256: sourceManifest.resources.find(({ logicalPath }) => logicalPath === 'fixtures/image-runtime.lua').sha256 },
+    controls: [{ id: 'Hero', type: 'Image', properties: {
+      imgpath: 'initial', imagetarget: 0, visible: true, enabled: true,
+      left: -4, top: 8, width: 32, height: 24, autosize: false, circle: false
+    } }],
+    transactions: []
+  };
+  const imageHarness = harness({ dispatch(runtimeId, parsed, listener) {
+    assert.equal(parsed.handler, 'ImageState');
+    listener({ runtimeId, canonicalJSON: JSON.stringify(imageGolden) });
+    return { code: 'OK', runtimeId, reservedRevision: '1' };
+  } });
+  await imageHarness.client.create(imageConfig);
+  assert.equal(imageHarness.client.dispatch({ handler: 'ImageState', controlMutations: [] }).code, 'OK');
+  assert.deepEqual(imageHarness.client.getState().snapshot.state.controls.Hero, imageGolden.snapshot.state.controls.Hero);
+  await imageHarness.client.destroy();
+
   const longEdit = 'E'.repeat(128);
   const longButton = 'B'.repeat(128);
   const maxModel = parses(replaceAll(replaceAll(original, 'edtGroupNm', longEdit), 'btnAdd', longButton));
@@ -979,7 +1089,7 @@ async function runtimeClient() {
 
   const source = read('src/runtime-client.ts', 'utf8');
   assert.doesNotMatch(source, /Request|DATAMANAGER_OnReceive|CCS2000|HS1200P08|\.qry|closeForm\s*\(/);
-  return { admissionRevision: '1', appliedRevision: '1', commands: 1, hostileResults: invalidResults.length + 2, maximumDerivedHandlers: 2 };
+  return { admissionRevision: '1', appliedRevision: '1', commands: 1, imageRuntimeState: true, hostileResults: invalidResults.length + 2, maximumDerivedHandlers: 2 };
 }
 
 function unseenBytes() {
@@ -1176,7 +1286,7 @@ function assetAndComposition() {
   assert.equal(host?.getText(source), `{ openLinkData: '', sharedData: {}, itemCodeInfo: [] }`);
   assert.equal(transactions?.getText(source), `[{ id: 'T_ALPHA', blocks: [{ id: 'input', fields: ['value'] }, { id: 'output', fields: ['value'] }] }]`);
   assert.match(controls?.getText(source) ?? '', /^model\.controls\.flatMap/);
-  assert.match(controls?.getText(source) ?? '', /case 'Label': return \[\];[\s\S]+case 'Edit':[\s\S]+case 'Button':[\s\S]+case 'Image': return \[\];/);
+  assert.match(controls?.getText(source) ?? '', /case 'Label': return \[\];[\s\S]+case 'Edit':[\s\S]+case 'Button':[\s\S]+case 'Image': return \[\{/);
   return { sourceSha256: expectedSourceHash, generatedBytes: values.length, appAstValueFlow: true, createCalls: callText('client.create').length };
 }
 

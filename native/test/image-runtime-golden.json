@@ -1,0 +1,1 @@
+{"commands":[],"diagnostics":[],"schemaVersion":1,"snapshot":{"event":"ImageState","lifecycle":"OPEN","revision":"1","runtimeId":"1","state":{"controls":{"Hero":{"properties":{"autosize":true,"circle":true,"enabled":false,"height":48,"imagetarget":2,"imgpath":"changed","left":-8,"top":12,"visible":false,"width":0},"type":"Image"}},"data":{}},"status":"ok"}}

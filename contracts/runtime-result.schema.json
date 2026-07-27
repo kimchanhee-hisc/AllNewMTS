@@ -136,6 +136,84 @@
         }
       }
     },
+    "imageControlState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "properties",
+        "type"
+      ],
+      "properties": {
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "autosize",
+            "circle",
+            "enabled",
+            "height",
+            "imgpath",
+            "imagetarget",
+            "left",
+            "top",
+            "visible",
+            "width"
+          ],
+          "properties": {
+            "autosize": {
+              "type": "boolean"
+            },
+            "circle": {
+              "type": "boolean"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 8192,
+              "multipleOf": 1
+            },
+            "imgpath": {
+              "type": "string",
+              "maxLength": 2048,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+            },
+            "imagetarget": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 3,
+              "multipleOf": 1
+            },
+            "left": {
+              "type": "number",
+              "minimum": -8192,
+              "maximum": 8192,
+              "multipleOf": 1
+            },
+            "top": {
+              "type": "number",
+              "minimum": -8192,
+              "maximum": 8192,
+              "multipleOf": 1
+            },
+            "visible": {
+              "type": "boolean"
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 8192,
+              "multipleOf": 1
+            }
+          }
+        },
+        "type": {
+          "const": "Image"
+        }
+      }
+    },
     "controlState": {
       "oneOf": [
         {
@@ -143,6 +221,9 @@
         },
         {
           "$ref": "#/$defs/buttonControlState"
+        },
+        {
+          "$ref": "#/$defs/imageControlState"
         }
       ]
     },

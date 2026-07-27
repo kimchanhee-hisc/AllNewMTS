@@ -371,6 +371,11 @@
       "sha256": "7478e42425746bd4131d72bda6ee60f8f42ef9edeaff28f41c25a11c248609b5"
     },
     {
+      "logicalPath": "fixtures/image-runtime.lua",
+      "path": "native/resources/image-runtime.lua",
+      "sha256": "0d208fc76bc804c2c2b0e316024ed292434b57c73ef7f763fa1f9b6a22a47985"
+    },
+    {
       "logicalPath": "fixtures/runtime-conformance.lua",
       "path": "native/resources/runtime-conformance.lua",
       "sha256": "1e3b642aeda6de9ddbd309df8ac22ee4f3dcce78a8d166caa4e5774f39f82e09"
@@ -442,11 +447,6 @@
       "sha256": "68bf0daac52d678c840521f324001cc59fce76e27b1fedad885df5b775716adf"
     },
     {
-      "path": "modules/allnewmts-lua/android/src/verification/java/com/allnewmts/lua/AllNewMTSLuaModule.kt",
-      "bytes": 907,
-      "sha256": "684c072a33f69d136761be42cfbb004ffd2e6867f76200c2ecb05c5a1fb98644"
-    },
-    {
       "path": "modules/allnewmts-lua/android/src/main/AndroidManifest.xml",
       "bytes": 72,
       "sha256": "343d5be1ac17cdd45d1a2f2ddc616c509290e655869125a9422a96d88aa66066"
@@ -455,6 +455,11 @@
       "path": "modules/allnewmts-lua/android/src/main/java/com/allnewmts/lua/AllNewMTSRuntimeModule.kt",
       "bytes": 1594,
       "sha256": "d7e9f1d2298d559f1a8364ce4544151e7748cd3e90abdc8277488d0c32c612c1"
+    },
+    {
+      "path": "modules/allnewmts-lua/android/src/verification/java/com/allnewmts/lua/AllNewMTSLuaModule.kt",
+      "bytes": 907,
+      "sha256": "684c072a33f69d136761be42cfbb004ffd2e6867f76200c2ecb05c5a1fb98644"
     },
     {
       "path": "modules/allnewmts-lua/expo-module.config.json",
@@ -523,8 +528,8 @@
     },
     {
       "path": "modules/allnewmts-lua/shared/allnewmts_runtime.cpp",
-      "bytes": 79582,
-      "sha256": "1eee158eec6552af253679fb288a7d3b9960b9e9654a772d3091ca8d90413649"
+      "bytes": 84299,
+      "sha256": "c78821248a9362d10cca5157baa6f46e666165f515b24bce94f611f27973c309"
     },
     {
       "path": "modules/allnewmts-lua/shared/allnewmts_runtime.h",
@@ -553,8 +558,8 @@
     },
     {
       "path": "modules/allnewmts-lua/shared/resource_bundle.c",
-      "bytes": 28791,
-      "sha256": "84fda4d3dfd97f5a4b786a289763c4ca234715a30991903918a06b4ee2f1c0f2"
+      "bytes": 33030,
+      "sha256": "fb36eb93473ac98f7d5e026c360167469cedab8dc096382987e9d0a84b7a3a91"
     },
     {
       "path": "modules/allnewmts-lua/shared/resource_bundle.h",
@@ -572,21 +577,6 @@
       "sha256": "8253b4d98ad7342cfc3d9ed6085be83e64acb624b3e838c122b42785435ff271"
     },
     {
-      "path": "modules/allnewmts-lua/src/verification-fixture.generated.ts",
-      "bytes": 1228,
-      "sha256": "38041eb278680964366504390e0e3bb72787240b06bb9b2cb7343b79866aacdb"
-    },
-    {
-      "path": "modules/allnewmts-lua/src/verification-harness.ts",
-      "bytes": 242,
-      "sha256": "493bb3c0464840e6f078574e7f8807e38022dcff93da3c66b5e7d28eaf81ca6d"
-    },
-    {
-      "path": "modules/allnewmts-lua/src/verification-harness-runtime.ts",
-      "bytes": 845,
-      "sha256": "a74845aedb433fa9bd8d76dace8ef3fda32fbabb4c802c40972bfed9a151c863"
-    },
-    {
       "path": "modules/allnewmts-lua/src/index.ts",
       "bytes": 144,
       "sha256": "28ec0f0a5334df95537adb61ddf7843de59e02054ea2552f501a6e807e70720d"
@@ -597,6 +587,21 @@
       "sha256": "f9d0d7701e782506cb989d7a56682dd653388a818ccb950240d85fc4b8393c8a"
     },
     {
+      "path": "modules/allnewmts-lua/src/verification-fixture.generated.ts",
+      "bytes": 1228,
+      "sha256": "38041eb278680964366504390e0e3bb72787240b06bb9b2cb7343b79866aacdb"
+    },
+    {
+      "path": "modules/allnewmts-lua/src/verification-harness-runtime.ts",
+      "bytes": 845,
+      "sha256": "a74845aedb433fa9bd8d76dace8ef3fda32fbabb4c802c40972bfed9a151c863"
+    },
+    {
+      "path": "modules/allnewmts-lua/src/verification-harness.ts",
+      "bytes": 242,
+      "sha256": "493bb3c0464840e6f078574e7f8807e38022dcff93da3c66b5e7d28eaf81ca6d"
+    },
+    {
       "path": "native/resources/error.lua",
       "bytes": 24,
       "sha256": "7478e42425746bd4131d72bda6ee60f8f42ef9edeaff28f41c25a11c248609b5"
@@ -605,6 +610,11 @@
       "path": "native/resources/hash-mismatch.lua",
       "bytes": 22,
       "sha256": "7e66b2d84fafe59a7c7d1534fff8cccb2f43bd0fa747b965d9ede5f4dffb9bba"
+    },
+    {
+      "path": "native/resources/image-runtime.lua",
+      "bytes": 793,
+      "sha256": "0d208fc76bc804c2c2b0e316024ed292434b57c73ef7f763fa1f9b6a22a47985"
     },
     {
       "path": "native/resources/multi.lua",
@@ -632,9 +642,14 @@
       "sha256": "88f13bee87fa95422082a5fe60e17c6da0cb878f0f3d3f597dd001f4f9b46573"
     },
     {
-      "path": "native/test/verification_harness_smoke_test.c",
-      "bytes": 876,
-      "sha256": "94e42ddad3f6783e04f69c800aa2541ef2aeefa504e5419647ad0730f073587c"
+      "path": "native/test/image-runtime-golden.json",
+      "bytes": 360,
+      "sha256": "e1c107a06bfdc56fe61b586bd75c75d2641951d90381484421598840893cb0cf"
+    },
+    {
+      "path": "native/test/image_runtime_golden_test.cpp",
+      "bytes": 5728,
+      "sha256": "56ab7ebf20cdefe596033498c7f0f9319e917b4e43523b15b8079b8b67b6f7ca"
     },
     {
       "path": "native/test/native_harness_test.c",
@@ -690,6 +705,11 @@
       "path": "native/test/runtime_swift_module_golden_test.swift",
       "bytes": 1353,
       "sha256": "2623cb9b75a013d1c7d9b36f35364a8f6449f274b453a610ec48b558e2827904"
+    },
+    {
+      "path": "native/test/verification_harness_smoke_test.c",
+      "bytes": 876,
+      "sha256": "94e42ddad3f6783e04f69c800aa2541ef2aeefa504e5419647ad0730f073587c"
     }
   ]
 }

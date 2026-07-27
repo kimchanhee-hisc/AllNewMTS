@@ -8,6 +8,11 @@
       "heading": "# XMF/Lua runtime product contract"
     },
     {
+      "topic": "image-control-semantics",
+      "path": "docs/specs/controls/image.md",
+      "heading": "# Image control contract"
+    },
+    {
       "topic": "host-and-runtime-semantics",
       "path": "docs/specs/runtime-contract.md",
       "heading": "# Shared runtime contract"
@@ -199,12 +204,12 @@
         "ctlimage"
       ],
       "inputs": [
-        "XMF Image grammar and registry",
-        "static image model and projection",
-        "caller-supplied resource table"
+        "docs/specs/controls/image.md, XMF Image grammar, and control registry",
+        "Image model, runtime projection, and renderer",
+        "caller-supplied target-partitioned provider map"
       ],
       "outputs": [
-        "static Image and resource-boundary evidence"
+        "Image runtime and resource-boundary evidence"
       ],
       "budgetSeconds": 120
     },
@@ -283,7 +288,7 @@
     },
     {
       "path": "AGENTS.md",
-      "sha256": "4b57918b96d8a5aad972941bf2bae3cae851b23f925f74ce24c27db58ab7e762"
+      "sha256": "d02737c286075f02f3d8e99d2bfb56539d64152f2dd201b46955985c2dd25656"
     },
     {
       "path": "README.md",
@@ -291,15 +296,19 @@
     },
     {
       "path": "docs/specs/xmf-lua-runtime.md",
-      "sha256": "cdf2f852928e19b46d959c994256fb840b4652e278e25625303a42c08d911e4d"
+      "sha256": "e77a7c420507103b254a00720b269953bb1ce92f68a0f68f6a94640782986a0a"
+    },
+    {
+      "path": "docs/specs/controls/image.md",
+      "sha256": "03636a7a2336d5b398179f13b87853f18deebf5774196191bcb3f628e2dc319e"
     },
     {
       "path": "docs/specs/runtime-contract.md",
-      "sha256": "1f7149bbb09d31ebbe122f3cb2d31ae77468e692babcb0c742bcbf7f3f062cd9"
+      "sha256": "8dd6fc3ed276bd2d92de26cb17bece0a76aed1519a5055a691a7177dd24840cc"
     },
     {
       "path": "docs/testing.md",
-      "sha256": "dffeb210702da299647e058f46ac9bc057c13cbec3583b9697b3e1269cfe72c9"
+      "sha256": "cfdc1e2792409df1319692ca02c2a08bd0b0747f372e761459a4a52dec3515aa"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
@@ -307,27 +316,27 @@
     },
     {
       "path": "contracts/host-api.json",
-      "sha256": "fcb9f560a5b8b29a28d74a9ee76a1cfd7bef177e9242973004beea32e70f6883"
+      "sha256": "287996d864a0348424bbc65067b26be45e15148dd900c2d9eb1a1c999f5e70c1"
     },
     {
       "path": "contracts/host-api.schema.json",
-      "sha256": "a6e73fc5711d61aea9e67a0caa0cc165ba7e5ad91ce5afab9622a5fbb5fe517b"
+      "sha256": "6192dc997d4211a1ed4e95d8e1f7aecf6e0d35b8dc7fda1d0c75a239572c3ca7"
     },
     {
       "path": "contracts/runtime-result.schema.json",
-      "sha256": "9cc7358ae4eecb07e0fbf27eb775e287ba7a633b361fb90bfe29ad018084874f"
+      "sha256": "457a9bf9e5cf5017d4a60f29b2c72a4b4667527d2dca445b258df0046b6cc533"
     },
     {
       "path": "contracts/control-registry.json",
-      "sha256": "07b80da682c27a145fa2cc17d7ca63bcde3b7b4d3dce84dc325c91409da29417"
+      "sha256": "20f766760dab375eec6d986338dd3de74f53b12fdb2458e25d2aa106ea451bf3"
     },
     {
       "path": "contracts/control-registry.schema.json",
-      "sha256": "fd2b7a25e170a866329c9c71fdc647b703c8f51f69d6c58ac7572c425389640d"
+      "sha256": "6a7445a015cc2c70007c072b15d6b8eff0624b71171624e0955b820dc959a889"
     },
     {
       "path": "native/lua-source-manifest.json",
-      "sha256": "036b40fb5835dd2758025ed73b290b1cffcaa2e78f8d765c4902718ca97edc63"
+      "sha256": "3d9384563a1e6e153c478baf714c92b0b1ee509a4397286a1b3cc67afd637312"
     },
     {
       "path": "native/lua-source-manifest.schema.json",
@@ -363,7 +372,7 @@
     },
     {
       "path": "scripts/verify-foundation.mjs",
-      "sha256": "d73fa5003ec22ebaba91bc11d017f3d56ad73f360e05e2cfae7c27d941369ab5"
+      "sha256": "9d294a075860159ef5384d08890d57bdf5b139961348ed252350b04bdf8fcb3e"
     },
     {
       "path": "scripts/verify-native.mjs",
@@ -371,11 +380,11 @@
     },
     {
       "path": "scripts/verify-runtime.mjs",
-      "sha256": "645505f738c7573173fbf5784af47020f6df8592d3330ab23fb2c4ae684f687c"
+      "sha256": "53a6727e582180828cec40b071767b0ed4f0ebe0cc51d41ddfcbf22a1d41927f"
     },
     {
       "path": "scripts/verify-ui.mjs",
-      "sha256": "d309a9dae466e0596dbf00372cfd49e0b1169a75a5fa7505b9ca6f18b8e6a9e5"
+      "sha256": "2735cdd414e24d14c8e6c9b2f786d2c13ca7f1b717085b99be6436d3c77a2a7a"
     },
     {
       "path": "test/foundation.test.mjs",

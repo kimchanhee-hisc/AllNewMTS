@@ -17,13 +17,15 @@ export type RuntimeConfig = {
   controls: readonly (
     | { id: string; type: 'Edit'; properties: { caption: string } }
     | { id: string; type: 'Button'; properties: { border: string; dfgcolor: string; enabled: boolean } }
+    | { id: string; type: 'Image'; properties: { imgpath: string; imagetarget: number; visible: boolean; enabled: boolean; left: number; top: number; width: number; height: number; autosize: boolean; circle: boolean } }
   )[];
   transactions: readonly { id: string; blocks: readonly { id: string; fields: readonly string[] }[] }[];
 };
 
 export type RuntimeControlState =
   | { type: 'Edit'; properties: { caption: string } }
-  | { type: 'Button'; properties: { border: string; dfgcolor: string; enabled: boolean } };
+  | { type: 'Button'; properties: { border: string; dfgcolor: string; enabled: boolean } }
+  | { type: 'Image'; properties: { imgpath: string; imagetarget: number; visible: boolean; enabled: boolean; left: number; top: number; width: number; height: number; autosize: boolean; circle: boolean } };
 
 export type RuntimeSnapshot = {
   runtimeId: string;
@@ -66,12 +68,25 @@ const runtimeResult = (value: unknown): value is RuntimeResultEvent => record(va
 
 function validControl(value: unknown, expected?: RuntimeControlState): value is RuntimeControlState {
   if (!record(value) || !keys(value, ['properties', 'type']) || !record(value.properties)) return false;
+  const properties = value.properties;
   if (value.type === 'Edit') {
-    return (!expected || expected.type === 'Edit') && keys(value.properties, ['caption']) && boundedString(value.properties.caption);
+    return (!expected || expected.type === 'Edit') && keys(properties, ['caption']) && boundedString(properties.caption);
   }
-  return value.type === 'Button' && (!expected || expected.type === 'Button') && keys(value.properties, ['border', 'dfgcolor', 'enabled']) &&
-    (value.properties.border === 'none' || value.properties.border === '0' || value.properties.border === 'solid' || value.properties.border === '1') &&
-    validRuntimeColor(value.properties.dfgcolor) && typeof value.properties.enabled === 'boolean';
+  if (value.type === 'Button') {
+    return (!expected || expected.type === 'Button') && keys(properties, ['border', 'dfgcolor', 'enabled']) &&
+      (properties.border === 'none' || properties.border === '0' || properties.border === 'solid' || properties.border === '1') &&
+      validRuntimeColor(properties.dfgcolor) && typeof properties.enabled === 'boolean';
+  }
+  return value.type === 'Image' && (!expected || expected.type === 'Image') &&
+    keys(properties, ['autosize', 'circle', 'enabled', 'height', 'imgpath', 'imagetarget', 'left', 'top', 'visible', 'width']) &&
+    boundedString(properties.imgpath, 2_048) && !/[\u0000-\u001f\u007f]/.test(properties.imgpath) &&
+    Number.isInteger(properties.imagetarget) && (properties.imagetarget as number) >= 0 && (properties.imagetarget as number) <= 3 &&
+    typeof properties.visible === 'boolean' && typeof properties.enabled === 'boolean' &&
+    typeof properties.autosize === 'boolean' && typeof properties.circle === 'boolean' &&
+    Number.isInteger(properties.left) && Math.abs(properties.left as number) <= 8_192 &&
+    Number.isInteger(properties.top) && Math.abs(properties.top as number) <= 8_192 &&
+    Number.isInteger(properties.width) && (properties.width as number) >= 0 && (properties.width as number) <= 8_192 &&
+    Number.isInteger(properties.height) && (properties.height as number) >= 0 && (properties.height as number) <= 8_192;
 }
 
 function validRuntimeColor(value: unknown): value is string {
