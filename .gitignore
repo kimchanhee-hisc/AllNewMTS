@@ -35,6 +35,7 @@ yarn-error.*
 
 # local env files
 .env*.local
+/config/product-secrets.local.json
 
 # typescript
 *.tsbuildinfo

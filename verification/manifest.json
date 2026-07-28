@@ -18,6 +18,11 @@
       "heading": "# Shared runtime contract"
     },
     {
+      "topic": "networking-contract-and-evidence",
+      "path": "docs/specs/networking-contract.md",
+      "heading": "# Networking contract and evidence"
+    },
+    {
       "topic": "verification-and-evidence",
       "path": "docs/testing.md",
       "heading": "# Verification and evidence contract"
@@ -113,12 +118,31 @@
       ],
       "inputs": [
         "scripts/verify-foundation.mjs",
+        "contracts and schemas",
         "verification/manifest.json"
       ],
       "outputs": [
         "TAP"
       ],
       "budgetSeconds": 120
+    },
+    {
+      "id": "development-runners",
+      "packageScript": "verify:development-runners",
+      "command": "npm run verify:development-runners",
+      "argv": [
+        "node",
+        "--test",
+        "test/development-runners.test.mjs"
+      ],
+      "inputs": [
+        "optional Development Build runners",
+        "local dependency installation"
+      ],
+      "outputs": [
+        "TAP"
+      ],
+      "budgetSeconds": 180
     },
     {
       "id": "fixtures",
@@ -154,6 +178,26 @@
         "source, build, sandbox, resource, and symbol evidence"
       ],
       "budgetSeconds": 1200
+    },
+    {
+      "id": "networking",
+      "packageScript": "verify:networking",
+      "command": "npm run verify:networking",
+      "argv": [
+        "node",
+        "scripts/verify-networking.mjs"
+      ],
+      "inputs": [
+        "committed product config and uncommitted secret-store contract",
+        "pinned BETA endpoint hashes",
+        "shared MCI framing and connection core",
+        "synthetic transport fixtures",
+        "operator-only BETA init and GD1000Q1 probes"
+      ],
+      "outputs": [
+        "BETA preflight, init and GD1000Q1 framing, polling, authentication gate, retry, and fail-closed probe evidence"
+      ],
+      "budgetSeconds": 120
     },
     {
       "id": "runtime",
@@ -271,12 +315,10 @@
         "type",
         "unit",
         "fixtures",
+        "networking",
         "native",
         "runtime",
-        "ui",
-        "ctlimage",
-        "control-modules",
-        "provenance"
+        "ui"
       ],
       "budgetSeconds": 3600
     }
@@ -287,8 +329,12 @@
       "sha256": "1f4619fca33b9632a8b226707fa19c6365c5d0e287f9df5fb5010c2500f8d26f"
     },
     {
+      "path": ".gitignore",
+      "sha256": "cd8a733c57da979e171f65f0b1dcf6dfaec1350c87d85f31aed4c1321651d972"
+    },
+    {
       "path": "AGENTS.md",
-      "sha256": "d02737c286075f02f3d8e99d2bfb56539d64152f2dd201b46955985c2dd25656"
+      "sha256": "1c23a946d896ea1dff134c344865f2c74de17a767a32013ec732b2a3bb7d9503"
     },
     {
       "path": "README.md",
@@ -304,11 +350,15 @@
     },
     {
       "path": "docs/specs/runtime-contract.md",
-      "sha256": "7c6b22f3bba5f01267039a1911b592feb88195fa1d4cb23097e9212ec236fd40"
+      "sha256": "0fbe04d49954b10017f16131ed215617b1b6c147a3db338eab6bb4e000297a39"
+    },
+    {
+      "path": "docs/specs/networking-contract.md",
+      "sha256": "5d909051093d0ad8ed5bafbde7ebc7bca0919641d7ecf18f42a625b2d22244a9"
     },
     {
       "path": "docs/testing.md",
-      "sha256": "02c2cd51d679da39b35e260979e75d3ee8abf8022c343da12aa0df5e59a3e5b2"
+      "sha256": "c7491c94ca8985b8fe503b302e7c0cb292898f52e30c81d9f5dce13f8405556f"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
@@ -316,7 +366,7 @@
     },
     {
       "path": "contracts/host-api.json",
-      "sha256": "4e84a1169ee581c2162d995f442450415558b401714eb1219be3f22c277f5705"
+      "sha256": "e7d196b50a739ef6d176e2a03ceb42576ef4b6854783d2f56c6912016b0b7620"
     },
     {
       "path": "contracts/host-api.schema.json",
@@ -335,8 +385,20 @@
       "sha256": "6a7445a015cc2c70007c072b15d6b8eff0624b71171624e0955b820dc959a889"
     },
     {
+      "path": "config/product-config.json",
+      "sha256": "16bf953003daaaa45f43b2321cdbe32e84c50d0ee76fef0a04d67550b623a23c"
+    },
+    {
+      "path": "config/product-config.schema.json",
+      "sha256": "91293e6ffb1c40eeeb22f65d86982d647d2a1652dbb4ad518969c664cbfe2fc8"
+    },
+    {
+      "path": "config/product-secrets.schema.json",
+      "sha256": "831f96d6e25c86034fbbe28eb28bc4ad28d2b5fa12c4d636fce6cb6169f682e6"
+    },
+    {
       "path": "native/lua-source-manifest.json",
-      "sha256": "b6ebc79ad63fcb3ff4800128d29374ffab7dfbdd678107e0015ff82cd415e362"
+      "sha256": "6f8b4c606f4942572fcfa246f26b1154fbfa2c5bbbded62cf02f7acccb62f34d"
     },
     {
       "path": "native/lua-source-manifest.schema.json",
@@ -348,7 +410,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "2b88db109f0a2ade4e4d6ee2bb387c887a4638f1b36891fb7d7400072a1a1476"
+      "sha256": "35e8b8a0835e285d837453c4a9147350af7b58c3ddf114b5ad87ce711c6283dc"
     },
     {
       "path": "scripts/generate-xmf-assets.mjs",
@@ -363,8 +425,16 @@
       "sha256": "f708c2b672e7ba5c4974517716363282c5a2fcd5b9cf5fa67bed8714c0523cda"
     },
     {
+      "path": "scripts/probe-mci-beta.mjs",
+      "sha256": "2087b6ef34bd01bbba277679611f71909d0878a32b72e552770794e60407903b"
+    },
+    {
+      "path": "scripts/probe-mci-beta-tr.mjs",
+      "sha256": "dae90f0ccf2b735641c3bab1c43338acdb70714e326d92cfa8bac4a28c8958c9"
+    },
+    {
       "path": "scripts/run-ui-development-build.mjs",
-      "sha256": "41938f8a3782a0122f57f34efa6af6726a99af03f712e8de3b8414d9843d67da"
+      "sha256": "900522d0266814b9a809e1d2503aa9874b414c53b6b5625226990ee6ebd68421"
     },
     {
       "path": "scripts/run-native-harness-development-build.mjs",
@@ -372,11 +442,15 @@
     },
     {
       "path": "scripts/verify-foundation.mjs",
-      "sha256": "9d294a075860159ef5384d08890d57bdf5b139961348ed252350b04bdf8fcb3e"
+      "sha256": "ffd64ea077f8ea96203010528bd087d1e1cc00cdc1162abdda533c07097db649"
+    },
+    {
+      "path": "scripts/verify-networking.mjs",
+      "sha256": "fa2a54a7d111e17da2a94aef4ac80a0304dc859f04e477d7ab99a8e8fcf5fcd6"
     },
     {
       "path": "scripts/verify-native.mjs",
-      "sha256": "dbdcc1425141b1222e9f2c1f3ec80ae6979b44afb8f8f8653606f10baa469144"
+      "sha256": "71042eeac9aafe52349f43e48d214fd440e665f12eb3c77aff5667616d5b3157"
     },
     {
       "path": "scripts/verify-runtime.mjs",
@@ -384,11 +458,15 @@
     },
     {
       "path": "scripts/verify-ui.mjs",
-      "sha256": "da1c072b08b687cc3d03d8e09fa794d9d2048950b6ec35bf82b33559394cdc30"
+      "sha256": "b1808c3c77360c84f07d626b9fcb2813bbdca08dd6b76a9a927eef517785b960"
+    },
+    {
+      "path": "test/development-runners.test.mjs",
+      "sha256": "f6d9e605f6e9a4410eec6b8a4e02288d38c4dca133771e511d16eabdd73ca0f4"
     },
     {
       "path": "test/foundation.test.mjs",
-      "sha256": "1ba1486731a145e0acd6683ecf88e9e832809680a60c34a9da1f2faadf7f256c"
+      "sha256": "fad56d2a1bb0a99e2a97dae2d6ec41aa9f71ba062882537b8dfa57e8a3c11954"
     },
     {
       "path": "test/ui/runtime-client-golden.json",

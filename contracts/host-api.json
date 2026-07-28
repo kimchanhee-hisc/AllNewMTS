@@ -8,7 +8,7 @@
     {
       "id": "oracle-manifest",
       "path": "test/oracles/manifest.json",
-      "sha256": "a4158d4bcee890fd731f6bec0faec1125eb2ab6a0d0cc9ac0feabc47ea97098e"
+      "sha256": "c0b43b8055bb7cc25ea18afba35e7ac9e8c804e37dcd8dcabef03ffe1bc81bf8"
     },
     {
       "id": "approved-xmf",

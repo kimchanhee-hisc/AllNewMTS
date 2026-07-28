@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:allnewmts:schema:product-config",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "environment",
+    "platforms",
+    "secretStore"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "./product-config.schema.json"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "environment": {
+      "const": "beta"
+    },
+    "platforms": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ios",
+        "android"
+      ],
+      "properties": {
+        "ios": {
+          "$ref": "#/$defs/platform"
+        },
+        "android": {
+          "$ref": "#/$defs/platform"
+        }
+      }
+    },
+    "secretStore": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "localPath",
+        "easFileEnvironmentVariable",
+        "schemaPath",
+        "requiredFor"
+      ],
+      "properties": {
+        "localPath": {
+          "const": "config/product-secrets.local.json"
+        },
+        "easFileEnvironmentVariable": {
+          "const": "ALLNEWMTS_PRODUCT_SECRETS_FILE"
+        },
+        "schemaPath": {
+          "const": "config/product-secrets.schema.json"
+        },
+        "requiredFor": {
+          "const": "rest-authentication"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mciChannelDetail"
+      ],
+      "properties": {
+        "mciChannelDetail": {
+          "type": "string",
+          "pattern": "^CC[0-9]{3}$"
+        }
+      }
+    }
+  }
+}

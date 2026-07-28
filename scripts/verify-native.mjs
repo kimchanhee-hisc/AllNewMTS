@@ -12,6 +12,8 @@ import * as developmentBuildRunner from './run-native-harness-development-build.
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifest = JSON.parse(fs.readFileSync(safeRepoFile('native/lua-source-manifest.json'), 'utf8'));
 const schema = JSON.parse(fs.readFileSync(safeRepoFile('native/lua-source-manifest.schema.json'), 'utf8'));
+const productConfig = JSON.parse(fs.readFileSync(safeRepoFile('config/product-config.json'), 'utf8'));
+const productConfigSchema = JSON.parse(fs.readFileSync(safeRepoFile('config/product-config.schema.json'), 'utf8'));
 const sha256 = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 const read = (file) => fs.readFileSync(safeRepoFile(file));
 const command = (file, args, options = {}) => {
@@ -63,6 +65,7 @@ function verifyUpstream(temp) {
 }
 
 function verifyContracts() {
+  validateSchema(productConfigSchema, productConfig, 'product config');
   const moduleRoot = path.join(root, 'modules/allnewmts-lua');
   const authoredPaths = [
     safeRepoFile('app.json'),
@@ -203,6 +206,8 @@ function expandPodSources(patterns) {
 function expectedPodSources(includeVerification) {
   const authored = manifest.authoredInventory.map(({ path: file }) => file);
   const production = authored.filter((file) =>
+    /^modules\/allnewmts-lua\/shared\/allnewmts_mci.*\.(?:cpp|h)$/.test(file) ||
+    /^modules\/allnewmts-lua\/shared\/allnewmts_product_config\.(?:cpp|h)$/.test(file) ||
     /^modules\/allnewmts-lua\/shared\/(?:allnewmts_runtime.*|resource_bundle\.[ch]|sha256\.[ch])$/.test(file) ||
     /^modules\/allnewmts-lua\/ios\/(?:AllNewMTSRuntime.*\.(?:h|mm|swift)|allnewmts_runtime_ios_adapter\.c)$/.test(file)
   );
@@ -221,6 +226,9 @@ function validatePodGraph(sources, dependencies, includeVerification) {
 
 function evaluatedPodGraph(includeVerification) {
   const spec = JSON.parse(command('pod', ['ipc', 'spec', 'modules/allnewmts-lua/AllNewMTSLua.podspec'], { env: harnessEnvironment(includeVerification) }));
+  assert.equal(spec.pod_target_xcconfig.GCC_PREPROCESSOR_DEFINITIONS,
+    `$(inherited) ALLNEWMTS_PRODUCT_MCI_CHANNEL_DETAIL=\\\"${productConfig.platforms.ios.mciChannelDetail}\\\"`,
+  'evaluated Pod graph has the wrong iOS product config');
   const sources = expandPodSources(Array.isArray(spec.source_files) ? spec.source_files : [spec.source_files]);
   validatePodGraph(sources, spec.dependencies ?? {}, includeVerification);
   const badSources = [...sources, `${manifest.vendoredRoot}/src/lua.c`].sort();
@@ -242,11 +250,15 @@ function compileApple(temp) {
   fs.mkdirSync(output);
   const include = ['-I', 'modules/allnewmts-lua/vendor/lua-5.1.5/src', '-I', 'modules/allnewmts-lua/shared'];
   const sources = graph.sources.filter((file) => /\.(?:c|cpp|mm)$/.test(file));
+  const productDefinition =
+    `-DALLNEWMTS_PRODUCT_MCI_CHANNEL_DETAIL="${productConfig.platforms.ios.mciChannelDetail}"`;
   const objects = sources.map((source, index) => {
     const object = path.join(output, `${index}.o`);
     const compiler = source.endsWith('.c') ? 'clang' : 'clang++';
     const language = source.endsWith('.mm') ? ['-std=c++17', '-fobjc-arc'] : (source.endsWith('.cpp') ? ['-std=c++17'] : ['-std=c99']);
-    command('xcrun', ['--sdk', 'iphonesimulator', compiler, ...language, '-arch', 'arm64', '-mios-simulator-version-min=16.4', '-isysroot', sdk, ...include, '-c', source, '-o', object]);
+    command('xcrun', ['--sdk', 'iphonesimulator', compiler, ...language,
+      productDefinition, '-arch', 'arm64', '-mios-simulator-version-min=16.4',
+      '-isysroot', sdk, ...include, '-c', source, '-o', object]);
     return object;
   });
   const library = path.join(output, 'libAllNewMTSLua.a');
@@ -282,6 +294,13 @@ function compileAndroid(temp) {
     assert.equal(compileCommands.some((entry) => normalizedSource(entry).endsWith(suffix)), true, `flagged CMake graph omitted NATIVE_HARNESS source: ${suffix}`);
   }
   const commandText = (entry) => entry.command ?? entry.arguments.join(' ');
+  const productCommands = compileCommands.filter(({ file }) =>
+    file.replaceAll('\\', '/').endsWith('/shared/allnewmts_product_config.cpp'));
+  assert.equal(productCommands.length, 1,
+    'Android compile database must contain one product config source');
+  assert.match(commandText(productCommands[0]),
+    new RegExp(`ALLNEWMTS_PRODUCT_MCI_CHANNEL_DETAIL=.*${productConfig.platforms.android.mciChannelDetail}`),
+  'Android compile database has the wrong product config');
   const luaCommands = compileCommands.filter(({ file }) => file.replaceAll('\\', '/').includes('/vendor/lua-5.1.5/src/'));
   assert.ok(luaCommands.length, 'Android compile database omits vendored Lua sources');
   for (const entry of luaCommands) {

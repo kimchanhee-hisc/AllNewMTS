@@ -5,6 +5,7 @@ Read the canonical owner before changing its contract:
 - Product and XMF scope: [`docs/specs/xmf-lua-runtime.md`](docs/specs/xmf-lua-runtime.md)
 - Image control semantics: [`docs/specs/controls/image.md`](docs/specs/controls/image.md)
 - Host/runtime semantics: [`docs/specs/runtime-contract.md`](docs/specs/runtime-contract.md)
+- Networking transport, credentials, evidence, and tests: [`docs/specs/networking-contract.md`](docs/specs/networking-contract.md)
 - Tests, evidence, and remote boundaries: [`docs/testing.md`](docs/testing.md)
 - Interpreter decision: [`docs/adr/0001-official-lua-5.1.5.md`](docs/adr/0001-official-lua-5.1.5.md)
 - Native Lua source/build truth: [`native/lua-source-manifest.json`](native/lua-source-manifest.json)

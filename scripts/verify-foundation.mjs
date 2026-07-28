@@ -137,11 +137,13 @@ function allCandidateFiles() {
 function foundationFiles() {
   return [
     '.gitattributes',
+    '.gitignore',
     'AGENTS.md',
     'README.md',
     'docs/specs/xmf-lua-runtime.md',
     'docs/specs/controls/image.md',
     'docs/specs/runtime-contract.md',
+    'docs/specs/networking-contract.md',
     'docs/testing.md',
     'docs/adr/0001-official-lua-5.1.5.md',
     'contracts/host-api.json',
@@ -149,6 +151,9 @@ function foundationFiles() {
     'contracts/runtime-result.schema.json',
     'contracts/control-registry.json',
     'contracts/control-registry.schema.json',
+    'config/product-config.json',
+    'config/product-config.schema.json',
+    'config/product-secrets.schema.json',
     'native/lua-source-manifest.json',
     'native/lua-source-manifest.schema.json',
     'verification/manifest.json',
@@ -156,12 +161,16 @@ function foundationFiles() {
     'scripts/generate-xmf-assets.mjs',
     'scripts/generate-native-assets.mjs',
     'scripts/patch-expo-modules-core.mjs',
+    'scripts/probe-mci-beta.mjs',
+    'scripts/probe-mci-beta-tr.mjs',
     'scripts/run-ui-development-build.mjs',
     'scripts/run-native-harness-development-build.mjs',
     'scripts/verify-foundation.mjs',
+    'scripts/verify-networking.mjs',
     'scripts/verify-native.mjs',
     'scripts/verify-runtime.mjs',
     'scripts/verify-ui.mjs',
+    'test/development-runners.test.mjs',
     'test/foundation.test.mjs',
     'test/ui/runtime-client-golden.json',
     'package.json'
@@ -170,11 +179,13 @@ function foundationFiles() {
 
 export const expectedIntegrityPaths = [
   '.gitattributes',
+  '.gitignore',
   'AGENTS.md',
   'README.md',
   'docs/specs/xmf-lua-runtime.md',
   'docs/specs/controls/image.md',
   'docs/specs/runtime-contract.md',
+  'docs/specs/networking-contract.md',
   'docs/testing.md',
   'docs/adr/0001-official-lua-5.1.5.md',
   'contracts/host-api.json',
@@ -182,6 +193,9 @@ export const expectedIntegrityPaths = [
   'contracts/runtime-result.schema.json',
   'contracts/control-registry.json',
   'contracts/control-registry.schema.json',
+  'config/product-config.json',
+  'config/product-config.schema.json',
+  'config/product-secrets.schema.json',
   'native/lua-source-manifest.json',
   'native/lua-source-manifest.schema.json',
   'verification/manifest.schema.json',
@@ -189,12 +203,16 @@ export const expectedIntegrityPaths = [
   'scripts/generate-xmf-assets.mjs',
   'scripts/generate-native-assets.mjs',
   'scripts/patch-expo-modules-core.mjs',
+  'scripts/probe-mci-beta.mjs',
+  'scripts/probe-mci-beta-tr.mjs',
   'scripts/run-ui-development-build.mjs',
   'scripts/run-native-harness-development-build.mjs',
   'scripts/verify-foundation.mjs',
+  'scripts/verify-networking.mjs',
   'scripts/verify-native.mjs',
   'scripts/verify-runtime.mjs',
   'scripts/verify-ui.mjs',
+  'test/development-runners.test.mjs',
   'test/foundation.test.mjs',
   'test/ui/runtime-client-golden.json'
 ];
@@ -313,6 +331,12 @@ function verifyDocs() {
     diagnostics: []
   }, 'runtime result sample');
   validateSchema(json('contracts/control-registry.schema.json'), controls, 'control registry');
+  validateSchema(json('config/product-config.schema.json'), json('config/product-config.json'), 'product config');
+  validateSchema(json('config/product-secrets.schema.json'), {
+    $schema: './product-secrets.schema.json',
+    schemaVersion: 1,
+    restApiAuthKey: 'synthetic'
+  }, 'synthetic product secrets');
   validateSchema(json('native/lua-source-manifest.schema.json'), json('native/lua-source-manifest.json'), 'Lua source manifest');
 
   const docs = ['AGENTS.md', 'README.md', ...manifest.canonicalOwners.map(({ path: file }) => file)];
@@ -334,7 +358,7 @@ function verifyDocs() {
 
   verifySuites(manifest);
   assert.deepEqual(manifest.suites.fast.checks, ['format', 'docs', 'policy', 'type', 'unit']);
-  assert.deepEqual(manifest.suites.ci.checks, ['format', 'docs', 'policy', 'type', 'unit', 'fixtures', 'native', 'runtime', 'ui', 'ctlimage', 'control-modules', 'provenance']);
+  assert.deepEqual(manifest.suites.ci.checks, ['format', 'docs', 'policy', 'type', 'unit', 'fixtures', 'networking', 'native', 'runtime', 'ui']);
 
   assert.equal(host.inventoryStatus, 'active');
   assert.deepEqual(host.publicApis.map(({ name }) => name), [
