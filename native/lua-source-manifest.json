@@ -403,8 +403,8 @@
   "authoredInventory": [
     {
       "path": "app.json",
-      "bytes": 737,
-      "sha256": "c9c2af115ee1f982f08ea09b7c11ba983f3140a7e182f9cb878bf23cbddd521a"
+      "bytes": 730,
+      "sha256": "f55ac12e0757efc4a1b127e4d1745095becc615fdb217b1c20a2c7c497287c9c"
     },
     {
       "path": "index.ts",

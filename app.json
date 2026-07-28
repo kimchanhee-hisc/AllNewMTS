@@ -8,7 +8,7 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.allnewmts"
+      "bundleIdentifier": "kr.hanwhasecurites.steps"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.allnewmts"
+      "package": "plus.steps.sapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"

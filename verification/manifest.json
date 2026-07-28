@@ -398,7 +398,7 @@
     },
     {
       "path": "native/lua-source-manifest.json",
-      "sha256": "d684d013546ea07b79a481eca458d1985643616758fd1614d132525fc3996e4a"
+      "sha256": "d4a1dd1fbea9337b0f05b68a64d1a0a7bcec532f73c534f460b6a1fc5ff31502"
     },
     {
       "path": "native/lua-source-manifest.schema.json",
