@@ -5,9 +5,13 @@
 #include <array>
 #include <charconv>
 #include <cstring>
+#include <map>
+#include <mutex>
 #include <new>
+#include <set>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <vector>
 
 namespace {
@@ -23,6 +27,8 @@ constexpr uint8_t kBetaEndpointSha256[32] = {
 constexpr std::string_view kBetaSection =
     "[\xeb\xb2\xa0\xed\x83\x80]";
 constexpr size_t kGd1000q1BodySize = 569;
+constexpr size_t kS00RecordSize = 158;
+constexpr size_t kS00PriceOffset = 17;
 constexpr std::array<std::string_view, 104> kGd1000q1OutputFids = {
     "0001",  "9241",  "*0004", "*0005", "0007",  "0006", "1731",
     "0011",  "1251",  "1682",  "1254",  "0003",  "2517", "2518",
@@ -40,7 +46,7 @@ constexpr std::array<std::string_view, 104> kGd1000q1OutputFids = {
     "0684",  "0016",  "0378",  "0265",  "0571",  "0572", "0189",
     "0223",  "0327",  "2167",  "2168",  "1008",  "2665"};
 
-enum class BetaMode { Connect, InitProbe, Gd1000q1Probe };
+enum class BetaMode { Connect, InitProbe, Gd1000q1Probe, S00Probe };
 
 bool sameHash(const uint8_t *bytes, size_t size, const uint8_t expected[32]) {
   uint8_t actual[32];
@@ -265,6 +271,66 @@ struct AllNewMTSMciClient {
   uint8_t file_hash[32];
   uint8_t endpoint_hash[32];
   AllNewMTSMciSession session{};
+};
+
+namespace {
+
+struct RealtimeRegistration {
+  std::string service;
+  std::string key;
+  bool operator<(const RealtimeRegistration &other) const {
+    return std::tie(service, key) < std::tie(other.service, other.key);
+  }
+};
+
+bool realtimeService(std::string_view service) {
+  if (service.empty() ||
+      service.size() > ALLNEWMTS_MCI_REALTIME_SERVICE_SIZE)
+    return false;
+  for (unsigned char value : service)
+    if (!((value >= 'A' && value <= 'Z') ||
+          (value >= '0' && value <= '9')))
+      return false;
+  return true;
+}
+
+bool realtimeKey(const uint8_t *key, size_t size) {
+  if (!key || size == 0 || size > ALLNEWMTS_MCI_REALTIME_KEY_SIZE)
+    return false;
+  for (size_t index = 0; index < size; ++index)
+    if (key[index] < 0x21 || key[index] > 0x7e) return false;
+  return true;
+}
+
+bool realtimeRegistration(const char *service, const uint8_t *key,
+                          size_t key_size, RealtimeRegistration &result) {
+  if (!service) return false;
+  const size_t service_size =
+      strnlen(service, ALLNEWMTS_MCI_REALTIME_SERVICE_SIZE + 1);
+  if (service_size > ALLNEWMTS_MCI_REALTIME_SERVICE_SIZE ||
+      !realtimeService(std::string_view(service, service_size)) ||
+      !realtimeKey(key, key_size))
+    return false;
+  result.service.assign(service, service_size);
+  result.key.assign(reinterpret_cast<const char *>(key), key_size);
+  return true;
+}
+
+void realtimeAction(const RealtimeRegistration &registration, uint8_t type,
+                    AllNewMTSMciRealtimeAction &action) {
+  action = {};
+  action.transaction_type = type;
+  std::memcpy(action.service, registration.service.data(),
+              registration.service.size());
+  std::memcpy(action.key, registration.key.data(), registration.key.size());
+  action.key_size = registration.key.size();
+}
+
+}  // namespace
+
+struct AllNewMTSMciRealtimeRegistry {
+  mutable std::mutex mutex;
+  std::map<RealtimeRegistration, std::set<uint64_t>> registrations;
 };
 
 extern "C" uint32_t allnewmts_mci_build_init_request(
@@ -638,6 +704,111 @@ extern "C" uint32_t allnewmts_mci_build_gd1000q1_request(
       output_capacity, output_size);
 }
 
+extern "C" uint32_t allnewmts_mci_build_realtime_request(
+    const char channel_detail[5], const AllNewMTSMciSession *session,
+    const char request_nonce[10], uint8_t transaction_type,
+    uint8_t interface_id, const char hts_id[11],
+    const char private_identity[33], const char *service,
+    const AllNewMTSMciRealtimeKey *keys, size_t key_count, uint8_t *output,
+    size_t output_capacity, size_t *output_size) {
+  if (!service || !keys || key_count == 0 || key_count > 9999 ||
+      (transaction_type != '0' && transaction_type != '1'))
+    return ALLNEWMTS_MCI_INVALID_ARGUMENT;
+  const size_t service_size =
+      strnlen(service, ALLNEWMTS_MCI_REALTIME_SERVICE_SIZE + 1);
+  if (service_size > 8 ||
+      !realtimeService(std::string_view(service, service_size)))
+    return ALLNEWMTS_MCI_TRANSACTION_INVALID;
+
+  size_t key_bytes = 0;
+  for (size_t index = 0; index < key_count; ++index) {
+    if (!realtimeKey(keys[index].bytes, keys[index].size) ||
+        key_bytes > 999999 - keys[index].size - 1)
+      return ALLNEWMTS_MCI_TRANSACTION_INVALID;
+    key_bytes += keys[index].size + 1;
+  }
+  const size_t body_size =
+      ALLNEWMTS_MCI_REALTIME_BODY_HEADER_SIZE + key_bytes;
+  if (body_size >
+      ALLNEWMTS_MCI_MAX_FRAME_SIZE - ALLNEWMTS_MCI_REQUEST_HEADER_SIZE)
+    return ALLNEWMTS_MCI_RESOURCE_LIMIT;
+
+  std::array<uint8_t, ALLNEWMTS_MCI_MAX_FRAME_SIZE> body{};
+  decimalFixed(body.data(), 4, 1);
+  body[4] = '0';
+  std::fill(body.begin() + 5,
+            body.begin() + 5 + ALLNEWMTS_MCI_REALTIME_SERVICE_SIZE, ' ');
+  std::memcpy(body.data() + 5, service, service_size);
+  decimalFixed(body.data() + 25, 4, key_count);
+  decimalFixed(body.data() + 29, 6, key_bytes);
+  size_t cursor = ALLNEWMTS_MCI_REALTIME_BODY_HEADER_SIZE;
+  for (size_t index = 0; index < key_count; ++index) {
+    std::memcpy(body.data() + cursor, keys[index].bytes, keys[index].size);
+    cursor += keys[index].size;
+    body[cursor++] = 0;
+  }
+  if (cursor != body_size) return ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID;
+  return buildSessionRequest(
+      channel_detail, session, request_nonce, transaction_type, '0',
+      interface_id, "0000", std::string_view(service, service_size), hts_id,
+      11, private_identity, 33, body.data(), body_size, output,
+      output_capacity, output_size);
+}
+
+extern "C" uint32_t allnewmts_mci_parse_realtime_push(
+    const uint8_t *frame, size_t size, AllNewMTSMciRealtimePush *pushes,
+    size_t push_capacity, size_t *push_count) {
+  if (!frame || !push_count || (push_capacity != 0 && !pushes))
+    return ALLNEWMTS_MCI_INVALID_ARGUMENT;
+  size_t declared = 0, count = 0;
+  if (!frameSize(frame, size, declared) || declared != size ||
+      size < ALLNEWMTS_MCI_REALTIME_HEADER_SIZE || frame[8] != 'P' ||
+      frame[9] != '0' || frame[10] != '0' ||
+      !decimalValue(frame + 11, 2, count) || count == 0)
+    return ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID;
+
+  std::vector<AllNewMTSMciRealtimePush> parsed;
+  try {
+    parsed.reserve(count);
+    size_t cursor = ALLNEWMTS_MCI_REALTIME_HEADER_SIZE;
+    for (size_t index = 0; index < count; ++index) {
+      constexpr size_t header_size = 3 + ALLNEWMTS_MCI_REALTIME_KEY_SIZE + 4 + 2;
+      if (cursor > size || size - cursor < header_size)
+        return ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID;
+      AllNewMTSMciRealtimePush push{};
+      if (!textField(frame + cursor, 3, push.service,
+                     sizeof(push.service), true) ||
+          !realtimeService(push.service) ||
+          !textField(frame + cursor + 3, ALLNEWMTS_MCI_REALTIME_KEY_SIZE,
+                     push.key, sizeof(push.key), false) ||
+          !decimalValue(frame + cursor + 3 +
+                            ALLNEWMTS_MCI_REALTIME_KEY_SIZE,
+                        4, push.item_size) ||
+          !decimalValue(frame + cursor + 3 +
+                            ALLNEWMTS_MCI_REALTIME_KEY_SIZE + 4,
+                        2, push.item_count) ||
+          push.item_size == 0 || push.item_count == 0 ||
+          push.item_size > SIZE_MAX / push.item_count)
+        return ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID;
+      cursor += header_size;
+      const size_t payload_size = push.item_size * push.item_count;
+      if (payload_size > size - cursor)
+        return ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID;
+      push.payload_offset = cursor;
+      cursor += payload_size;
+      parsed.push_back(push);
+    }
+    if (cursor != size)
+      return ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID;
+  } catch (const std::bad_alloc &) {
+    return ALLNEWMTS_MCI_RESOURCE_LIMIT;
+  }
+  if (parsed.size() > push_capacity) return ALLNEWMTS_MCI_RESOURCE_LIMIT;
+  std::copy(parsed.begin(), parsed.end(), pushes);
+  *push_count = parsed.size();
+  return ALLNEWMTS_MCI_OK;
+}
+
 uint32_t decodeSfidRows(
     const uint8_t *body, size_t payload_begin, size_t payload_end,
     size_t record_count, const char gid[5], const char output_fids[][5],
@@ -858,10 +1029,58 @@ extern "C" uint32_t allnewmts_mci_create(
   return ALLNEWMTS_MCI_OK;
 }
 
+void nonce(uint64_t value, char output[10]) {
+  for (size_t index = 0; index < 10; ++index) {
+    output[9 - index] = static_cast<char>('0' + value % 10);
+    value /= 10;
+  }
+}
+
+uint32_t parseS00Quote(const uint8_t *frame, size_t frame_size,
+                       AllNewMTSMciRealtimeQuote *quote) {
+  std::array<AllNewMTSMciRealtimePush, 99> pushes{};
+  size_t push_count = 0;
+  uint32_t code = allnewmts_mci_parse_realtime_push(
+      frame, frame_size, pushes.data(), pushes.size(), &push_count);
+  if (code != ALLNEWMTS_MCI_OK) return code;
+  for (size_t push_index = 0; push_index < push_count; ++push_index) {
+    const AllNewMTSMciRealtimePush &push = pushes[push_index];
+    if (std::strcmp(push.service, "S00") != 0 ||
+        std::strcmp(push.key, "005930") != 0 ||
+        push.item_size != kS00RecordSize)
+      continue;
+    for (size_t item_index = 0; item_index < push.item_count; ++item_index) {
+      const uint8_t *item =
+          frame + push.payload_offset + item_index * push.item_size;
+      char item_code[10]{};
+      if (!textField(item, 9, item_code, sizeof(item_code), true))
+        continue;
+      const size_t item_code_size = std::strlen(item_code);
+      if (item_code_size < 6 ||
+          std::strcmp(item_code + item_code_size - 6, "005930") != 0 ||
+          !bytesAreDigits(reinterpret_cast<const char *>(item + 9), 6))
+        continue;
+      const uint32_t price =
+          static_cast<uint32_t>(item[kS00PriceOffset]) |
+          (static_cast<uint32_t>(item[kS00PriceOffset + 1]) << 8) |
+          (static_cast<uint32_t>(item[kS00PriceOffset + 2]) << 16) |
+          (static_cast<uint32_t>(item[kS00PriceOffset + 3]) << 24);
+      if (price == 0 || price > 10000000) continue;
+      std::memcpy(quote->trade_time, item + 9, 6);
+      quote->trade_time[6] = '\0';
+      quote->current_price = price;
+      return ALLNEWMTS_MCI_OK;
+    }
+  }
+  return ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID;
+}
+
 static uint32_t connectBeta(AllNewMTSMciClient *client, const uint8_t *ip_dat,
                             size_t ip_dat_size, uint32_t automatic_retries,
-                            BetaMode mode) {
-  if (!client || client->open)
+                            BetaMode mode,
+                            AllNewMTSMciRealtimeQuote *realtime_quote) {
+  if (!client || client->open ||
+      (mode == BetaMode::S00Probe && !realtime_quote))
     return ALLNEWMTS_MCI_INVALID_ARGUMENT;
   try {
     AllNewMTSMciEndpoint endpoint{};
@@ -892,13 +1111,14 @@ static uint32_t connectBeta(AllNewMTSMciClient *client, const uint8_t *ip_dat,
           std::vector<uint8_t> pending;
           pending.reserve(ALLNEWMTS_MCI_MAX_FRAME_SIZE * 2);
           uint64_t started = client->transport.now_ms(client->context);
-          AllNewMTSMciSession quote_session{};
-          bool quote_sent = false;
+          AllNewMTSMciSession probe_session{};
+          bool request_sent = false;
+          bool realtime_registered = false;
           bool finished = false;
           while (!finished) {
             std::array<uint8_t, 4096> chunk{};
             size_t amount = 0;
-            const uint32_t timeout = quote_sent
+            const uint32_t timeout = request_sent
                                          ? ALLNEWMTS_MCI_TRANSACTION_TIMEOUT_MS
                                          : ALLNEWMTS_MCI_COMMAND_TIMEOUT_MS;
             const uint64_t now = client->transport.now_ms(client->context);
@@ -933,7 +1153,7 @@ static uint32_t connectBeta(AllNewMTSMciClient *client, const uint8_t *ip_dat,
                   finished = true;
                   break;
                 }
-              } else if (!quote_sent && pending[8] == 'I') {
+              } else if (!request_sent && pending[8] == 'I') {
                 AllNewMTSMciSession candidate{};
                 last = allnewmts_mci_parse_init_response(
                     pending.data(), frame_size, &candidate);
@@ -946,28 +1166,36 @@ static uint32_t connectBeta(AllNewMTSMciClient *client, const uint8_t *ip_dat,
                     client->ready = true;
                   }
                 } else if (last == ALLNEWMTS_MCI_OK &&
-                           mode == BetaMode::Gd1000q1Probe) {
+                           (mode == BetaMode::Gd1000q1Probe ||
+                            mode == BetaMode::S00Probe)) {
                   std::array<uint8_t, ALLNEWMTS_MCI_MAX_FRAME_SIZE>
-                      quote_request{};
-                  char nonce[10];
-                  uint64_t value = generation;
-                  for (size_t index = 0; index < sizeof(nonce); ++index) {
-                    nonce[sizeof(nonce) - 1 - index] =
-                        static_cast<char>('0' + value % 10);
-                    value /= 10;
+                      probe_request{};
+                  char request_nonce[10];
+                  nonce(generation, request_nonce);
+                  size_t probe_request_size = 0;
+                  if (mode == BetaMode::Gd1000q1Probe) {
+                    last = allnewmts_mci_build_gd1000q1_request(
+                        client->channel_detail, &candidate, request_nonce,
+                        probe_request.data(), probe_request.size(),
+                        &probe_request_size);
+                  } else {
+                    constexpr uint8_t key[] = {'0', '0', '5', '9', '3', '0'};
+                    const AllNewMTSMciRealtimeKey keys[] = {
+                        {key, sizeof(key)}};
+                    last = allnewmts_mci_build_realtime_request(
+                        client->channel_detail, &candidate, request_nonce, '0',
+                        '0', "NEWMTS", candidate.selected_private_ip, "S00",
+                        keys, 1, probe_request.data(), probe_request.size(),
+                        &probe_request_size);
                   }
-                  size_t quote_request_size = 0;
-                  last = allnewmts_mci_build_gd1000q1_request(
-                      client->channel_detail, &candidate, nonce,
-                      quote_request.data(), quote_request.size(),
-                      &quote_request_size);
                   if (last == ALLNEWMTS_MCI_OK &&
                       client->transport.write(
-                          client->context, quote_request.data(),
-                          quote_request_size,
+                          client->context, probe_request.data(),
+                          probe_request_size,
                           ALLNEWMTS_MCI_TRANSACTION_TIMEOUT_MS, generation)) {
-                    quote_session = candidate;
-                    quote_sent = true;
+                    probe_session = candidate;
+                    request_sent = true;
+                    realtime_registered = mode == BetaMode::S00Probe;
                     started = client->transport.now_ms(client->context);
                   } else {
                     if (last == ALLNEWMTS_MCI_OK)
@@ -975,11 +1203,20 @@ static uint32_t connectBeta(AllNewMTSMciClient *client, const uint8_t *ip_dat,
                     finished = true;
                   }
                 }
-                if (mode != BetaMode::Gd1000q1Probe || last != ALLNEWMTS_MCI_OK)
+                if ((mode != BetaMode::Gd1000q1Probe &&
+                     mode != BetaMode::S00Probe) ||
+                    last != ALLNEWMTS_MCI_OK)
                   finished = true;
-              } else if (quote_sent && pending[8] == 'R') {
+              } else if (request_sent &&
+                         mode == BetaMode::Gd1000q1Probe &&
+                         pending[8] == 'R') {
                 last = allnewmts_mci_parse_gd1000q1_response(
-                    pending.data(), frame_size, &quote_session);
+                    pending.data(), frame_size, &probe_session);
+                finished = true;
+              } else if (request_sent && mode == BetaMode::S00Probe &&
+                         pending[8] == 'P') {
+                last = parseS00Quote(pending.data(), frame_size,
+                                     realtime_quote);
                 finished = true;
               } else {
                 last = ALLNEWMTS_MCI_FRAME_INVALID;
@@ -987,6 +1224,25 @@ static uint32_t connectBeta(AllNewMTSMciClient *client, const uint8_t *ip_dat,
               }
               pending.erase(pending.begin(), pending.begin() + frame_size);
             }
+          }
+          if (realtime_registered) {
+            constexpr uint8_t key[] = {'0', '0', '5', '9', '3', '0'};
+            const AllNewMTSMciRealtimeKey keys[] = {{key, sizeof(key)}};
+            std::array<uint8_t, ALLNEWMTS_MCI_MAX_FRAME_SIZE> unsubscribe{};
+            char request_nonce[10];
+            nonce(generation + 1, request_nonce);
+            size_t unsubscribe_size = 0;
+            uint32_t unsubscribe_code = allnewmts_mci_build_realtime_request(
+                client->channel_detail, &probe_session, request_nonce, '1',
+                '0', "NEWMTS", probe_session.selected_private_ip, "S00", keys,
+                1, unsubscribe.data(), unsubscribe.size(), &unsubscribe_size);
+            if (unsubscribe_code != ALLNEWMTS_MCI_OK ||
+                !client->transport.write(
+                    client->context, unsubscribe.data(), unsubscribe_size,
+                    ALLNEWMTS_MCI_COMMAND_TIMEOUT_MS, generation))
+              last = unsubscribe_code == ALLNEWMTS_MCI_OK
+                         ? ALLNEWMTS_MCI_TRANSPORT_ERROR
+                         : unsubscribe_code;
           }
           if (client->ready)
             return ALLNEWMTS_MCI_OK;
@@ -1011,18 +1267,29 @@ static uint32_t connectBeta(AllNewMTSMciClient *client, const uint8_t *ip_dat,
 extern "C" uint32_t allnewmts_mci_connect_beta(
     AllNewMTSMciClient *client, const uint8_t *ip_dat, size_t ip_dat_size) {
   return connectBeta(client, ip_dat, ip_dat_size,
-                     ALLNEWMTS_MCI_AUTOMATIC_RETRIES, BetaMode::Connect);
+                     ALLNEWMTS_MCI_AUTOMATIC_RETRIES, BetaMode::Connect,
+                     nullptr);
 }
 
 extern "C" uint32_t allnewmts_mci_probe_beta(
     AllNewMTSMciClient *client, const uint8_t *ip_dat, size_t ip_dat_size) {
-  return connectBeta(client, ip_dat, ip_dat_size, 0, BetaMode::InitProbe);
+  return connectBeta(client, ip_dat, ip_dat_size, 0, BetaMode::InitProbe,
+                     nullptr);
 }
 
 extern "C" uint32_t allnewmts_mci_probe_beta_gd1000q1(
     AllNewMTSMciClient *client, const uint8_t *ip_dat, size_t ip_dat_size) {
   return connectBeta(client, ip_dat, ip_dat_size, 0,
-                     BetaMode::Gd1000q1Probe);
+                     BetaMode::Gd1000q1Probe, nullptr);
+}
+
+extern "C" uint32_t allnewmts_mci_probe_beta_s00_005930(
+    AllNewMTSMciClient *client, const uint8_t *ip_dat, size_t ip_dat_size,
+    AllNewMTSMciRealtimeQuote *quote) {
+  if (!quote) return ALLNEWMTS_MCI_INVALID_ARGUMENT;
+  *quote = {};
+  return connectBeta(client, ip_dat, ip_dat_size, 0, BetaMode::S00Probe,
+                     quote);
 }
 
 extern "C" uint32_t allnewmts_mci_preflight_beta(
@@ -1052,6 +1319,136 @@ extern "C" void allnewmts_mci_destroy(AllNewMTSMciClient *client) {
   if (client->open)
     client->transport.close(client->context, client->generation);
   delete client;
+}
+
+extern "C" uint32_t allnewmts_mci_realtime_registry_create(
+    AllNewMTSMciRealtimeRegistry **registry) {
+  if (!registry) return ALLNEWMTS_MCI_INVALID_ARGUMENT;
+  auto *created = new (std::nothrow) AllNewMTSMciRealtimeRegistry();
+  if (!created) return ALLNEWMTS_MCI_RESOURCE_LIMIT;
+  *registry = created;
+  return ALLNEWMTS_MCI_OK;
+}
+
+extern "C" uint32_t allnewmts_mci_realtime_acquire(
+    AllNewMTSMciRealtimeRegistry *registry, uint64_t scope_id,
+    const char *service, const uint8_t *key, size_t key_size,
+    AllNewMTSMciRealtimeAction *action) {
+  if (!registry || !scope_id || !action)
+    return ALLNEWMTS_MCI_INVALID_ARGUMENT;
+  RealtimeRegistration registration;
+  if (!realtimeRegistration(service, key, key_size, registration))
+    return ALLNEWMTS_MCI_TRANSACTION_INVALID;
+  try {
+    std::lock_guard<std::mutex> lock(registry->mutex);
+    auto found = registry->registrations.find(registration);
+    if (found == registry->registrations.end()) {
+      if (registry->registrations.size() >=
+          ALLNEWMTS_MCI_REALTIME_MAX_REGISTRATIONS)
+        return ALLNEWMTS_MCI_RESOURCE_LIMIT;
+      found = registry->registrations
+                  .emplace(registration, std::set<uint64_t>{scope_id})
+                  .first;
+      realtimeAction(registration, '0', *action);
+      return ALLNEWMTS_MCI_OK;
+    }
+    found->second.insert(scope_id);
+    realtimeAction(registration, 0, *action);
+    return ALLNEWMTS_MCI_OK;
+  } catch (const std::bad_alloc &) {
+    return ALLNEWMTS_MCI_RESOURCE_LIMIT;
+  }
+}
+
+extern "C" uint32_t allnewmts_mci_realtime_release(
+    AllNewMTSMciRealtimeRegistry *registry, uint64_t scope_id,
+    const char *service, const uint8_t *key, size_t key_size,
+    AllNewMTSMciRealtimeAction *action) {
+  if (!registry || !scope_id || !action)
+    return ALLNEWMTS_MCI_INVALID_ARGUMENT;
+  RealtimeRegistration registration;
+  if (!realtimeRegistration(service, key, key_size, registration))
+    return ALLNEWMTS_MCI_TRANSACTION_INVALID;
+  std::lock_guard<std::mutex> lock(registry->mutex);
+  auto found = registry->registrations.find(registration);
+  if (found == registry->registrations.end() ||
+      !found->second.erase(scope_id))
+    return ALLNEWMTS_MCI_REALTIME_NOT_FOUND;
+  const bool final = found->second.empty();
+  realtimeAction(registration, final ? '1' : 0, *action);
+  if (final) registry->registrations.erase(found);
+  return ALLNEWMTS_MCI_OK;
+}
+
+extern "C" uint32_t allnewmts_mci_realtime_release_scope(
+    AllNewMTSMciRealtimeRegistry *registry, uint64_t scope_id,
+    AllNewMTSMciRealtimeAction *actions, size_t action_capacity,
+    size_t *action_count) {
+  if (!registry || !scope_id || !action_count ||
+      (action_capacity != 0 && !actions))
+    return ALLNEWMTS_MCI_INVALID_ARGUMENT;
+  std::lock_guard<std::mutex> lock(registry->mutex);
+  size_t required = 0;
+  for (const auto &entry : registry->registrations)
+    if (entry.second.size() == 1 && entry.second.count(scope_id)) ++required;
+  if (required > action_capacity) return ALLNEWMTS_MCI_RESOURCE_LIMIT;
+  size_t output = 0;
+  for (auto iterator = registry->registrations.begin();
+       iterator != registry->registrations.end();) {
+    if (!iterator->second.erase(scope_id)) {
+      ++iterator;
+      continue;
+    }
+    if (iterator->second.empty()) {
+      realtimeAction(iterator->first, '1', actions[output++]);
+      iterator = registry->registrations.erase(iterator);
+    } else {
+      ++iterator;
+    }
+  }
+  *action_count = output;
+  return ALLNEWMTS_MCI_OK;
+}
+
+extern "C" uint32_t allnewmts_mci_realtime_replay(
+    const AllNewMTSMciRealtimeRegistry *registry,
+    AllNewMTSMciRealtimeAction *actions, size_t action_capacity,
+    size_t *action_count) {
+  if (!registry || !action_count || (action_capacity != 0 && !actions))
+    return ALLNEWMTS_MCI_INVALID_ARGUMENT;
+  std::lock_guard<std::mutex> lock(registry->mutex);
+  if (registry->registrations.size() > action_capacity)
+    return ALLNEWMTS_MCI_RESOURCE_LIMIT;
+  size_t output = 0;
+  for (const auto &entry : registry->registrations)
+    realtimeAction(entry.first, '0', actions[output++]);
+  *action_count = output;
+  return ALLNEWMTS_MCI_OK;
+}
+
+extern "C" uint32_t allnewmts_mci_realtime_match(
+    const AllNewMTSMciRealtimeRegistry *registry, const char *service,
+    const uint8_t *key, size_t key_size, uint64_t *scope_ids,
+    size_t scope_capacity, size_t *scope_count) {
+  if (!registry || !scope_count || (scope_capacity != 0 && !scope_ids))
+    return ALLNEWMTS_MCI_INVALID_ARGUMENT;
+  RealtimeRegistration registration;
+  if (!realtimeRegistration(service, key, key_size, registration))
+    return ALLNEWMTS_MCI_TRANSACTION_INVALID;
+  std::lock_guard<std::mutex> lock(registry->mutex);
+  auto found = registry->registrations.find(registration);
+  if (found == registry->registrations.end())
+    return ALLNEWMTS_MCI_REALTIME_NOT_FOUND;
+  if (found->second.size() > scope_capacity)
+    return ALLNEWMTS_MCI_RESOURCE_LIMIT;
+  std::copy(found->second.begin(), found->second.end(), scope_ids);
+  *scope_count = found->second.size();
+  return ALLNEWMTS_MCI_OK;
+}
+
+extern "C" void allnewmts_mci_realtime_registry_destroy(
+    AllNewMTSMciRealtimeRegistry *registry) {
+  delete registry;
 }
 
 #ifdef ALLNEWMTS_MCI_TESTING

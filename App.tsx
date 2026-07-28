@@ -11,6 +11,7 @@ const model = ingestApprovedXmf({
   byteCount: approvedXmfBytesCount,
   sha256: approvedXmfSha256,
 });
+const imageSources = Object.freeze({});
 
 export function buildAppRuntimeConfig(model: XmfModel): RuntimeConfig {
   return {
@@ -71,5 +72,5 @@ export default function App() {
   }, [client]);
 
   if (clientState.error) return <View><Text accessibilityRole="alert">Runtime unavailable: {clientState.error}</Text></View>;
-  return <XmfScreen model={model} runtimeControls={clientState.snapshot?.state.controls} onControlEvent={client.dispatch} />;
+  return <XmfScreen model={model} runtimeControls={clientState.snapshot?.state.controls} imageSources={imageSources} onControlEvent={client.dispatch} />;
 }

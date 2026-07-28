@@ -21,7 +21,8 @@ enum {
   ALLNEWMTS_MCI_RESOURCE_LIMIT = 9,
   ALLNEWMTS_MCI_TRANSACTION_REJECTED = 10,
   ALLNEWMTS_MCI_TRANSACTION_INVALID = 11,
-  ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID = 12
+  ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID = 12,
+  ALLNEWMTS_MCI_REALTIME_NOT_FOUND = 13
 };
 
 enum {
@@ -33,10 +34,16 @@ enum {
   ALLNEWMTS_MCI_REQUEST_HEADER_SIZE = 321,
   ALLNEWMTS_MCI_RESPONSE_HEADER_SIZE = 500,
   ALLNEWMTS_MCI_INIT_BODY_SIZE = 125,
-  ALLNEWMTS_MCI_MAX_FRAME_SIZE = 7423
+  ALLNEWMTS_MCI_MAX_FRAME_SIZE = 7423,
+  ALLNEWMTS_MCI_REALTIME_HEADER_SIZE = 13,
+  ALLNEWMTS_MCI_REALTIME_BODY_HEADER_SIZE = 35,
+  ALLNEWMTS_MCI_REALTIME_SERVICE_SIZE = 20,
+  ALLNEWMTS_MCI_REALTIME_KEY_SIZE = 32,
+  ALLNEWMTS_MCI_REALTIME_MAX_REGISTRATIONS = 1024
 };
 
 typedef struct AllNewMTSMciClient AllNewMTSMciClient;
+typedef struct AllNewMTSMciRealtimeRegistry AllNewMTSMciRealtimeRegistry;
 
 typedef struct {
   char host[254];
@@ -136,6 +143,31 @@ typedef struct {
 } AllNewMTSMciTransactionResponse;
 
 typedef struct {
+  const uint8_t *bytes;
+  size_t size;
+} AllNewMTSMciRealtimeKey;
+
+typedef struct {
+  uint8_t transaction_type;
+  char service[ALLNEWMTS_MCI_REALTIME_SERVICE_SIZE + 1];
+  uint8_t key[ALLNEWMTS_MCI_REALTIME_KEY_SIZE];
+  size_t key_size;
+} AllNewMTSMciRealtimeAction;
+
+typedef struct {
+  char service[4];
+  char key[ALLNEWMTS_MCI_REALTIME_KEY_SIZE + 1];
+  size_t payload_offset;
+  size_t item_size;
+  size_t item_count;
+} AllNewMTSMciRealtimePush;
+
+typedef struct {
+  char trade_time[7];
+  uint32_t current_price;
+} AllNewMTSMciRealtimeQuote;
+
+typedef struct {
   int (*open)(void *context, const char *host, uint16_t port,
               uint32_t timeout_ms, uint64_t generation);
   int (*write)(void *context, const uint8_t *bytes, size_t size,
@@ -163,6 +195,10 @@ uint32_t allnewmts_mci_probe_beta(AllNewMTSMciClient *client,
 
 uint32_t allnewmts_mci_probe_beta_gd1000q1(
     AllNewMTSMciClient *client, const uint8_t *ip_dat, size_t ip_dat_size);
+
+uint32_t allnewmts_mci_probe_beta_s00_005930(
+    AllNewMTSMciClient *client, const uint8_t *ip_dat, size_t ip_dat_size,
+    AllNewMTSMciRealtimeQuote *quote);
 
 uint32_t allnewmts_mci_preflight_beta(const uint8_t *ip_dat,
                                       size_t ip_dat_size,
@@ -203,6 +239,19 @@ uint32_t allnewmts_mci_build_command_request(
     const char request_nonce[10], const AllNewMTSMciCommandRequest *request,
     uint8_t *output, size_t output_capacity, size_t *output_size);
 
+uint32_t allnewmts_mci_build_realtime_request(
+    const char channel_detail[5], const AllNewMTSMciSession *session,
+    const char request_nonce[10], uint8_t transaction_type,
+    uint8_t interface_id, const char hts_id[11],
+    const char private_identity[33], const char *service,
+    const AllNewMTSMciRealtimeKey *keys, size_t key_count, uint8_t *output,
+    size_t output_capacity, size_t *output_size);
+
+uint32_t allnewmts_mci_parse_realtime_push(
+    const uint8_t *frame, size_t frame_size,
+    AllNewMTSMciRealtimePush *pushes, size_t push_capacity,
+    size_t *push_count);
+
 uint32_t allnewmts_mci_parse_command_response(
     const uint8_t *frame, size_t frame_size,
     const AllNewMTSMciSession *session,
@@ -233,6 +282,37 @@ uint32_t allnewmts_mci_decode_sfid_occurrence_body(
 uint32_t allnewmts_mci_parse_gd1000q1_response(
     const uint8_t *frame, size_t frame_size,
     const AllNewMTSMciSession *session);
+
+uint32_t allnewmts_mci_realtime_registry_create(
+    AllNewMTSMciRealtimeRegistry **registry);
+
+uint32_t allnewmts_mci_realtime_acquire(
+    AllNewMTSMciRealtimeRegistry *registry, uint64_t scope_id,
+    const char *service, const uint8_t *key, size_t key_size,
+    AllNewMTSMciRealtimeAction *action);
+
+uint32_t allnewmts_mci_realtime_release(
+    AllNewMTSMciRealtimeRegistry *registry, uint64_t scope_id,
+    const char *service, const uint8_t *key, size_t key_size,
+    AllNewMTSMciRealtimeAction *action);
+
+uint32_t allnewmts_mci_realtime_release_scope(
+    AllNewMTSMciRealtimeRegistry *registry, uint64_t scope_id,
+    AllNewMTSMciRealtimeAction *actions, size_t action_capacity,
+    size_t *action_count);
+
+uint32_t allnewmts_mci_realtime_replay(
+    const AllNewMTSMciRealtimeRegistry *registry,
+    AllNewMTSMciRealtimeAction *actions, size_t action_capacity,
+    size_t *action_count);
+
+uint32_t allnewmts_mci_realtime_match(
+    const AllNewMTSMciRealtimeRegistry *registry, const char *service,
+    const uint8_t *key, size_t key_size, uint64_t *scope_ids,
+    size_t scope_capacity, size_t *scope_count);
+
+void allnewmts_mci_realtime_registry_destroy(
+    AllNewMTSMciRealtimeRegistry *registry);
 
 #ifdef ALLNEWMTS_MCI_TESTING
 uint32_t allnewmts_mci_test_preflight_beta(

@@ -7,11 +7,11 @@ import type { RuntimeControlState } from './runtime-client';
 type Props = {
   model: XmfModel;
   runtimeControls?: Record<string, RuntimeControlState>;
-  imageSources?: ControlImageSources;
+  imageSources: ControlImageSources;
   onControlEvent(event: XmfControlEvent): void;
 };
 
-export function XmfScreen({ model, runtimeControls = {}, imageSources = {}, onControlEvent }: Props) {
+export function XmfScreen({ model, runtimeControls = {}, imageSources, onControlEvent }: Props) {
   const controls = new Map(model.controls.map((control) => [control.name, control]));
   const descriptors = toRenderDescriptors(model, Object.fromEntries(Object.entries(runtimeControls).map(([name, state]) => [name, state.properties])));
   return (

@@ -38,6 +38,12 @@ static uint64_t tokenFrom(const std::string &value){const std::string key="\"req
 static std::string completion(uint64_t runtime,uint64_t token,const char *transaction="T_ALPHA"){
  return "{\"schemaVersion\":1,\"kind\":\"transactionComplete\",\"runtimeId\":\""+std::to_string(runtime)+"\",\"requestToken\":\""+std::to_string(token)+"\",\"tranId\":\""+transaction+"\",\"blockData\":[{\"id\":\"output\",\"rows\":[{\"index\":0,\"values\":{\"value\":{\"type\":\"string\",\"value\":\"done\"}}}]}]}";
 }
+static std::string realtimeConfig(const char *hash){
+ return std::string("{\"schemaVersion\":1,\"entry\":{\"path\":\"fixtures/realtime-runtime.lua\",\"sha256\":\"")+hash+"\"},\"host\":{\"openLinkData\":\"\",\"sharedData\":{},\"itemCodeInfo\":[]},\"controls\":[],\"transactions\":[{\"id\":\"S00\",\"realtime\":true,\"blocks\":[{\"id\":\"InBlock1\",\"fields\":[\"CODE\"]},{\"id\":\"OutBlock1\",\"fields\":[\"SHRN_ISCD\",\"STCK_PRPR\",\"PRDY_VRSS_SIGN\",\"PRDY_VRSS\",\"PRDY_CTRT\",\"STCK_CNTG_HOUR\"]}]}]}";
+}
+static std::string realtimeCompletion(uint64_t runtime){
+ return "{\"schemaVersion\":1,\"kind\":\"realtimeComplete\",\"runtimeId\":\""+std::to_string(runtime)+"\",\"tranId\":\"S00\",\"blockData\":[{\"id\":\"OutBlock1\",\"rows\":[{\"index\":0,\"values\":{\"SHRN_ISCD\":{\"type\":\"string\",\"value\":\"005930\"},\"STCK_PRPR\":{\"type\":\"string\",\"value\":\"71500\"},\"PRDY_VRSS_SIGN\":{\"type\":\"string\",\"value\":\"C\"},\"PRDY_VRSS\":{\"type\":\"string\",\"value\":\"700\"},\"PRDY_CTRT\":{\"type\":\"string\",\"value\":\"0.99\"},\"STCK_CNTG_HOUR\":{\"type\":\"string\",\"value\":\"091530\"}}}]}]}";
+}
 
 int main(){
   const char *hash="1e3b642aeda6de9ddbd309df8ac22ee4f3dcce78a8d166caa4e5774f39f82e09"; std::string cfg=config("fixtures/runtime-conformance.lua",hash);
@@ -75,6 +81,17 @@ int main(){
     Capture a,b;auto one=allnewmts_runtime_ios_create((const uint8_t*)cfg.data(),cfg.size(),sink,release,&a);auto two=allnewmts_runtime_android_create((const uint8_t*)cfg.data(),cfg.size(),sink,release,&b);assert(one.code==0&&two.code==0&&one.runtime_id!=two.runtime_id);
     assert(dispatch(one.runtime_id,handler(0,"Success","one",true)).code==0);std::string second=handler(0,"Success","two",true);assert(allnewmts_runtime_android_dispatch(two.runtime_id,(const uint8_t*)second.data(),second.size()).code==0);waitFor(a,1);waitFor(b,1);contains(a.outputs[0],"\"caption\":\"one\"");contains(b.outputs[0],"\"caption\":\"two\"");
     allnewmts_runtime_ios_destroy(one.runtime_id);allnewmts_runtime_android_destroy(two.runtime_id);
+  }
+  {
+    const char *realHash="6b7849b27dae6ba549c2d9c3f2c49be22b431e6df9b602937a5997fd3017e6e5";std::string realConfig=realtimeConfig(realHash);
+    Capture capture;auto created=allnewmts_runtime_ios_create((const uint8_t*)realConfig.data(),realConfig.size(),sink,release,&capture);assert(created.code==0);
+    assert(dispatch(created.runtime_id,handler(0,"StartReal")).code==0);waitFor(capture,1);contains(capture.outputs[0],"\"type\":\"requestRealData\"");contains(capture.outputs[0],"\"CODE\":\"005930\"");
+    assert(dispatch(created.runtime_id,realtimeCompletion(created.runtime_id)).code==0);waitFor(capture,2);contains(capture.outputs[1],"\"message\":\"71500:2\"");contains(capture.outputs[1],"\"realtime\":true");contains(capture.outputs[1],"\"event\":\"realtimeComplete\"");
+    assert(dispatch(created.runtime_id,handler(2,"CancelReal")).code==0);waitFor(capture,3);contains(capture.outputs[2],"\"type\":\"cancelRealData\"");assert(dispatch(created.runtime_id,realtimeCompletion(created.runtime_id)).code==ALLNEWMTS_RUNTIME_WRONG_TRANSACTION);allnewmts_runtime_ios_destroy(created.runtime_id);waitReleased(capture);
+
+    Capture closing;auto active=allnewmts_runtime_ios_create((const uint8_t*)realConfig.data(),realConfig.size(),sink,release,&closing);assert(active.code==0);assert(dispatch(active.runtime_id,handler(0,"StartReal")).code==0);waitFor(closing,1);assert(dispatch(active.runtime_id,handler(1,"CloseReal")).code==0);waitFor(closing,3);contains(closing.outputs[2],"\"type\":\"releaseRealScope\"");contains(closing.outputs[2],"\"type\":\"closeForm\"");waitReleased(closing);
+
+    Capture failedClose;auto failing=allnewmts_runtime_ios_create((const uint8_t*)realConfig.data(),realConfig.size(),sink,release,&failedClose);assert(failing.code==0);assert(dispatch(failing.runtime_id,handler(0,"StartReal")).code==0);waitFor(failedClose,1);assert(dispatch(failing.runtime_id,handler(1,"CloseRealError")).code==0);waitFor(failedClose,3);auto runtimeError=failedClose.outputs[2].find("\"type\":\"runtimeError\"");auto releaseScope=failedClose.outputs[2].find("\"type\":\"releaseRealScope\"");auto closeForm=failedClose.outputs[2].find("\"type\":\"closeForm\"");assert(runtimeError!=std::string::npos&&releaseScope>runtimeError&&closeForm>releaseScope);contains(failedClose.outputs[2],"\"status\":\"error\"");waitReleased(failedClose);
   }
   {
     Capture capture;capture.reenter=true;auto created=allnewmts_runtime_ios_create((const uint8_t*)cfg.data(),cfg.size(),sink,release,&capture);assert(created.code==0);assert(dispatch(created.runtime_id,handler(0,"Noop")).code==0);waitFor(capture,1);assert(capture.reentrant_dispatch==ALLNEWMTS_RUNTIME_REENTRANT_CALL&&capture.reentrant_destroy==ALLNEWMTS_RUNTIME_REENTRANT_CALL);assert(allnewmts_runtime_ios_destroy(created.runtime_id).code==0);waitReleased(capture);

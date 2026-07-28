@@ -26,6 +26,7 @@
     "verify:fixtures": "node scripts/verify-fixtures.mjs",
     "verify:networking": "node scripts/verify-networking.mjs",
     "mci:probe:beta": "node scripts/probe-mci-beta.mjs",
+    "mci:probe:beta:realtime": "node scripts/probe-mci-beta-realtime.mjs",
     "mci:probe:beta:tr": "node scripts/probe-mci-beta-tr.mjs",
     "rest:probe:beta:tr": "swift scripts/probe-rest-beta-tr.swift",
     "verify:native": "node scripts/verify-native.mjs",

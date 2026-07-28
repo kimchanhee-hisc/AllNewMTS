@@ -44,6 +44,16 @@
       "gitBlobOid": "367d64600123901496f25d28fa6af6d2161fc9a4"
     },
     {
+      "path": "test/oracles/sources/mts_screen/HS1100P19.realtime.lua.source",
+      "bytes": 640,
+      "sha256": "3fe6637eb313eafacee857bde09a6f56eb060bd970725812a654ea6ef0a7a3b6",
+      "sourceRepositoryCommit": "f079792bcf383b2743676384ffda6c6671ddda10",
+      "classification": "approved-authored-realtime-lua-excerpt",
+      "allowedDerivation": "Exact authored Lua lines 191-193, 196/198, and 355-365 extracted from the identified XMF blob; realtime Host call ordering and true-scope evidence only.",
+      "sourceRepositoryPath": "SmartMTS/Resource/Main/scr_xmf/HS1100P19.xmf_",
+      "gitBlobOid": "ec4ea5149921b19ad5bddce95622f97c3664c355"
+    },
+    {
       "path": "test/oracles/sources/mts_screen/script.lua",
       "bytes": 38172,
       "sha256": "dfa28a8eecf55b8fbd67322fd101e37a2ef2671cc3ac938e9be0c682bd0fc8d4",

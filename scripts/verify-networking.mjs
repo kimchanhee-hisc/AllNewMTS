@@ -62,6 +62,7 @@ try {
   const executable = path.join(temporary, 'mci-transport-test');
   const restAuth = path.join(temporary, 'rest-auth-test');
   const probe = path.join(temporary, 'mci-beta-probe');
+  const realtimeProbe = path.join(temporary, 'mci-beta-realtime-probe');
   const trProbe = path.join(temporary, 'mci-beta-tr-probe');
   const restTrProbe = path.join(temporary, 'rest-beta-tr-probe');
   run(process.env.CC || 'cc', [
@@ -97,6 +98,16 @@ try {
   ]);
   run(process.env.CXX || 'c++', [
     '-std=c++17', '-Wall', '-Wextra', '-Werror',
+    '-DALLNEWMTS_PRODUCT_MCI_CHANNEL_DETAIL="CC320"',
+    '-I', 'modules/allnewmts-lua/shared',
+    'modules/allnewmts-lua/shared/allnewmts_mci.cpp',
+    'modules/allnewmts-lua/shared/allnewmts_mci_socket.cpp',
+    'modules/allnewmts-lua/shared/allnewmts_product_config.cpp',
+    'native/test/mci_beta_realtime_probe.cpp',
+    object, '-pthread', '-o', realtimeProbe,
+  ]);
+  run(process.env.CXX || 'c++', [
+    '-std=c++17', '-Wall', '-Wextra', '-Werror',
     '-DALLNEWMTS_PRODUCT_MCI_CHANNEL_DETAIL="CC321"',
     '-I', 'modules/allnewmts-lua/shared',
     'modules/allnewmts-lua/shared/allnewmts_mci.cpp',
@@ -113,6 +124,14 @@ try {
     env: blockedEnvironment,
   });
   assert.equal(blocked.status, 64, 'live BETA probe must fail without opt-in');
+  delete blockedEnvironment.ALLNEWMTS_MCI_LIVE_BETA_REAL;
+  const blockedRealtime = spawnSync(realtimeProbe, ['unused'], {
+    cwd: root,
+    encoding: 'utf8',
+    env: blockedEnvironment,
+  });
+  assert.equal(blockedRealtime.status, 64,
+    'live BETA S00 probe must fail without exact opt-in');
   delete blockedEnvironment.ALLNEWMTS_MCI_LIVE_BETA_TR;
   const blockedTr = spawnSync(trProbe, ['unused'], {
     cwd: root,

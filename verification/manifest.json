@@ -3,6 +3,11 @@
   "schemaVersion": 2,
   "canonicalOwners": [
     {
+      "topic": "development-layers-and-executable-targets",
+      "path": "docs/architecture/development-layers.md",
+      "heading": "# Development layers and executable targets"
+    },
+    {
       "topic": "product-and-input-scope",
       "path": "docs/specs/xmf-lua-runtime.md",
       "heading": "# XMF/Lua runtime product contract"
@@ -192,10 +197,10 @@
         "pinned BETA endpoint hashes",
         "shared MCI framing, connection, and REST authentication cores",
         "synthetic transport fixtures",
-        "operator-only BETA init, GD1000Q1, and TR3200Q1 probes"
+        "operator-only BETA init, GD1000Q1, S00/005930 realtime, and TR3200Q1 probes"
       ],
       "outputs": [
-        "BETA preflight, init and GD1000Q1 framing, polling, REST AccessKey/AccessToken issuance, TR3200Q1 mapping, retry, and fail-closed probe evidence"
+        "BETA preflight, init, GD1000Q1 and S00 realtime framing, polling, REST AccessKey/AccessToken issuance, TR3200Q1 mapping, retry, and fail-closed probe evidence"
       ],
       "budgetSeconds": 120
     },
@@ -334,31 +339,35 @@
     },
     {
       "path": "AGENTS.md",
-      "sha256": "1c23a946d896ea1dff134c344865f2c74de17a767a32013ec732b2a3bb7d9503"
+      "sha256": "069f92add5758fe138969ee782c15025a9a1a68c07754b4e1c5862f8aabc7881"
     },
     {
       "path": "README.md",
-      "sha256": "9eb0bd3878bf4bb8119a3db64c49b7f00235092f691fbb209af3fac925dc2cef"
+      "sha256": "a4b54294bf19d4691ab861511d16e9fe2b5c228d0e5f5171f1c7250b1a97499e"
+    },
+    {
+      "path": "docs/architecture/development-layers.md",
+      "sha256": "9983d998fda5b076600b6a702b1c44b3318aa60be2e33d78c5968baa68aa70dc"
     },
     {
       "path": "docs/specs/xmf-lua-runtime.md",
-      "sha256": "a5bb5fcce54da59afd34049e61e17efc1de143c1d2560af07bd01fd55b81852d"
+      "sha256": "4aaf253d945977f0c5db4ed2e28ba12ea5ae9e351f755a05e182a392810fb75d"
     },
     {
       "path": "docs/specs/controls/image.md",
-      "sha256": "ee2b7c5a2ba4df6b4703d4fd4f3a4dddaec56ebc6ec534737fe8257c3e819382"
+      "sha256": "937aa66716d0d12b410b8607e4723a846ebc8b2c2d2ef82e901e0ec8796ebcf0"
     },
     {
       "path": "docs/specs/runtime-contract.md",
-      "sha256": "0fbe04d49954b10017f16131ed215617b1b6c147a3db338eab6bb4e000297a39"
+      "sha256": "27121f30486a8b6e6bd6618fa950429ca9e48f6878cc7ab09be03703a7479f67"
     },
     {
       "path": "docs/specs/networking-contract.md",
-      "sha256": "33f66769aea8fcb5a032e3f12950cd5f5afde141d055d7472dc7e6d679894a4d"
+      "sha256": "4426b1ee89ddd2e5cda21d9c2da3ffa62caabd0aad8aaa5b97f075972c912fdb"
     },
     {
       "path": "docs/testing.md",
-      "sha256": "ace617869c0515777dabcb49acdb77efff3c4fb9005d1ae2e2741c51b2ae0754"
+      "sha256": "d74779e4400829f8e211eaa78798c5306562c1fe6f8d6f8de2045bf7db875c66"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
@@ -366,15 +375,15 @@
     },
     {
       "path": "contracts/host-api.json",
-      "sha256": "e7d196b50a739ef6d176e2a03ceb42576ef4b6854783d2f56c6912016b0b7620"
+      "sha256": "445b458934e678747102f12b9327f7778ca4a6dbe7e319cef00a7ebb7d4a8e69"
     },
     {
       "path": "contracts/host-api.schema.json",
-      "sha256": "1acc03f651b02a18d915a059a86997a3cd1b15a1a85c5d74d42c896b87e63c6b"
+      "sha256": "3b74ac827026b401fd227a6843c3ef39cbd3e3e5b2903a592e0e5c7cb49ade85"
     },
     {
       "path": "contracts/runtime-result.schema.json",
-      "sha256": "457a9bf9e5cf5017d4a60f29b2c72a4b4667527d2dca445b258df0046b6cc533"
+      "sha256": "f4fd2b6022d75b5bd7adf094bf76bb74bf5e39f3c9e74d2a54a9ec17b38fd4c7"
     },
     {
       "path": "contracts/control-registry.json",
@@ -398,7 +407,7 @@
     },
     {
       "path": "native/lua-source-manifest.json",
-      "sha256": "d4a1dd1fbea9337b0f05b68a64d1a0a7bcec532f73c534f460b6a1fc5ff31502"
+      "sha256": "1223f2f5e3c2ae60731ef52c2e0009a35e056dc5fa0104751547207babd387bd"
     },
     {
       "path": "native/lua-source-manifest.schema.json",
@@ -410,7 +419,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "2b6a0db3b85b045688b3d9480b80d3ab6139829738e6549ef7e855ff8c0e1102"
+      "sha256": "e5e01bf929382842b267d06ad0aa3fba18b9af8e02435afb4d7db9c0568e811b"
     },
     {
       "path": "scripts/generate-xmf-assets.mjs",
@@ -427,6 +436,10 @@
     {
       "path": "scripts/probe-mci-beta.mjs",
       "sha256": "2087b6ef34bd01bbba277679611f71909d0878a32b72e552770794e60407903b"
+    },
+    {
+      "path": "scripts/probe-mci-beta-realtime.mjs",
+      "sha256": "01c71be00c90d76c53332b47cb9324631bc4bf5b62e812e5d9f4f6971f6efc7c"
     },
     {
       "path": "scripts/probe-mci-beta-tr.mjs",
@@ -446,11 +459,11 @@
     },
     {
       "path": "scripts/verify-foundation.mjs",
-      "sha256": "0de8bdbd2889f760877e2be2ccb13c1c44dcb1df5f911f72e5280fa4499e86b5"
+      "sha256": "466e31ebf911f38880c33e57a7f703d630641211b75d07b85a25b2873f379b99"
     },
     {
       "path": "scripts/verify-networking.mjs",
-      "sha256": "46a4e50644deee479a3fdbc3f36ff134da54ca2e53ade956d84f1bea40a2ee74"
+      "sha256": "97412b8fda643d19f379c59a48f281298ba01f9d39f60589595099b9832bfd1f"
     },
     {
       "path": "scripts/verify-native.mjs",
@@ -458,11 +471,11 @@
     },
     {
       "path": "scripts/verify-runtime.mjs",
-      "sha256": "53a6727e582180828cec40b071767b0ed4f0ebe0cc51d41ddfcbf22a1d41927f"
+      "sha256": "22f6d62f803897a7b61e6e6b2235c88000dd5d55cdf700369be4123efd6ae5a0"
     },
     {
       "path": "scripts/verify-ui.mjs",
-      "sha256": "b1808c3c77360c84f07d626b9fcb2813bbdca08dd6b76a9a927eef517785b960"
+      "sha256": "f2f969f4ef7efaff1156a00cbf2a06da981e981f6dd5b63d93e7224da5c3c833"
     },
     {
       "path": "test/development-runners.test.mjs",

@@ -96,6 +96,13 @@ int allnewmts_runtime_lua_finish_request(void *runtime,
                                         size_t transaction_size,
                                         uint64_t request_token,
                                         int nested_status);
+int allnewmts_runtime_lua_prepare_realtime_request(
+    void *runtime, lua_State *state, const char **transaction,
+    size_t *transaction_size);
+int allnewmts_runtime_lua_finish_realtime_request(
+    void *runtime, const char *transaction, size_t transaction_size,
+    int nested_status);
+int allnewmts_runtime_lua_cancel_realtime(void *runtime, lua_State *state);
 int allnewmts_runtime_lua_prepare_dofile(void *runtime, lua_State *state,
                                         const AllNewMTSResource **resource,
                                         const char **path,

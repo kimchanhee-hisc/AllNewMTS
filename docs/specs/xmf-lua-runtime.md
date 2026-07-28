@@ -4,7 +4,7 @@
 
 Parse externally authored XMF into a platform-neutral model, execute its unchanged Lua with the approved embedded runtime, and render supported controls through one React Native registry. The migration reconstructs observable bridge and control semantics; it does not port legacy native view code or historical implementation structure.
 
-The primary goal is behavioral migration from the existing product, not best-effort rendering of `mts_screen`. Every selected control or runtime slice must examine both the relevant native original under `~/Dev/Plus` to extract candidate behavior, APIs, events, lifecycle, and resource semantics, and the relevant XMF/XMS/Lua under `~/Dev/mts_screen` to establish authored inputs, call patterns, and required combinations. Neither source is sufficient alone.
+The primary goal of this module is behavioral compatibility for the independently designed AllNewMTS product, not replication of Plus business logic or best-effort rendering of `mts_screen`. Plus does not define AllNewMTS application structure, navigation, state, or business flows. Every selected control or runtime slice must still examine both the relevant native original under `~/Dev/Plus` to extract candidate behavior, APIs, events, lifecycle, and resource semantics, and the relevant XMF/XMS/Lua under `~/Dev/mts_screen` to establish authored inputs, call patterns, and required combinations. Neither source is sufficient alone.
 
 The reconciled platform-neutral contract and deterministic evidence select the behavior to implement. Native code is observational input to that specification and must be independently reimplemented in the shared React Native/native-core architecture, never copied, transliterated, or preserved as historical platform structure.
 
@@ -17,6 +17,8 @@ XMS has no runnable fixture or implemented role and returns `UNSUPPORTED_INPUT_R
 The reference projects are `~/Dev/Plus` for the native original and `~/Dev/mts_screen` for the XMS source to parse. MVigsEngine material may be located, opened, and inspected, but cannot be used as implementation or evidence.
 
 ## Architecture boundaries
+
+Capability, lab-application, and product-application ownership is defined by [`development-layers.md`](../architecture/development-layers.md). This contract owns the screen-definition and screen-runtime module semantics only; product business logic belongs above those modules.
 
 The shared parser produces data for one registry-driven React Native renderer. Production code cannot register or branch on a particular screen, control instance, transaction, asset, layout signature, or operating system. Unknown required structure, controls, properties, events, or capability combinations fail before an interactive screen is exposed. Optional presentation fallback exists only when declared by the registry.
 
@@ -54,7 +56,7 @@ Attribute raw bytes are capped at `4,096`. Values use fatal UTF-8 decoding, reje
 | `DATAIO_INFO` child 1 | `TRID_INFO`, paired, exactly 1 | none | none | Owns exactly two self-closing `TRAN`; `tranid` values are unique. |
 | `TRID_INFO` | `TRAN`, self-closing, exactly 2 | `tranid` identifier; `trcode` token; `encryption` decimal `1..3` digits; `useattr` decimal `1..3` digits | none | Preserved metadata; `tranid` is the correlation key. |
 | `DATAIO_INFO` child 2 | `TRIO_INFO`, paired, exactly 1 | none | none | Owns exactly two paired `TRAN`; names are unique and equal the `TRID_INFO.tranid` set. |
-| `TRIO_INFO` | `TRAN`, paired, exactly 2 | `name` identifier; `title` UTF-8 `0..512` bytes; `realdata` decimal10; `dessvr` token capped at 32 bytes; `occurslen` decimal10; `memfieldlen` decimal10 | none | Exactly four blocks: two `in`, two `out`; per direction one omits `occurs` and one has `occurs="1"`; order is data. |
+| `TRIO_INFO` | `TRAN`, paired, exactly 2 | `name` identifier; `title` UTF-8 `0..512` bytes; `realdata` decimal10; `dessvr` token capped at 32 bytes; `occurslen` decimal10; `memfieldlen` decimal10 | none | Exactly four blocks: two `in`, two `out`; per direction one omits `occurs` and one has `occurs="1"`; order is data. A product composition that projects transactions into runtime configuration must map exact `realdata="1"` to its isolated realtime namespace; the current XMF runtime lab intentionally uses only its inert fixture transaction. |
 | `TRIO_INFO/TRAN` | `TRBLOCK`, paired, exactly 4 | `name` identifier; `inout` exact `in\|out`; `_len` decimal10; `_ulen` decimal10 | `occurs`, exact `"1"` | Names unique per transaction; lengths are preserved only; opaque body `1..262,144` bytes. |
 
 There are `1..69` controls, zero or two transactions, zero or eight blocks, at most 8,192 field rows, and at most 64 diagnostics occupying at most 65,536 UTF-8 bytes. `_len` and `_ulen` are bounded preserved metadata, not asserted byte lengths.

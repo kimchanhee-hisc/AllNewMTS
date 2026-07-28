@@ -1,9 +1,9 @@
 # AllNewMTS
 
-AllNewMTS renders externally authored XMF and unchanged Lua through a shared React Native contract.
+AllNewMTS is our product, composed from independently buildable screen-definition, screen-runtime, and networking capabilities. Plus and `mts_screen` are compatibility evidence, not the product architecture or business-logic source.
 
-Start with [`AGENTS.md`](AGENTS.md). It routes product, runtime, testing, ADR, machine-contract, and oracle ownership without duplicating those contracts.
+Start with [`AGENTS.md`](AGENTS.md). It routes development layers, product, runtime, testing, ADR, machine-contract, and oracle ownership without duplicating those contracts.
 
-The project includes the production runtime/UI path and a separate, opt-in native Lua verification harness.
+The current root UI is the XMF runtime lab composition. The AllNewMTS product composition and its business logic are intentionally separate and not implemented yet. The project also includes a separate, opt-in native Lua verification harness.
 
 Run `npm run verify:fast` while editing and `npm run verify:ci` for the complete local verification suite.

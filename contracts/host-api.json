@@ -8,7 +8,7 @@
     {
       "id": "oracle-manifest",
       "path": "test/oracles/manifest.json",
-      "sha256": "c0b43b8055bb7cc25ea18afba35e7ac9e8c804e37dcd8dcabef03ffe1bc81bf8"
+      "sha256": "10a752db1ffdcd7583b2c49696ef537609da4382e26c7e5b646ad92ef1178f78"
     },
     {
       "id": "approved-xmf",
@@ -19,6 +19,11 @@
       "id": "authored-image-scalars",
       "path": "test/oracles/sources/mts_screen/HS2003S10.image-scalars.lua.source",
       "sha256": "86b0cdcfdc8b9aba349482d3eb507e18e391093e0c758ba81fa5a65ab53e57cb"
+    },
+    {
+      "id": "authored-realtime-lua",
+      "path": "test/oracles/sources/mts_screen/HS1100P19.realtime.lua.source",
+      "sha256": "3fe6637eb313eafacee857bde09a6f56eb060bd970725812a654ea6ef0a7a3b6"
     },
     {
       "id": "approved-common-lua",
@@ -645,6 +650,111 @@
       "test": "runtime-nested-send-token"
     },
     {
+      "id": "data-request-real",
+      "kind": "function",
+      "name": "DATAMANAGER.RequestRealData",
+      "decision": "include",
+      "arity": {
+        "min": 1,
+        "max": 1
+      },
+      "parameters": [
+        {
+          "name": "tranId",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        }
+      ],
+      "returns": [
+        {
+          "type": "none",
+          "count": "0"
+        }
+      ],
+      "effects": {
+        "mode": "staged",
+        "rollback": "discard-on-error",
+        "command": "requestRealData",
+        "lifecycle": "none"
+      },
+      "diagnostics": [
+        "HOST_ARGUMENT_ERROR",
+        "HOST_LOOKUP_MISS",
+        "RESOURCE_LIMIT",
+        "REENTRANT_CALL"
+      ],
+      "genericResolution": "declared-realtime-transaction-schema",
+      "evidence": [
+        {
+          "source": "authored-realtime-lua",
+          "locator": "lines 15-18"
+        }
+      ],
+      "rationale": "Run the realtime send-before handler synchronously and stage one logical subscription on outer commit.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "test": "runtime-realtime-lifecycle"
+    },
+    {
+      "id": "data-cancel-real",
+      "kind": "function",
+      "name": "DATAMANAGER.CancelRealData",
+      "decision": "include",
+      "arity": {
+        "min": 1,
+        "max": 1
+      },
+      "parameters": [
+        {
+          "name": "tranId",
+          "type": "string",
+          "required": true,
+          "coercion": "none",
+          "restrictions": [
+            "maxBytes=262144"
+          ]
+        }
+      ],
+      "returns": [
+        {
+          "type": "none",
+          "count": "0"
+        }
+      ],
+      "effects": {
+        "mode": "staged",
+        "rollback": "discard-on-error",
+        "command": "cancelRealData",
+        "lifecycle": "none"
+      },
+      "diagnostics": [
+        "HOST_ARGUMENT_ERROR",
+        "HOST_LOOKUP_MISS",
+        "RESOURCE_LIMIT"
+      ],
+      "genericResolution": "declared-realtime-transaction-schema",
+      "evidence": [
+        {
+          "source": "authored-realtime-lua",
+          "locator": "lines 10-13"
+        }
+      ],
+      "rationale": "Stage an idempotent logical cancellation, including authored cancel-before-request sequences.",
+      "affectedPlatforms": [
+        "ios",
+        "android"
+      ],
+      "resolution": "normalize",
+      "test": "runtime-realtime-lifecycle"
+    },
+    {
       "id": "data-set",
       "kind": "function",
       "name": "DATAMANAGER.SetDataValue",
@@ -660,7 +770,7 @@
           "required": true,
           "coercion": "none",
           "restrictions": [
-            "literal=false"
+            "matches-declared-transaction-realtime"
           ]
         },
         {
@@ -737,6 +847,10 @@
         {
           "source": "golden-up-to",
           "locator": "SetDataValue host calls"
+        },
+        {
+          "source": "authored-realtime-lua",
+          "locator": "line 2"
         }
       ],
       "rationale": "Stage a typed declared field write with no coercion.",
@@ -763,7 +877,7 @@
           "required": true,
           "coercion": "none",
           "restrictions": [
-            "literal=false"
+            "matches-declared-transaction-realtime"
           ]
         },
         {
@@ -837,7 +951,7 @@
           "required": true,
           "coercion": "none",
           "restrictions": [
-            "literal=false"
+            "matches-declared-transaction-realtime"
           ]
         },
         {
@@ -904,6 +1018,10 @@
         {
           "source": "golden-up-to",
           "locator": "GetDataValue host calls"
+        },
+        {
+          "source": "authored-realtime-lua",
+          "locator": "line 6"
         }
       ],
       "rationale": "Read one existing event-visible declared string field.",

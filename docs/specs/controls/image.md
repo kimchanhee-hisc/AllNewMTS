@@ -47,7 +47,7 @@ Missing required, duplicate, or unknown attributes reject structurally. Invalid 
 
 ## Resource resolution
 
-`imgpath`, `defaultimg`, and `imagetarget` are data. `XmfScreen` receives a caller-owned `imageSources` provider map partitioned by target `0..3`; each bucket maps an exact key to a React Native `ImageSourcePropType`. Resolution performs own-property lookup only:
+`imgpath`, `defaultimg`, and `imagetarget` are data. `XmfScreen` requires a caller-owned `imageSources` provider map as an explicit composition dependency; there is no default provider map or implicit resource discovery. The map is partitioned by target `0..3`, and each bucket maps an exact key to a React Native `ImageSourcePropType`. A composition with no requested Image resources supplies an explicit empty map. Resolution performs own-property lookup only:
 
 1. Resolve non-empty `imgpath` in its declared target bucket.
 2. If it is absent and `defaultimg` is non-empty, resolve `defaultimg` in local bucket `0`.
@@ -121,4 +121,4 @@ Nested XMF container ownership, XMS decoding, direct networking, cache and tempo
 
 ## Verification
 
-`npm run verify:ctlimage` proves the complete `HS1100S64` parse-to-descriptor/provider path, parser defaults and limits, executable own-property resource resolution, hidden/blank/fallback/provider cases, multiple Images, descriptor projection, OnClick, immutable model data, warning-only metadata, and negative diagnostics. `npm run verify:runtime` proves authored Image scalar normalization, missing-handler success, Host get/set, rollback, deny-by-default behavior, canonical snapshots, and unchanged iOS/Android adapter output against one independent golden. `npm run verify:fixtures` pins the authored sources and provenance. `npm run verify:docs` proves owner routing and machine-ledger integrity. Editing uses `npm run verify:fast`; complete acceptance uses `npm run verify:ci`.
+`npm run verify:ctlimage` proves the complete `HS1100S64` parse-to-descriptor/provider path, including execution of the production `XmfScreen` and `ControlView` component render functions through the final injected React Native `Image` source. It also proves parser defaults and limits, executable own-property resource resolution, hidden/blank/fallback/provider cases, multiple Images, descriptor projection, OnClick, immutable model data, warning-only metadata, and negative diagnostics. `npm run verify:runtime` proves authored Image scalar normalization, missing-handler success, Host get/set, rollback, deny-by-default behavior, canonical snapshots, and unchanged iOS/Android adapter output against one independent golden. `npm run verify:fixtures` pins the authored sources and provenance. `npm run verify:docs` proves owner routing and machine-ledger integrity. Editing uses `npm run verify:fast`; complete acceptance uses `npm run verify:ci`.

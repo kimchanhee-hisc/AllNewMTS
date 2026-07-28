@@ -19,7 +19,7 @@ export type RuntimeConfig = {
     | { id: string; type: 'Button'; properties: { border: string; dfgcolor: string; enabled: boolean } }
     | { id: string; type: 'Image'; properties: { imgpath: string; imagetarget: number; visible: boolean; enabled: boolean; left: number; top: number; width: number; height: number; autosize: boolean; circle: boolean } }
   )[];
-  transactions: readonly { id: string; blocks: readonly { id: string; fields: readonly string[] }[] }[];
+  transactions: readonly { id: string; realtime?: boolean; blocks: readonly { id: string; fields: readonly string[] }[] }[];
 };
 
 export type RuntimeControlState =
@@ -36,7 +36,7 @@ export type RuntimeSnapshot = {
   state: { controls: Record<string, RuntimeControlState>; data: Record<string, unknown> };
 };
 
-export type RuntimeCommand = Record<string, unknown> & { type: 'closeForm' | 'messageBox' | 'requestTranData' | 'returnToParent' | 'runtimeError' | 'toast' };
+export type RuntimeCommand = Record<string, unknown> & { type: 'cancelRealData' | 'closeForm' | 'messageBox' | 'releaseRealScope' | 'requestRealData' | 'requestTranData' | 'returnToParent' | 'runtimeError' | 'toast' };
 
 export type RuntimeClientState = {
   admissionRevision: string;
@@ -96,8 +96,9 @@ function validRuntimeColor(value: unknown): value is string {
 }
 
 function validData(value: unknown) {
-  return record(value) && keys(value, ['block', 'field', 'index', 'transaction', 'value']) && boundedString(value.block) &&
-    boundedString(value.field) && decimal(value.index) && boundedString(value.transaction) && scalar(value.value) && typeof value.value !== 'boolean';
+  return record(value) && keys(value, ['block', 'field', 'index', 'transaction', 'value'], ['realtime']) && boundedString(value.block) &&
+    boundedString(value.field) && decimal(value.index) && boundedString(value.transaction) && scalar(value.value) && typeof value.value !== 'boolean' &&
+    (value.realtime === undefined || value.realtime === true);
 }
 
 function validCommand(value: unknown): value is RuntimeCommand {
@@ -110,6 +111,13 @@ function validCommand(value: unknown): value is RuntimeCommand {
     case 'requestTranData':
       return keys(value, ['blocks', 'requestToken', 'runtimeId', 'tranId', 'type']) && decimal(value.requestToken, true) && decimal(value.runtimeId, true) && boundedString(value.tranId) && Array.isArray(value.blocks) && value.blocks.every((row) =>
         record(row) && keys(row, ['block', 'index', 'values']) && boundedString(row.block) && decimal(row.index) && record(row.values) && Object.values(row.values).every((item) => typeof item !== 'boolean' && scalar(item)));
+    case 'requestRealData':
+      return keys(value, ['blocks', 'runtimeId', 'tranId', 'type']) && decimal(value.runtimeId, true) && boundedString(value.tranId) && Array.isArray(value.blocks) && value.blocks.every((row) =>
+        record(row) && keys(row, ['block', 'index', 'values']) && boundedString(row.block) && decimal(row.index) && record(row.values) && Object.values(row.values).every((item) => typeof item !== 'boolean' && scalar(item)));
+    case 'cancelRealData':
+      return keys(value, ['runtimeId', 'tranId', 'type']) && decimal(value.runtimeId, true) && boundedString(value.tranId);
+    case 'releaseRealScope':
+      return keys(value, ['runtimeId', 'type']) && decimal(value.runtimeId, true);
     case 'returnToParent':
       return keys(value, ['name', 'payload', 'type']) && boundedString(value.name) && boundedString(value.payload);
     case 'runtimeError':
@@ -136,7 +144,9 @@ function validEnvelopeShape(value: RecordValue, snapshot: RecordValue, commands:
   }
   if (snapshot.status !== 'error' || next !== 'INVALID' || diagnostics.length !== 1 || !record(diagnostics[0]) || diagnostics[0].source !== 'supervisor') return false;
   if (snapshot.lifecycle === 'OPEN') return commands.length === 1 && commands[0].type === 'runtimeError';
-  return snapshot.lifecycle === 'CLOSING' && snapshot.event === 'Form_OnFormClose' && commands.length === 2 && commands[0].type === 'runtimeError' && commands[1].type === 'closeForm';
+  return snapshot.lifecycle === 'CLOSING' && snapshot.event === 'Form_OnFormClose' && commands[0]?.type === 'runtimeError' &&
+    commands[commands.length - 1]?.type === 'closeForm' &&
+    (commands.length === 2 || (commands.length === 3 && commands[1].type === 'releaseRealScope'));
 }
 
 function parseResult(canonicalJSON: string, expectedRuntimeId: string, expectedRevision: string, controls: Record<string, RuntimeControlState>) {

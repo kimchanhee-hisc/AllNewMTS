@@ -376,6 +376,11 @@
       "sha256": "a27cc5b30ed20495dbffdead8222dc8450278e248c217e5ed1be6258ca468fe0"
     },
     {
+      "logicalPath": "fixtures/realtime-runtime.lua",
+      "path": "native/resources/realtime-runtime.lua",
+      "sha256": "6b7849b27dae6ba549c2d9c3f2c49be22b431e6df9b602937a5997fd3017e6e5"
+    },
+    {
       "logicalPath": "fixtures/runtime-conformance.lua",
       "path": "native/resources/runtime-conformance.lua",
       "sha256": "1e3b642aeda6de9ddbd309df8ac22ee4f3dcce78a8d166caa4e5774f39f82e09"
@@ -528,13 +533,13 @@
     },
     {
       "path": "modules/allnewmts-lua/shared/allnewmts_mci.cpp",
-      "bytes": 45582,
-      "sha256": "1bbf33dc31dc077feb059fc37d89905e6553acb570328300330146b47d72d13b"
+      "bytes": 62212,
+      "sha256": "170321d0567efcebcca27ec3c6361879c8d72553caf81a9f35feaa46db66dfc9"
     },
     {
       "path": "modules/allnewmts-lua/shared/allnewmts_mci.h",
-      "bytes": 7860,
-      "sha256": "849a52a03f22662b616ca9205dd427861e70ce25b352506c9d0417cc34102a74"
+      "bytes": 10719,
+      "sha256": "5edf1443d4fb3c7a21121ce1051dc0c8ad384d0233fd64995e38d88a91898afc"
     },
     {
       "path": "modules/allnewmts-lua/shared/allnewmts_mci_socket.cpp",
@@ -568,8 +573,8 @@
     },
     {
       "path": "modules/allnewmts-lua/shared/allnewmts_runtime.cpp",
-      "bytes": 85078,
-      "sha256": "054d34733382e3b8afedda983ac35739a4c563f8b5cf7be7108786c657b99c1e"
+      "bytes": 93433,
+      "sha256": "cd34e045bc38357faa5b6e20926552ce004ba7664c36397f95361864570c2663"
     },
     {
       "path": "modules/allnewmts-lua/shared/allnewmts_runtime.h",
@@ -588,18 +593,18 @@
     },
     {
       "path": "modules/allnewmts-lua/shared/allnewmts_runtime_lua.c",
-      "bytes": 18200,
-      "sha256": "74716823558b8958d07058269f747ee85d6e1bf51784f7f7eda1bacaf5246af3"
+      "bytes": 19563,
+      "sha256": "b578b83e5cf40dc252c887f2774be84f80246165b44fee366eab397d8891c510"
     },
     {
       "path": "modules/allnewmts-lua/shared/allnewmts_runtime_lua.h",
-      "bytes": 3771,
-      "sha256": "762ff8474a39202b3b5109f9d834ed9528c68badfb4179df7efc06d7424015cb"
+      "bytes": 4137,
+      "sha256": "d87a7a0f1d50b11331ec974ba3abd55d4af57aa4bb46c240a2b06f0c764fb996"
     },
     {
       "path": "modules/allnewmts-lua/shared/resource_bundle.c",
-      "bytes": 33030,
-      "sha256": "4dc2fc5caad95166298a1c8cfff13a789e0ce74315e628422746f7c551c4028d"
+      "bytes": 38477,
+      "sha256": "27f9d1655cff5bd71e0e5d07553e2cca704f5d80bed0938f52ff71099876747c"
     },
     {
       "path": "modules/allnewmts-lua/shared/resource_bundle.h",
@@ -662,6 +667,11 @@
       "sha256": "13cdb27d52ce245e9121a7d958c11bc527265303cc852df3aaef499074d10500"
     },
     {
+      "path": "native/resources/realtime-runtime.lua",
+      "bytes": 1034,
+      "sha256": "6b7849b27dae6ba549c2d9c3f2c49be22b431e6df9b602937a5997fd3017e6e5"
+    },
+    {
       "path": "native/resources/runtime-conformance.lua",
       "bytes": 5272,
       "sha256": "1e3b642aeda6de9ddbd309df8ac22ee4f3dcce78a8d166caa4e5774f39f82e09"
@@ -697,14 +707,19 @@
       "sha256": "a43b25c3684c788266c0c769b94bd7d096528dc0324b93eb003c9dc72b377ff8"
     },
     {
+      "path": "native/test/mci_beta_realtime_probe.cpp",
+      "bytes": 1984,
+      "sha256": "75c6b3fe18114108774bd37c9992bc600766a91bb94d0cba7499abf2f717b06b"
+    },
+    {
       "path": "native/test/mci_beta_tr_probe.cpp",
       "bytes": 1865,
       "sha256": "252de490736e4c2e177f16396bf07f945ccd2362a35d46de301f6cd8462ce2a6"
     },
     {
       "path": "native/test/mci_transport_test.cpp",
-      "bytes": 42555,
-      "sha256": "efbf88082d0cbbbc37997a6ea6c662af182ff93ccea999b3b5cff7d623ad7dbc"
+      "bytes": 51867,
+      "sha256": "77329acf9a2aa7cdca6b73f301ff26280daa7002dc524851f85d7e5a09eb03ff"
     },
     {
       "path": "native/test/product_config_test.cpp",
@@ -743,8 +758,8 @@
     },
     {
       "path": "native/test/runtime_conformance_test.cpp",
-      "bytes": 33934,
-      "sha256": "e4a90e6552a30afa3930eea53232e0e8d3f647ca85cbc707f9456148219f1b78"
+      "bytes": 37401,
+      "sha256": "9c8bcb68e7e6dab6968f9faeb0e5254669fe206030fffdba7861b531437f60b3"
     },
     {
       "path": "native/test/runtime_expo_kotlin_harness_stubs.kt",

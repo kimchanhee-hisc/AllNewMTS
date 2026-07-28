@@ -128,7 +128,7 @@
     },
     "publicApis": {
       "type": "array",
-      "minItems": 34,
+      "minItems": 36,
       "items": {
         "$ref": "#/$defs/api"
       }
@@ -290,7 +290,9 @@
           "enum": [
             "none",
             "close-request",
+            "cancelRealData",
             "messageBox",
+            "requestRealData",
             "requestTranData",
             "returnToParent",
             "toast"
@@ -391,6 +393,7 @@
         "genericResolution": {
           "enum": [
             "control-type-registry",
+            "declared-realtime-transaction-schema",
             "declared-transaction-schema",
             "manifest-resource",
             "provider-map",

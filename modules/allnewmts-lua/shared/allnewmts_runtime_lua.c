@@ -114,6 +114,37 @@ static int host_request(lua_State *state) {
   return 0;
 }
 
+static int host_request_realtime(lua_State *state) {
+  const char *transaction = NULL;
+  size_t transaction_size = 0;
+  int status = allnewmts_runtime_lua_prepare_realtime_request(
+      allnewmts_lua_runtime(state), state, &transaction, &transaction_size);
+  if (status != ALLNEWMTS_LUA_OK) return fail(state, status);
+  lua_getglobal(state, "DATAMANAGER_OnSendRealBefore");
+  if (!lua_isfunction(state, -1)) {
+    lua_pop(state, 1);
+    status = ALLNEWMTS_LUA_LOOKUP;
+  } else {
+    lua_pushvalue(state, 1);
+    status = lua_pcall(state, 1, 0, 0) == 0 ? ALLNEWMTS_LUA_OK
+                                            : ALLNEWMTS_LUA_RAISE;
+  }
+  status = allnewmts_runtime_lua_finish_realtime_request(
+      allnewmts_lua_runtime(state), transaction, transaction_size, status);
+  if (status == ALLNEWMTS_LUA_RAISE) return lua_error(state);
+  if (status != ALLNEWMTS_LUA_OK) return fail(state, status);
+  lua_settop(state, 0);
+  return 0;
+}
+
+static int host_cancel_realtime(lua_State *state) {
+  int status = allnewmts_runtime_lua_cancel_realtime(
+      allnewmts_lua_runtime(state), state);
+  if (status != ALLNEWMTS_LUA_OK) return fail(state, status);
+  lua_settop(state, 0);
+  return 0;
+}
+
 static int control_set_radius(lua_State *state);
 
 static int control_call(lua_State *state, int operation) {
@@ -171,7 +202,8 @@ static int install_frame(lua_State *state) {
       "GetOpenLinkData", "GetSharedData", "GetItemCodeInfo", "MsgBoxEx",
       "Toast", "SendReturnToParent", "CloseForm"};
   static const char *const datamanager_members[] = {
-      "RequestTranData", "SetDataValue", "GetDataCount", "GetDataValue"};
+      "RequestTranData", "RequestRealData", "CancelRealData", "SetDataValue",
+      "GetDataCount", "GetDataValue"};
   size_t index, count;
   lua_pushlightuserdata(state, &runtime_key);
   lua_pushlightuserdata(state, runtime);
@@ -209,6 +241,8 @@ static int install_frame(lua_State *state) {
 
   lua_newtable(state);
   set_function(state, "RequestTranData", host_request);
+  set_function(state, "RequestRealData", host_request_realtime);
+  set_function(state, "CancelRealData", host_cancel_realtime);
   set_function(state, "SetDataValue", host_set_data);
   set_function(state, "GetDataCount", host_get_count);
   set_function(state, "GetDataValue", host_get_value);

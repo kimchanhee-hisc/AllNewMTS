@@ -247,6 +247,9 @@
         "index": {
           "$ref": "#/$defs/zeroDecimal"
         },
+        "realtime": {
+          "const": true
+        },
         "transaction": {
           "$ref": "#/$defs/boundedString"
         },
@@ -265,6 +268,15 @@
         },
         {
           "$ref": "#/$defs/requestTranDataCommand"
+        },
+        {
+          "$ref": "#/$defs/requestRealDataCommand"
+        },
+        {
+          "$ref": "#/$defs/cancelRealDataCommand"
+        },
+        {
+          "$ref": "#/$defs/releaseRealScopeCommand"
         },
         {
           "$ref": "#/$defs/returnToParentCommand"
@@ -345,6 +357,69 @@
         },
         "type": {
           "const": "requestTranData"
+        }
+      }
+    },
+    "requestRealDataCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blocks",
+        "runtimeId",
+        "tranId",
+        "type"
+      ],
+      "properties": {
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/requestRow"
+          }
+        },
+        "runtimeId": {
+          "$ref": "#/$defs/decimalId"
+        },
+        "tranId": {
+          "$ref": "#/$defs/boundedString"
+        },
+        "type": {
+          "const": "requestRealData"
+        }
+      }
+    },
+    "cancelRealDataCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtimeId",
+        "tranId",
+        "type"
+      ],
+      "properties": {
+        "runtimeId": {
+          "$ref": "#/$defs/decimalId"
+        },
+        "tranId": {
+          "$ref": "#/$defs/boundedString"
+        },
+        "type": {
+          "const": "cancelRealData"
+        }
+      }
+    },
+    "releaseRealScopeCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtimeId",
+        "type"
+      ],
+      "properties": {
+        "runtimeId": {
+          "$ref": "#/$defs/decimalId"
+        },
+        "type": {
+          "const": "releaseRealScope"
         }
       }
     },
@@ -525,6 +600,15 @@
         },
         {
           "$ref": "#/$defs/requestTranDataCommand"
+        },
+        {
+          "$ref": "#/$defs/requestRealDataCommand"
+        },
+        {
+          "$ref": "#/$defs/cancelRealDataCommand"
+        },
+        {
+          "$ref": "#/$defs/releaseRealScopeCommand"
         },
         {
           "$ref": "#/$defs/returnToParentCommand"
@@ -727,18 +811,39 @@
       ],
       "properties": {
         "commands": {
-          "type": "array",
-          "minItems": 2,
-          "maxItems": 2,
-          "prefixItems": [
+          "oneOf": [
             {
-              "$ref": "#/$defs/runtimeErrorCommand"
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "prefixItems": [
+                {
+                  "$ref": "#/$defs/runtimeErrorCommand"
+                },
+                {
+                  "$ref": "#/$defs/closeFormCommand"
+                }
+              ],
+              "items": false
             },
             {
-              "$ref": "#/$defs/closeFormCommand"
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "prefixItems": [
+                {
+                  "$ref": "#/$defs/runtimeErrorCommand"
+                },
+                {
+                  "$ref": "#/$defs/releaseRealScopeCommand"
+                },
+                {
+                  "$ref": "#/$defs/closeFormCommand"
+                }
+              ],
+              "items": false
             }
-          ],
-          "items": false
+          ]
         },
         "diagnostics": {
           "type": "array",

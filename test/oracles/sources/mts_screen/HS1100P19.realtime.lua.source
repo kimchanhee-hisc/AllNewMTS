@@ -1,0 +1,19 @@
+function DATAMANAGER_OnSendRealBefore(szTranID)
+	DATAMANAGER.SetDataValue( true, szTranID , "InBlock1" , "CODE" , 0 , g_tData["JomokCd"] )
+end
+
+function DATAMANAGER_OnReceiveRealComplete(szTranID)
+    local szBuyRest = DATAMANAGER.GetDataValue(true, szTranID, "OutBlock1", "TOTAL_BIDP_RSQN")
+end
+
+function f_RequestRealData()
+    DATAMANAGER.CancelRealData("S03")
+    DATAMANAGER.CancelRealData("S00")
+    DATAMANAGER.CancelRealData("X00")
+    DATAMANAGER.CancelRealData("X50")
+    
+	DATAMANAGER.RequestRealData("S03")
+    DATAMANAGER.RequestRealData("S00")
+    DATAMANAGER.RequestRealData("X00")
+    DATAMANAGER.RequestRealData("X50")
+end

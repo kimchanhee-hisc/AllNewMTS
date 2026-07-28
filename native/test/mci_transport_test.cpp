@@ -143,6 +143,58 @@ std::vector<uint8_t> ccsResponse(const char transaction_id[9],
   return frame;
 }
 
+std::vector<uint8_t> realtimePushBytes(const char *service, const char *key,
+                                       const uint8_t *payload,
+                                       size_t payload_size) {
+  std::vector<uint8_t> frame(
+      ALLNEWMTS_MCI_REALTIME_HEADER_SIZE + 3 +
+          ALLNEWMTS_MCI_REALTIME_KEY_SIZE + 4 + 2 + payload_size,
+      ' ');
+  decimal8(frame.data(), frame.size() - 8);
+  frame[8] = 'P';
+  frame[9] = '0';
+  frame[10] = '0';
+  field(frame, 11, 2, "01");
+  field(frame, ALLNEWMTS_MCI_REALTIME_HEADER_SIZE, 3, service);
+  field(frame, ALLNEWMTS_MCI_REALTIME_HEADER_SIZE + 3,
+        ALLNEWMTS_MCI_REALTIME_KEY_SIZE, key);
+  char item_size[5];
+  std::snprintf(item_size, sizeof(item_size), "%04zu", payload_size);
+  field(frame, ALLNEWMTS_MCI_REALTIME_HEADER_SIZE + 3 +
+                   ALLNEWMTS_MCI_REALTIME_KEY_SIZE,
+        4, item_size);
+  field(frame, ALLNEWMTS_MCI_REALTIME_HEADER_SIZE + 3 +
+                   ALLNEWMTS_MCI_REALTIME_KEY_SIZE + 4,
+        2, "01");
+  std::memcpy(frame.data() + ALLNEWMTS_MCI_REALTIME_HEADER_SIZE + 3 +
+                  ALLNEWMTS_MCI_REALTIME_KEY_SIZE + 4 + 2,
+              payload, payload_size);
+  return frame;
+}
+
+std::vector<uint8_t> realtimePush(const char *service, const char *key,
+                                  const char *payload) {
+  return realtimePushBytes(service, key,
+                           reinterpret_cast<const uint8_t *>(payload),
+                           std::strlen(payload));
+}
+
+std::vector<uint8_t> s00Push(uint32_t price, size_t record_size = 158) {
+  std::vector<uint8_t> payload(record_size, ' ');
+  if (record_size >= 22) {
+    std::memcpy(payload.data(), "A005930", 7);
+    std::memcpy(payload.data() + 9, "134501", 6);
+    payload[15] = '0';
+    payload[16] = '0';
+    payload[17] = static_cast<uint8_t>(price);
+    payload[18] = static_cast<uint8_t>(price >> 8);
+    payload[19] = static_cast<uint8_t>(price >> 16);
+    payload[20] = static_cast<uint8_t>(price >> 24);
+    payload[21] = '-';
+  }
+  return realtimePushBytes("S00", "005930", payload.data(), payload.size());
+}
+
 struct Fake {
   std::string expected_host = "mci-beta.example.invalid";
   uint16_t expected_port = 1234;
@@ -346,6 +398,117 @@ int main(int argc, char **argv) {
   assert(allnewmts_mci_parse_init_response(response.data(), response.size(),
                                            &parsed) ==
          ALLNEWMTS_MCI_INIT_INVALID);
+
+  {
+    const uint8_t samsung[] = {'0', '0', '5', '9', '3', '0'};
+    const AllNewMTSMciRealtimeKey keys[] = {
+        {samsung, sizeof(samsung)}};
+    std::array<uint8_t, ALLNEWMTS_MCI_MAX_FRAME_SIZE> realtime{};
+    size_t realtime_size = 0;
+    assert(allnewmts_mci_build_realtime_request(
+               "CC320", &parsed, "0000000001", '0', '0', "NEWMTS",
+               parsed.selected_private_ip, "S00", keys, 1, realtime.data(),
+               realtime.size(), &realtime_size) == ALLNEWMTS_MCI_OK);
+    assert(realtime_size ==
+           ALLNEWMTS_MCI_REQUEST_HEADER_SIZE +
+               ALLNEWMTS_MCI_REALTIME_BODY_HEADER_SIZE + sizeof(samsung) + 1);
+    assert(std::string(reinterpret_cast<char *>(realtime.data()), 13) ==
+           "00000355" "000S0");
+    assert(realtime[8] == '0' &&
+           std::string(reinterpret_cast<char *>(realtime.data() + 89), 8) ==
+               "S00     ");
+    const uint8_t expected_body[] = {
+        '0', '0', '0', '1', '0', 'S', '0', '0', ' ', ' ', ' ', ' ', ' ',
+        ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '0',
+        '0', '0', '1', '0', '0', '0', '0', '0', '7', '0', '0', '5', '9',
+        '3', '0', 0};
+    assert(std::equal(
+        realtime.begin() + ALLNEWMTS_MCI_REQUEST_HEADER_SIZE,
+        realtime.begin() + realtime_size, std::begin(expected_body),
+        std::end(expected_body)));
+    assert(allnewmts_mci_build_realtime_request(
+               "CC320", &parsed, "0000000002", '1', '0', "NEWMTS",
+               parsed.selected_private_ip, "S00", keys, 1, realtime.data(),
+               realtime.size(), &realtime_size) == ALLNEWMTS_MCI_OK);
+    assert(realtime[8] == '1');
+
+    std::vector<uint8_t> push =
+        realtimePush("S00", "005930", "0059300000715000");
+    AllNewMTSMciRealtimePush parsed_push{};
+    size_t push_count = 0;
+    assert(allnewmts_mci_parse_realtime_push(
+               push.data(), push.size(), &parsed_push, 1, &push_count) ==
+           ALLNEWMTS_MCI_OK);
+    assert(push_count == 1 && std::strcmp(parsed_push.service, "S00") == 0 &&
+           std::strcmp(parsed_push.key, "005930") == 0 &&
+           parsed_push.item_size == 16 && parsed_push.item_count == 1 &&
+           std::string(reinterpret_cast<char *>(
+                           push.data() + parsed_push.payload_offset),
+                       parsed_push.item_size) == "0059300000715000");
+    push[9] = '2';
+    assert(allnewmts_mci_parse_realtime_push(
+               push.data(), push.size(), &parsed_push, 1, &push_count) ==
+           ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID);
+    push = realtimePush("S00", "005930", "0059300000715000");
+    push.pop_back();
+    assert(allnewmts_mci_parse_realtime_push(
+               push.data(), push.size(), &parsed_push, 1, &push_count) ==
+           ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID);
+
+    AllNewMTSMciRealtimeRegistry *registry = nullptr;
+    assert(allnewmts_mci_realtime_registry_create(&registry) ==
+           ALLNEWMTS_MCI_OK);
+    AllNewMTSMciRealtimeAction action{};
+    assert(allnewmts_mci_realtime_acquire(
+               registry, 10, "S00", samsung, sizeof(samsung), &action) ==
+           ALLNEWMTS_MCI_OK);
+    assert(action.transaction_type == '0');
+    assert(allnewmts_mci_realtime_acquire(
+               registry, 10, "S00", samsung, sizeof(samsung), &action) ==
+           ALLNEWMTS_MCI_OK);
+    assert(action.transaction_type == 0);
+    assert(allnewmts_mci_realtime_acquire(
+               registry, 20, "S00", samsung, sizeof(samsung), &action) ==
+           ALLNEWMTS_MCI_OK);
+    assert(action.transaction_type == 0);
+    uint64_t scopes[2]{};
+    size_t scope_count = 0;
+    assert(allnewmts_mci_realtime_match(
+               registry, "S00", samsung, sizeof(samsung), scopes, 2,
+               &scope_count) == ALLNEWMTS_MCI_OK);
+    assert(scope_count == 2 && scopes[0] == 10 && scopes[1] == 20);
+    assert(allnewmts_mci_realtime_release(
+               registry, 10, "S00", samsung, sizeof(samsung), &action) ==
+           ALLNEWMTS_MCI_OK);
+    assert(action.transaction_type == 0);
+    assert(allnewmts_mci_realtime_release(
+               registry, 20, "S00", samsung, sizeof(samsung), &action) ==
+           ALLNEWMTS_MCI_OK);
+    assert(action.transaction_type == '1');
+
+    const uint8_t hynix[] = {'0', '0', '0', '6', '6', '0'};
+    assert(allnewmts_mci_realtime_acquire(
+               registry, 30, "S00", samsung, sizeof(samsung), &action) ==
+           ALLNEWMTS_MCI_OK);
+    assert(allnewmts_mci_realtime_acquire(
+               registry, 30, "S00", hynix, sizeof(hynix), &action) ==
+           ALLNEWMTS_MCI_OK);
+    AllNewMTSMciRealtimeAction actions[2]{};
+    size_t action_count = 0;
+    assert(allnewmts_mci_realtime_replay(
+               registry, actions, 2, &action_count) == ALLNEWMTS_MCI_OK);
+    assert(action_count == 2 && actions[0].transaction_type == '0' &&
+           actions[1].transaction_type == '0');
+    assert(allnewmts_mci_realtime_release_scope(
+               registry, 30, actions, 2, &action_count) ==
+           ALLNEWMTS_MCI_OK);
+    assert(action_count == 2 && actions[0].transaction_type == '1' &&
+           actions[1].transaction_type == '1');
+    assert(allnewmts_mci_realtime_match(
+               registry, "S00", samsung, sizeof(samsung), scopes, 2,
+               &scope_count) == ALLNEWMTS_MCI_REALTIME_NOT_FOUND);
+    allnewmts_mci_realtime_registry_destroy(registry);
+  }
 
   const uint8_t market_value[] = {'O', 'V'};
   const uint8_t instrument_value[] = {'F', 'X', '@', 'K', 'R', 'W'};
@@ -876,6 +1039,44 @@ int main(int argc, char **argv) {
   allnewmts_mci_destroy(client);
   assert(quote.close_count == 1);
 
+  Fake realtime_probe;
+  realtime_probe.reads = {initResponse(), s00Push(71500)};
+  client = nullptr;
+  assert(allnewmts_mci_create("CC320", &callbacks, &realtime_probe, &client) ==
+         ALLNEWMTS_MCI_OK);
+  assert(allnewmts_mci_test_set_beta_hashes(client, file_hash,
+                                            endpoint_hash) ==
+         ALLNEWMTS_MCI_OK);
+  AllNewMTSMciRealtimeQuote realtime_quote{};
+  assert(allnewmts_mci_probe_beta_s00_005930(
+             client, reinterpret_cast<const uint8_t *>(ip_dat.data()),
+             ip_dat.size(), &realtime_quote) == ALLNEWMTS_MCI_OK);
+  assert(realtime_probe.open_count == 1 && realtime_probe.close_count == 1 &&
+         realtime_probe.authenticate_count == 0 &&
+         realtime_probe.writes.size() == 3);
+  assert(realtime_probe.writes[1][8] == '0' &&
+         realtime_probe.writes[2][8] == '1' &&
+         realtime_quote.current_price == 71500 &&
+         std::strcmp(realtime_quote.trade_time, "134501") == 0);
+  allnewmts_mci_destroy(client);
+  assert(realtime_probe.close_count == 1);
+
+  Fake legacy_realtime_probe;
+  legacy_realtime_probe.reads = {initResponse(), s00Push(71500, 118)};
+  client = nullptr;
+  assert(allnewmts_mci_create("CC320", &callbacks, &legacy_realtime_probe,
+                              &client) == ALLNEWMTS_MCI_OK);
+  assert(allnewmts_mci_test_set_beta_hashes(client, file_hash,
+                                            endpoint_hash) ==
+         ALLNEWMTS_MCI_OK);
+  assert(allnewmts_mci_probe_beta_s00_005930(
+             client, reinterpret_cast<const uint8_t *>(ip_dat.data()),
+             ip_dat.size(), &realtime_quote) ==
+         ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID);
+  assert(legacy_realtime_probe.writes.size() == 3 &&
+         legacy_realtime_probe.writes[2][8] == '1');
+  allnewmts_mci_destroy(client);
+
   Fake denied;
   denied.authenticate_ok = false;
   denied.reads = fragmentedReads();
@@ -957,5 +1158,5 @@ int main(int argc, char **argv) {
   ::close(listener);
 
   std::cout << "PASS MCI beta preflight, init/X/normal framing, SFID "
-               "decoding, polling, auth gate, retry, and loopback TCP\n";
+               "decoding, realtime, polling, auth gate, retry, and loopback TCP\n";
 }

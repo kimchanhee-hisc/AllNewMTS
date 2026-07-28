@@ -338,14 +338,21 @@ function run(file, args, options = {}) {
 function compileTypeScript() {
   run('node_modules/.bin/tsc', [
     '--ignoreConfig', '--module', 'commonjs', '--moduleResolution', 'node', '--target', 'es2022',
-    '--resolveJsonModule', '--esModuleInterop', '--skipLibCheck', '--noCheck', '--ignoreDeprecations', '6.0',
-    '--outDir', temp, '--rootDir', '.', 'src/xmf.ts', 'src/runtime-client.ts', 'src/controls/image.ts'
+    '--jsx', 'react-jsx', '--resolveJsonModule', '--esModuleInterop', '--skipLibCheck', '--noCheck', '--ignoreDeprecations', '6.0',
+    '--outDir', temp, '--rootDir', '.', 'src/xmf.ts', 'src/runtime-client.ts', 'src/controls/image.ts',
+    'src/controls/ControlView.tsx', 'src/XmfScreen.tsx'
   ]);
   const require = createRequire(import.meta.url);
+  const runtimeModules = path.join(temp, 'node_modules');
+  fs.mkdirSync(path.join(runtimeModules, 'react'), { recursive: true });
+  fs.writeFileSync(path.join(runtimeModules, 'react', 'jsx-runtime.js'), `module.exports = require(${JSON.stringify(require.resolve('react/jsx-runtime'))});\n`);
+  fs.mkdirSync(path.join(runtimeModules, 'react-native'), { recursive: true });
+  fs.writeFileSync(path.join(runtimeModules, 'react-native', 'index.js'), "module.exports = { Image: 'Image', Pressable: 'Pressable', Text: 'Text', TextInput: 'TextInput', View: 'View' };\n");
   return {
     xmf: require(path.join(temp, 'src/xmf.js')),
     runtimeClient: require(path.join(temp, 'src/runtime-client.js')),
-    image: require(path.join(temp, 'src/controls/image.js'))
+    image: require(path.join(temp, 'src/controls/image.js')),
+    screen: require(path.join(temp, 'src/XmfScreen.js'))
   };
 }
 
@@ -752,10 +759,31 @@ function ctlImage() {
   }, {
     text: 'NXT 미거래 종목이에요.', foregroundColor: 'rgb(111,111,111)', style: { left: 131, top: 38, width: 180, height: 20 }
   });
-  const injectedSource = Object.freeze({ testAsset: true });
-  assert.equal(modules.image.resolveImageSource(acceptedImage.imageResource, acceptedImage.imageTarget, acceptedImage.defaultImageResource, {
+  const injectedSource = Object.freeze({
+    uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='
+  });
+  const imageSources = Object.freeze({
     0: { ic_emo_24_06: injectedSource }
-  }), injectedSource);
+  });
+  const renderedScreen = modules.screen.XmfScreen({
+    model: acceptedScreen,
+    runtimeControls: {},
+    imageSources,
+    onControlEvent: () => undefined
+  });
+  assert.equal(renderedScreen.type, 'View');
+  const imageControlElement = renderedScreen.props.children.find(({ props }) => props.descriptor.component === 'Image');
+  assert.ok(imageControlElement);
+  const renderedImageControl = imageControlElement.type(imageControlElement.props);
+  assert.equal(renderedImageControl.type, 'Pressable');
+  assert.deepEqual(renderedImageControl.props.style, { position: 'absolute', left: 99, top: 36, width: 24, height: 24 });
+  assert.equal(renderedImageControl.props.accessibilityRole, 'button');
+  assert.equal(renderedImageControl.props.accessibilityLabel, 'imgNoData');
+  const renderedBitmap = renderedImageControl.props.children.props.children;
+  assert.equal(renderedBitmap.type, 'Image');
+  assert.equal(renderedBitmap.props.source, injectedSource);
+  assert.equal(renderedBitmap.props.resizeMode, 'contain');
+  assert.equal(renderedBitmap.props.accessible, false);
   const withoutControls = mutate(mutate(
     imageScreen,
     '\t\t<IMAGE name="imgNoData" tmpdnfiledel="5505102" imgpath="ic_emo_24_06" ly_vert="99,36,24,24,1" />\r\n',
@@ -860,6 +888,8 @@ function ctlImage() {
   const screen = read('src/XmfScreen.tsx', 'utf8');
   const renderer = read('src/controls/ControlView.tsx', 'utf8');
   assert.match(screen, /<ControlView /);
+  assert.match(screen, /imageSources: ControlImageSources/);
+  assert.doesNotMatch(screen, /imageSources\?|imageSources\s*=\s*\{\}/);
   assert.match(renderer, /ImageSourcePropType/);
   const inherited = Object.create({ stolen: 'prototype-value' });
   inherited.local = 'local-value';

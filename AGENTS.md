@@ -2,6 +2,7 @@
 
 Read the canonical owner before changing its contract:
 
+- Development layers and executable targets: [`docs/architecture/development-layers.md`](docs/architecture/development-layers.md)
 - Product and XMF scope: [`docs/specs/xmf-lua-runtime.md`](docs/specs/xmf-lua-runtime.md)
 - Image control semantics: [`docs/specs/controls/image.md`](docs/specs/controls/image.md)
 - Host/runtime semantics: [`docs/specs/runtime-contract.md`](docs/specs/runtime-contract.md)
@@ -14,7 +15,7 @@ Read the canonical owner before changing its contract:
 
 ## Migration objective
 
-The primary objective is to extract observable product semantics from the allowed existing native implementation and authored screen/Lua usage, specify them explicitly, and independently migrate them to the shared React Native runtime. This is not a best-effort exercise in making `mts_screen` render.
+The primary objective is to build the independently designed AllNewMTS product from reusable capability modules. Plus and `mts_screen` are read-only evidence for selected compatibility semantics, not a product, business-flow, navigation, state-model, or application-structure blueprint. Observable semantics from the allowed existing native implementation and authored screen/Lua usage must be specified explicitly and independently migrated to the shared React Native runtime. This is not a best-effort exercise in making `mts_screen` render.
 
 Every control or runtime slice must inspect both:
 

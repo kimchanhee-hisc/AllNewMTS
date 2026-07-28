@@ -39,10 +39,10 @@ phase('contract-ledger', () => {
     snapshot: { runtimeId: '1', revision: '1', status: 'ok', event: 'Noop', lifecycle: 'OPEN', state: { controls: {}, data: {} } },
     commands: [], diagnostics: []
   }, 'runtime result sample');
-  assert.equal(host.inventoryStatus, 'active'); assert.equal(host.publicApis.length, 34);
+  assert.equal(host.inventoryStatus, 'active'); assert.equal(host.publicApis.length, 36);
   assert.deepEqual(host.publicApis.map(({ name }) => name), [
     'Form.GetOpenLinkData','Form.GetSharedData','Form.GetItemCodeInfo','Form.MsgBoxEx','Form.Toast','Form.SendReturnToParent','Form.CloseForm',
-    'DATAMANAGER.RequestTranData','DATAMANAGER.SetDataValue','DATAMANAGER.GetDataCount','DATAMANAGER.GetDataValue','Trim','dofile','Edit.caption','Button.border','Button.dfgcolor','Button.enable','Button.SetRadius',
+    'DATAMANAGER.RequestTranData','DATAMANAGER.RequestRealData','DATAMANAGER.CancelRealData','DATAMANAGER.SetDataValue','DATAMANAGER.GetDataCount','DATAMANAGER.GetDataValue','Trim','dofile','Edit.caption','Button.border','Button.dfgcolor','Button.enable','Button.SetRadius',
     'Image.imgpath','Image.imgpath','Image.visible','Image.visible','Image.left','Image.left','Image.top','Image.top','Image.width','Image.width','Image.height','Image.height',
     'Image.imagetarget','Image.enable','Image.autosize','Image.circle'
   ]);
