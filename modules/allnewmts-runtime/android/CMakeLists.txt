@@ -1,17 +1,9 @@
 cmake_minimum_required(VERSION 3.22.1)
-project(allnewmts_lua C CXX)
+project(allnewmts_runtime C CXX)
 
 set(LUA_ROOT "${CMAKE_CURRENT_LIST_DIR}/../vendor/lua-5.1.5/src")
 set(SHARED_ROOT "${CMAKE_CURRENT_LIST_DIR}/../shared")
-set(PRODUCT_CONFIG "${CMAKE_CURRENT_LIST_DIR}/../../../config/product-config.json")
-file(READ "${PRODUCT_CONFIG}" PRODUCT_CONFIG_JSON)
-string(JSON PRODUCT_ENVIRONMENT GET "${PRODUCT_CONFIG_JSON}" environment)
-string(JSON ANDROID_MCI_CHANNEL_DETAIL GET
-  "${PRODUCT_CONFIG_JSON}" platforms android mciChannelDetail)
-if(NOT PRODUCT_ENVIRONMENT STREQUAL "beta" OR
-   NOT ANDROID_MCI_CHANNEL_DETAIL MATCHES "^CC[0-9][0-9][0-9]$")
-  message(FATAL_ERROR "invalid Android product config")
-endif()
+set(COMMON_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../../native/common")
 set(LUA_SOURCES
   ${LUA_ROOT}/lapi.c
   ${LUA_ROOT}/lauxlib.c
@@ -46,15 +38,11 @@ target_include_directories(allnewmts_lua51 PUBLIC ${LUA_ROOT})
 target_compile_options(allnewmts_lua51 PRIVATE -U_FORTIFY_SOURCE)
 
 add_library(allnewmts_lua SHARED
-  ${SHARED_ROOT}/allnewmts_mci.cpp
-  ${SHARED_ROOT}/allnewmts_mci_socket.cpp
-  ${SHARED_ROOT}/allnewmts_product_config.cpp
-  ${SHARED_ROOT}/allnewmts_rest_auth.cpp
   ${SHARED_ROOT}/allnewmts_runtime.cpp
   ${SHARED_ROOT}/allnewmts_runtime_lua.c
   ${SHARED_ROOT}/allnewmts_runtime_adapters.c
   ${SHARED_ROOT}/resource_bundle.c
-  ${SHARED_ROOT}/sha256.c
+  ${COMMON_ROOT}/sha256.c
   allnewmts_runtime_android_adapter.c
   runtime_jni.cpp
 )
@@ -69,6 +57,6 @@ endif()
 
 target_compile_features(allnewmts_lua PRIVATE cxx_std_17)
 target_compile_definitions(allnewmts_lua PRIVATE
-  ALLNEWMTS_PRODUCT_MCI_CHANNEL_DETAIL=\"${ANDROID_MCI_CHANNEL_DETAIL}\")
-target_include_directories(allnewmts_lua PRIVATE ${LUA_ROOT} ${SHARED_ROOT})
+  ALLNEWMTS_SHA256_NAME=allnewmts_runtime_sha256)
+target_include_directories(allnewmts_lua PRIVATE ${LUA_ROOT} ${SHARED_ROOT} ${COMMON_ROOT})
 target_link_libraries(allnewmts_lua allnewmts_lua51 log m)

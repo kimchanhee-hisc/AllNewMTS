@@ -66,15 +66,21 @@ function verifyUpstream(temp) {
 
 function verifyContracts() {
   validateSchema(productConfigSchema, productConfig, 'product config');
-  const moduleRoot = path.join(root, 'modules/allnewmts-lua');
+  const runtimeRoot = path.join(root, 'modules/allnewmts-runtime');
+  const networkingRoot = path.join(root, 'modules/allnewmts-networking');
   const authoredPaths = [
-    safeRepoFile('app.json'),
-    safeRepoFile('index.ts'),
-    ...walk(moduleRoot).filter((file) =>
-      !file.startsWith(path.join(moduleRoot, 'vendor') + path.sep) &&
-      !file.startsWith(path.join(moduleRoot, 'android/.cxx') + path.sep) &&
-      !file.startsWith(path.join(moduleRoot, 'android/build') + path.sep)
+    safeRepoFile('apps/labs/xmf-runtime/app.json'),
+    safeRepoFile('apps/labs/xmf-runtime/index.ts'),
+    ...walk(runtimeRoot).filter((file) =>
+      !file.startsWith(path.join(runtimeRoot, 'vendor') + path.sep) &&
+      !file.startsWith(path.join(runtimeRoot, 'android/.cxx') + path.sep) &&
+      !file.startsWith(path.join(runtimeRoot, 'android/build') + path.sep)
     ),
+    ...walk(networkingRoot).filter((file) =>
+      !file.startsWith(path.join(networkingRoot, 'android/.cxx') + path.sep) &&
+      !file.startsWith(path.join(networkingRoot, 'android/build') + path.sep)
+    ),
+    ...walk(path.join(root, 'native/common')),
     ...walk(path.join(root, 'native/resources')),
     ...walk(path.join(root, 'native/test'))
   ].map((file) => path.relative(root, file).split(path.sep).join('/')).sort();
@@ -97,21 +103,26 @@ function verifyContracts() {
   assert.deepEqual(manifest.absentGlobals, ['loadfile', 'package', 'io', 'os', 'debug']);
 
   const projectNative = [
-    'modules/allnewmts-lua/shared/allnewmts_lua.c',
-    'modules/allnewmts-lua/ios/allnewmts_lua_ios_adapter.c',
-    'modules/allnewmts-lua/android/allnewmts_lua_android_adapter.c'
+    'modules/allnewmts-runtime/shared/allnewmts_lua.c',
+    'modules/allnewmts-runtime/ios/allnewmts_lua_ios_adapter.c',
+    'modules/allnewmts-runtime/android/allnewmts_lua_android_adapter.c'
   ].map((file) => read(file).toString('utf8')).join('\n');
   assert.doesNotMatch(projectNative, /luaL_openlibs\s*\(/, 'sandbox must never call luaL_openlibs');
-  const cmake = read('modules/allnewmts-lua/android/CMakeLists.txt').toString('utf8');
+  const cmake = read('modules/allnewmts-runtime/android/CMakeLists.txt').toString('utf8');
   const cmakeSources = [...cmake.matchAll(/\$\{LUA_ROOT\}\/(l[^\s)]+\.c)/g)].map((match) => `src/${match[1]}`);
   assert.deepEqual(cmakeSources, manifest.compiledSources, 'Android compiled Lua source list drift');
-  const androidGradle = read('modules/allnewmts-lua/android/build.gradle').toString('utf8');
+  const androidGradle = read('modules/allnewmts-runtime/android/build.gradle').toString('utf8');
   assert.match(androidGradle, /project\.getProperties\(\)\.get\('reactNativeArchitectures'\)/, 'Android module must read the React Native ABI property');
   assert.match(androidGradle, /value \? value\.split\(','\) : \['armeabi-v7a', 'x86', 'x86_64', 'arm64-v8a'\]/, 'Android module must retain the standard four-ABI fallback');
   assert.match(androidGradle, /abiFilters\(\*reactNativeArchitectures\(\)\)/, 'Android module must apply the shared React Native ABI selection');
   assert.match(androidGradle, /def verificationHarnessEnabled = System\.getenv\('EXPO_PUBLIC_NATIVE_HARNESS'\) == '1'/, 'Gradle verification source set must use the explicit NATIVE_HARNESS flag');
   assert.match(androidGradle, /java\.srcDirs = \['src\/main\/java'\][\s\S]+if \(verificationHarnessEnabled\) java\.srcDir 'src\/verification\/java'/, 'Gradle default source set must exclude the verification harness and add it only under the explicit flag');
   assert.equal((androidGradle.match(/src\/verification\/java/g) ?? []).length, 1, 'Gradle must expose exactly one flag-gated verification source-set path');
+  const networkingCmake = read('modules/allnewmts-networking/android/CMakeLists.txt').toString('utf8');
+  assert.match(networkingCmake, /add_library\(allnewmts_networking SHARED/);
+  assert.doesNotMatch(networkingCmake, /allnewmts_(?:runtime|lua)|LUA_ROOT/);
+  const runtimeCmake = read('modules/allnewmts-runtime/android/CMakeLists.txt').toString('utf8');
+  assert.doesNotMatch(runtimeCmake, /allnewmts_(?:mci|rest_auth|product_config)|PRODUCT_MCI/);
 
   for (const resource of manifest.resources) assert.equal(sha256(read(resource.path)), resource.sha256, `resource hash drift: ${resource.path}`);
   assert.equal(sha256(read(manifest.testOnlyHashMismatch.path)), manifest.testOnlyHashMismatch.actualSha256, 'hostile resource drift');
@@ -119,31 +130,37 @@ function verifyContracts() {
   safeRepoFile(manifest.adapterFixture.source);
   safeRepoFile(manifest.adapterFixture.golden);
 
-  const appleFunctions = [...read('modules/allnewmts-lua/ios/AllNewMTSLuaModule.swift').toString().matchAll(/Function\("([^"]+)"/g)].map((match) => match[1]);
-  const androidModule = read('modules/allnewmts-lua/android/src/verification/java/com/allnewmts/lua/AllNewMTSLuaModule.kt').toString('utf8');
+  const appleFunctions = [...read('modules/allnewmts-runtime/ios/AllNewMTSLuaModule.swift').toString().matchAll(/Function\("([^"]+)"/g)].map((match) => match[1]);
+  const androidModule = read('modules/allnewmts-runtime/android/src/verification/java/com/allnewmts/lua/AllNewMTSLuaModule.kt').toString('utf8');
   const androidFunctions = [...androidModule.matchAll(/Function\("([^"]+)"/g)].map((match) => match[1]);
   assert.deepEqual(appleFunctions, ['create', 'evaluate', 'destroy']);
   assert.deepEqual(androidFunctions, appleFunctions);
+  const networkingApple = read('modules/allnewmts-networking/ios/AllNewMTSNetworkingModule.swift').toString('utf8');
+  const networkingAndroid = read('modules/allnewmts-networking/android/src/main/java/com/allnewmts/networking/AllNewMTSNetworkingModule.kt').toString('utf8');
+  const networkingAppleFunctions = [...networkingApple.matchAll(/AsyncFunction\("([^"]+)"/g)].map((match) => match[1]);
+  const networkingAndroidFunctions = [...networkingAndroid.matchAll(/AsyncFunction\("([^"]+)"/g)].map((match) => match[1]);
+  assert.deepEqual(networkingAppleFunctions, ['probeLoopback']);
+  assert.deepEqual(networkingAndroidFunctions, networkingAppleFunctions);
   assert.doesNotMatch(androidModule, /\b(?:val|var)\s+runtime\b/, 'Android module state must not hide Expo Module.runtime');
-  const appEntry = read('index.ts').toString('utf8');
+  const appEntry = read('apps/labs/xmf-runtime/index.ts').toString('utf8');
   assert.doesNotMatch(appEntry, /^import .*verification-harness-runtime/m, 'ordinary app startup must not load the native harness');
-  assert.match(appEntry, /if \(process\.env\.EXPO_PUBLIC_NATIVE_HARNESS === '1'\)[\s\S]+await import\('\.\/modules\/allnewmts-lua\/src\/verification-harness-runtime'\)/, 'native harness must load only behind its explicit verification flag');
+  assert.match(appEntry, /if \(process\.env\.EXPO_PUBLIC_NATIVE_HARNESS === '1'\)[\s\S]+await import\('allnewmts-runtime\/src\/verification-harness-runtime'\)/, 'native harness must load only behind its explicit verification flag');
   const generated = generateNativeAssets(manifest);
   for (const [file, expected] of generated) assert.equal(read(file).toString('utf8'), expected, `compiled resource/runtime fixture drift: ${file}`);
   const logicalDrift = structuredClone(manifest);
   logicalDrift.resources[0].logicalPath = 'fixtures/drift.lua';
-  assert.notEqual(generateNativeAssets(logicalDrift).get('modules/allnewmts-lua/shared/resource_bundle.c'), generated.get('modules/allnewmts-lua/shared/resource_bundle.c'), 'logical-path drift escaped generated bundle check');
+  assert.notEqual(generateNativeAssets(logicalDrift).get('modules/allnewmts-runtime/shared/resource_bundle.c'), generated.get('modules/allnewmts-runtime/shared/resource_bundle.c'), 'logical-path drift escaped generated bundle check');
   const byteDrift = structuredClone(manifest);
   const mutatedBytes = Buffer.from('return "mutated"\n');
   byteDrift.resources[0].sha256 = sha256(mutatedBytes);
   const mutatedGenerated = generateNativeAssets(byteDrift, (file) => file === byteDrift.resources[0].path ? mutatedBytes : read(file));
-  assert.notEqual(mutatedGenerated.get('modules/allnewmts-lua/shared/resource_bundle.c'), generated.get('modules/allnewmts-lua/shared/resource_bundle.c'), 'resource byte/hash drift escaped generated bundle check');
+  assert.notEqual(mutatedGenerated.get('modules/allnewmts-runtime/shared/resource_bundle.c'), generated.get('modules/allnewmts-runtime/shared/resource_bundle.c'), 'resource byte/hash drift escaped generated bundle check');
   console.log('PASS native contracts: exact sources, allowlist, resources, limits, and create/evaluate/destroy-only adapters');
 }
 
 function compileHost(temp) {
   const cc = process.env.CC || 'cc';
-  const include = ['-I', 'modules/allnewmts-lua/vendor/lua-5.1.5/src', '-I', 'modules/allnewmts-lua/shared'];
+  const include = ['-I', 'modules/allnewmts-runtime/vendor/lua-5.1.5/src', '-I', 'modules/allnewmts-runtime/shared', '-I', 'native/common'];
   const provider = path.join(temp, 'provider');
   const wrapper = path.join(temp, 'wrapper');
   fs.mkdirSync(provider); fs.mkdirSync(wrapper);
@@ -155,11 +172,11 @@ function compileHost(temp) {
   const library = path.join(temp, 'liballnewmts_lua51.a');
   command('ar', ['rcs', library, ...providerObjects]);
   const authoredSources = [
-    'modules/allnewmts-lua/shared/allnewmts_lua.c',
-    'modules/allnewmts-lua/shared/resource_bundle.c',
-    'modules/allnewmts-lua/shared/sha256.c',
-    'modules/allnewmts-lua/ios/allnewmts_lua_ios_adapter.c',
-    'modules/allnewmts-lua/android/allnewmts_lua_android_adapter.c',
+    'modules/allnewmts-runtime/shared/allnewmts_lua.c',
+    'modules/allnewmts-runtime/shared/resource_bundle.c',
+    'native/common/sha256.c',
+    'modules/allnewmts-runtime/ios/allnewmts_lua_ios_adapter.c',
+    'modules/allnewmts-runtime/android/allnewmts_lua_android_adapter.c',
     'native/test/native_harness_test.c'
   ];
   const authoredObjects = authoredSources.map((source, index) => {
@@ -186,8 +203,7 @@ function expandBraces(pattern) {
   return match ? match[1].split(',').flatMap((value) => expandBraces(`${pattern.slice(0, match.index)}${value}${pattern.slice(match.index + match[0].length)}`)) : [pattern];
 }
 
-function expandPodSources(patterns) {
-  const podDirectory = path.join(root, 'modules/allnewmts-lua');
+function expandPodSources(patterns, podDirectory) {
   return [...new Set(patterns.flatMap(expandBraces).flatMap((pattern) => {
     assert.doesNotMatch(pattern, /\*\*|\?|\[/, `unsupported Pod source glob: ${pattern}`);
     const absolute = path.resolve(podDirectory, pattern);
@@ -203,45 +219,67 @@ function expandPodSources(patterns) {
   }))].sort();
 }
 
-function expectedPodSources(includeVerification) {
+function expectedRuntimePodSources(includeVerification) {
   const authored = manifest.authoredInventory.map(({ path: file }) => file);
   const production = authored.filter((file) =>
-    /^modules\/allnewmts-lua\/shared\/allnewmts_mci.*\.(?:cpp|h)$/.test(file) ||
-    /^modules\/allnewmts-lua\/shared\/allnewmts_product_config\.(?:cpp|h)$/.test(file) ||
-    /^modules\/allnewmts-lua\/shared\/allnewmts_rest_auth\.(?:cpp|h)$/.test(file) ||
-    /^modules\/allnewmts-lua\/shared\/(?:allnewmts_runtime.*|resource_bundle\.[ch]|sha256\.[ch])$/.test(file) ||
-    /^modules\/allnewmts-lua\/ios\/(?:AllNewMTSRuntime.*\.(?:h|mm|swift)|allnewmts_runtime_ios_adapter\.c)$/.test(file)
+    /^modules\/allnewmts-runtime\/shared\/(?:allnewmts_runtime.*|resource_bundle\.[ch])$/.test(file) ||
+    /^modules\/allnewmts-runtime\/ios\/(?:AllNewMTSRuntime.*\.(?:h|mm|swift)|allnewmts_runtime_ios_adapter\.c)$/.test(file)
   );
   const verification = authored.filter((file) =>
-    /^modules\/allnewmts-lua\/shared\/(?:allnewmts_lua\.[ch]|allnewmts_lua_adapters\.h)$/.test(file) ||
-    /^modules\/allnewmts-lua\/ios\/(?:AllNewMTSLua.*\.(?:h|mm|swift)|allnewmts_lua_ios_adapter\.c)$/.test(file)
+    /^modules\/allnewmts-runtime\/shared\/(?:allnewmts_lua\.[ch]|allnewmts_lua_adapters\.h)$/.test(file) ||
+    /^modules\/allnewmts-runtime\/ios\/(?:AllNewMTSLua.*\.(?:h|mm|swift)|allnewmts_lua_ios_adapter\.c)$/.test(file)
   );
   const headers = manifest.inventory.filter(({ path: file }) => file.startsWith('src/') && file.endsWith('.h')).map(({ path: file }) => `${manifest.vendoredRoot}/${file}`);
   return [...production, ...(includeVerification ? verification : []), ...headers, ...manifest.compiledSources.map((file) => `${manifest.vendoredRoot}/${file}`)].sort();
 }
 
-function validatePodGraph(sources, dependencies, includeVerification) {
-  assert.deepEqual(sources, expectedPodSources(includeVerification), `evaluated ${includeVerification ? 'NATIVE_HARNESS verification' : 'default production'} Pod source graph drift`);
+function validateRuntimePodGraph(sources, dependencies, includeVerification) {
+  assert.deepEqual(sources, expectedRuntimePodSources(includeVerification), `evaluated ${includeVerification ? 'NATIVE_HARNESS verification' : 'default production'} Runtime Pod source graph drift`);
   assert.deepEqual(dependencies, { ExpoModulesCore: [] }, 'evaluated Pod dependencies must contain only ExpoModulesCore');
 }
 
-function evaluatedPodGraph(includeVerification) {
-  const spec = JSON.parse(command('pod', ['ipc', 'spec', 'modules/allnewmts-lua/AllNewMTSLua.podspec'], { env: harnessEnvironment(includeVerification) }));
+function evaluatedRuntimePodGraph(includeVerification) {
+  const spec = JSON.parse(command('pod', ['ipc', 'spec', 'modules/allnewmts-runtime/AllNewMTSRuntime.podspec'], { env: harnessEnvironment(includeVerification) }));
   assert.equal(spec.pod_target_xcconfig.GCC_PREPROCESSOR_DEFINITIONS,
-    `$(inherited) ALLNEWMTS_PRODUCT_MCI_CHANNEL_DETAIL=\\\"${productConfig.platforms.ios.mciChannelDetail}\\\"`,
-  'evaluated Pod graph has the wrong iOS product config');
-  const sources = expandPodSources(Array.isArray(spec.source_files) ? spec.source_files : [spec.source_files]);
-  validatePodGraph(sources, spec.dependencies ?? {}, includeVerification);
+    '$(inherited) ALLNEWMTS_SHA256_NAME=allnewmts_runtime_sha256',
+  'evaluated Runtime Pod graph has the wrong common-symbol namespace');
+  const sources = expandPodSources(Array.isArray(spec.source_files) ? spec.source_files : [spec.source_files], path.join(root, 'modules/allnewmts-runtime'));
+  validateRuntimePodGraph(sources, spec.dependencies ?? {}, includeVerification);
   const badSources = [...sources, `${manifest.vendoredRoot}/src/lua.c`].sort();
-  assert.throws(() => validatePodGraph(badSources, spec.dependencies ?? {}, includeVerification), 'excluded Lua source mutation must fail');
-  assert.throws(() => validatePodGraph(sources, { ...spec.dependencies, LuaKit: [] }, includeVerification), 'second Lua dependency mutation must fail');
+  assert.throws(() => validateRuntimePodGraph(badSources, spec.dependencies ?? {}, includeVerification), 'excluded Lua source mutation must fail');
+  assert.throws(() => validateRuntimePodGraph(sources, { ...spec.dependencies, LuaKit: [] }, includeVerification), 'second Lua dependency mutation must fail');
   return { sources, dependencies: spec.dependencies };
 }
 
+function evaluatedNetworkingPodGraph() {
+  const spec = JSON.parse(command('pod', ['ipc', 'spec', 'modules/allnewmts-networking/AllNewMTSNetworking.podspec']));
+  assert.equal(spec.pod_target_xcconfig.GCC_PREPROCESSOR_DEFINITIONS,
+    `$(inherited) ALLNEWMTS_SHA256_NAME=allnewmts_networking_sha256 ALLNEWMTS_PRODUCT_MCI_CHANNEL_DETAIL=\\\"${productConfig.platforms.ios.mciChannelDetail}\\\"`,
+  'evaluated Networking Pod graph has the wrong iOS product config');
+  const sources = expandPodSources(Array.isArray(spec.source_files) ? spec.source_files : [spec.source_files], path.join(root, 'modules/allnewmts-networking'));
+  const expected = manifest.authoredInventory.map(({ path: file }) => file).filter((file) =>
+    /^modules\/allnewmts-networking\/shared\/allnewmts_(?:mci.*|networking_sha256|product_config|rest_auth)\.(?:c|cpp|h)$/.test(file) ||
+    file === 'modules/allnewmts-networking/ios/AllNewMTSNetworkingModule.swift'
+  ).sort();
+  assert.deepEqual(sources, expected, 'evaluated Networking Pod source graph drift');
+  assert.deepEqual(spec.dependencies ?? {}, { ExpoModulesCore: [] }, 'Networking Pod must depend only on ExpoModulesCore');
+  return { sources, dependencies: spec.dependencies ?? {} };
+}
+
 function compileApple(temp) {
-  const productionGraph = evaluatedPodGraph(false);
-  const graph = evaluatedPodGraph(true);
-  const verificationOnly = expectedPodSources(true).filter((file) => !expectedPodSources(false).includes(file));
+  const productionGraph = evaluatedRuntimePodGraph(false);
+  const graph = evaluatedRuntimePodGraph(true);
+  const networkingGraph = evaluatedNetworkingPodGraph();
+  assert.deepEqual(graph.sources.filter((file) => networkingGraph.sources.includes(file)), [],
+    'Apple native Pod graphs share a compiled source path');
+  for (const wrapper of [
+    'modules/allnewmts-runtime/shared/allnewmts_runtime_sha256.c',
+    'modules/allnewmts-networking/shared/allnewmts_networking_sha256.c'
+  ]) {
+    assert.equal(read(wrapper).toString('utf8'), '#include "../../../native/common/sha256.c"\n',
+      `${wrapper} must remain a one-line compiler wrapper over the common source`);
+  }
+  const verificationOnly = expectedRuntimePodSources(true).filter((file) => !expectedRuntimePodSources(false).includes(file));
   for (const file of verificationOnly) {
     assert.equal(productionGraph.sources.includes(file), false, `default Pod graph leaked NATIVE_HARNESS source: ${file}`);
     assert.equal(graph.sources.includes(file), true, `verification Pod graph omitted NATIVE_HARNESS source: ${file}`);
@@ -249,16 +287,18 @@ function compileApple(temp) {
   const sdk = command('xcrun', ['--sdk', 'iphonesimulator', '--show-sdk-path']).trim();
   const output = path.join(temp, 'apple');
   fs.mkdirSync(output);
-  const include = ['-I', 'modules/allnewmts-lua/vendor/lua-5.1.5/src', '-I', 'modules/allnewmts-lua/shared'];
+  const include = ['-I', 'modules/allnewmts-runtime/vendor/lua-5.1.5/src', '-I', 'modules/allnewmts-runtime/shared', '-I', 'native/common'];
   const sources = graph.sources.filter((file) => /\.(?:c|cpp|mm)$/.test(file));
-  const productDefinition =
+  const networkingDefinition =
     `-DALLNEWMTS_PRODUCT_MCI_CHANNEL_DETAIL="${productConfig.platforms.ios.mciChannelDetail}"`;
+  const runtimeShaDefinition = '-DALLNEWMTS_SHA256_NAME=allnewmts_runtime_sha256';
+  const networkingShaDefinition = '-DALLNEWMTS_SHA256_NAME=allnewmts_networking_sha256';
   const objects = sources.map((source, index) => {
     const object = path.join(output, `${index}.o`);
     const compiler = source.endsWith('.c') ? 'clang' : 'clang++';
     const language = source.endsWith('.mm') ? ['-std=c++17', '-fobjc-arc'] : (source.endsWith('.cpp') ? ['-std=c++17'] : ['-std=c99']);
     command('xcrun', ['--sdk', 'iphonesimulator', compiler, ...language,
-      productDefinition, '-arch', 'arm64', '-mios-simulator-version-min=16.4',
+      runtimeShaDefinition, '-arch', 'arm64', '-mios-simulator-version-min=16.4',
       '-isysroot', sdk, ...include, '-c', source, '-o', object]);
     return object;
   });
@@ -267,8 +307,29 @@ function compileApple(temp) {
   const symbols = command('nm', ['-g', library]);
   for (const name of ['create', 'evaluate', 'destroy']) assert.equal(symbols.split('\n').filter((line) => new RegExp(` [Tt] _allnewmts_lua_ios_${name}$`).test(line)).length, 1, `evaluated Pod graph omits iOS ${name} provider`);
   assert.equal(symbols.split('\n').filter((line) => / [Tt] _lua_newstate$/.test(line)).length, 1, 'evaluated Pod graph has multiple Lua providers');
-  fs.writeFileSync(path.join(output, 'pod-source-inventory.json'), JSON.stringify({ production: productionGraph, verification: graph }, null, 2));
-  console.log(`PASS native Apple Pod graphs: ${productionGraph.sources.length} default sources exclude NATIVE_HARNESS; ${graph.sources.length} flagged sources link the adapter and sole Lua provider`);
+  assert.match(symbols, /_allnewmts_runtime_sha256$/m);
+  assert.doesNotMatch(symbols, /_allnewmts_networking_sha256$/m);
+  assert.doesNotMatch(symbols, /_allnewmts_(?:mci|rest|product)_/, 'Runtime Pod graph leaked networking symbols');
+  const networkingObjects = networkingGraph.sources.filter((file) => /\.(?:c|cpp)$/.test(file)).map((source, index) => {
+    const object = path.join(output, `network-${index}.o`);
+    command('xcrun', ['--sdk', 'iphonesimulator', source.endsWith('.c') ? 'clang' : 'clang++',
+      source.endsWith('.c') ? '-std=c99' : '-std=c++17', networkingDefinition, networkingShaDefinition,
+      '-arch', 'arm64', '-mios-simulator-version-min=16.4', '-isysroot', sdk,
+      '-I', 'modules/allnewmts-networking/shared', '-I', 'native/common', '-c', source, '-o', object]);
+    return object;
+  });
+  const networkingLibrary = path.join(output, 'libAllNewMTSNetworking.a');
+  command('xcrun', ['libtool', '-static', '-o', networkingLibrary, ...networkingObjects]);
+  const networkingSymbols = command('nm', ['-g', networkingLibrary]);
+  assert.match(networkingSymbols, /_allnewmts_mci_/);
+  assert.match(networkingSymbols, /_allnewmts_networking_sha256$/m);
+  assert.doesNotMatch(networkingSymbols, /_allnewmts_runtime_sha256$/m);
+  assert.doesNotMatch(networkingSymbols, /_allnewmts_(?:runtime|lua)_|\b_lua_newstate\b/, 'Networking Pod graph leaked runtime/Lua symbols');
+  fs.writeFileSync(path.join(output, 'pod-source-inventory.json'), JSON.stringify({
+    runtime: { production: productionGraph, verification: graph },
+    networking: networkingGraph
+  }, null, 2));
+  console.log(`PASS native Apple Pod graphs: only common SHA-256 source is shared and exports are target-namespaced; ${graph.sources.length} flagged Runtime sources retain the sole Lua provider`);
 }
 
 function compileAndroid(temp) {
@@ -278,10 +339,11 @@ function compileAndroid(temp) {
   const ninja = path.join(sdk, 'cmake/3.22.1/bin/ninja');
   const productionOutput = path.join(temp, 'android-production');
   const output = path.join(temp, 'android-verification');
+  const networkingOutput = path.join(temp, 'android-networking');
   assert.ok(fs.existsSync(cmake) && fs.existsSync(ninja) && fs.existsSync(ndk), 'declared Android SDK/NDK toolchain is unavailable');
   const configure = (directory, includeVerification) => {
     const env = harnessEnvironment(includeVerification);
-    command(cmake, ['-S', 'modules/allnewmts-lua/android', '-B', directory, '-G', 'Ninja',
+    command(cmake, ['-S', 'modules/allnewmts-runtime/android', '-B', directory, '-G', 'Ninja',
       `-DCMAKE_MAKE_PROGRAM=${ninja}`, `-DCMAKE_TOOLCHAIN_FILE=${ndk}/build/cmake/android.toolchain.cmake`,
       '-DANDROID_ABI=arm64-v8a', '-DANDROID_PLATFORM=android-24', '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'], { env });
     command(cmake, ['--build', directory], { env });
@@ -289,13 +351,24 @@ function compileAndroid(temp) {
   };
   const productionCommands = configure(productionOutput, false);
   const compileCommands = configure(output, true);
+  command(cmake, ['-S', 'modules/allnewmts-networking/android', '-B', networkingOutput, '-G', 'Ninja',
+    `-DCMAKE_MAKE_PROGRAM=${ninja}`, `-DCMAKE_TOOLCHAIN_FILE=${ndk}/build/cmake/android.toolchain.cmake`,
+    '-DANDROID_ABI=arm64-v8a', '-DANDROID_PLATFORM=android-24', '-DCMAKE_BUILD_TYPE=Release',
+    '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON']);
+  command(cmake, ['--build', networkingOutput]);
+  const networkingCommands = JSON.parse(fs.readFileSync(path.join(networkingOutput, 'compile_commands.json'), 'utf8'));
   const normalizedSource = ({ file }) => file.replaceAll('\\', '/');
   for (const suffix of ['/shared/allnewmts_lua.c', '/android/allnewmts_lua_android_adapter.c', '/android/jni.cpp']) {
     assert.equal(productionCommands.some((entry) => normalizedSource(entry).endsWith(suffix)), false, `default CMake graph leaked NATIVE_HARNESS source: ${suffix}`);
     assert.equal(compileCommands.some((entry) => normalizedSource(entry).endsWith(suffix)), true, `flagged CMake graph omitted NATIVE_HARNESS source: ${suffix}`);
   }
   const commandText = (entry) => entry.command ?? entry.arguments.join(' ');
-  const productCommands = compileCommands.filter(({ file }) =>
+  assert.equal(compileCommands.some(({ file }) => normalizedSource({ file }).includes('/modules/allnewmts-networking/')), false,
+    'Runtime CMake graph leaked networking sources');
+  assert.equal(networkingCommands.some(({ file }) =>
+    /\/modules\/allnewmts-runtime\/(?:shared|vendor|android)\//.test(normalizedSource({ file }))), false,
+  'Networking CMake graph leaked runtime or Lua sources');
+  const productCommands = networkingCommands.filter(({ file }) =>
     file.replaceAll('\\', '/').endsWith('/shared/allnewmts_product_config.cpp'));
   assert.equal(productCommands.length, 1,
     'Android compile database must contain one product config source');
@@ -323,17 +396,30 @@ function compileAndroid(temp) {
   const symbols = command(path.join(tools, 'llvm-nm'), ['-D', '--defined-only', library]);
   assert.match(symbols, /Java_com_allnewmts_lua_AllNewMTSLuaModule_nativeCreate/);
   assert.match(symbols, /\blua_newstate\b/);
-  console.log('PASS native Android graphs: default arm64-v8a library excludes NATIVE_HARNESS; flagged graph includes its JNI adapter and no second Lua dependency');
+  assert.match(symbols, /\ballnewmts_runtime_sha256\b/);
+  assert.doesNotMatch(symbols, /\ballnewmts_networking_sha256\b/);
+  assert.doesNotMatch(symbols, /\ballnewmts_(?:mci|rest|product)_/, 'Runtime Android graph leaked networking symbols');
+  const networkingLibrary = path.join(networkingOutput, 'liballnewmts_networking.so');
+  assert.ok(fs.existsSync(networkingLibrary), 'Android networking library missing');
+  const networkingSymbols = command(path.join(tools, 'llvm-nm'), ['-D', '--defined-only', networkingLibrary]);
+  assert.match(networkingSymbols, /\ballnewmts_mci_/);
+  assert.match(networkingSymbols, /\ballnewmts_networking_sha256\b/);
+  assert.doesNotMatch(networkingSymbols, /\ballnewmts_runtime_sha256\b/);
+  assert.doesNotMatch(networkingSymbols, /\ballnewmts_(?:runtime|lua)_|\blua_newstate\b/,
+    'Networking Android graph leaked runtime or Lua symbols');
+  console.log('PASS native Android graphs: module sources are isolated and common SHA-256 exports are target-namespaced; NATIVE_HARNESS remains flag-gated');
 }
 
 function verifyAutolinking() {
-  const cli = 'node_modules/expo-modules-autolinking/bin/expo-modules-autolinking';
+  const cli = 'node_modules/expo-modules-autolinking/bin/expo-modules-autolinking.js';
   for (const platform of ['ios', 'android']) {
     const found = JSON.parse(command(process.execPath, [cli, 'search', '--platform', platform, '--json']));
-    assert.ok(found['allnewmts-lua'], `${platform} autolinking did not find allnewmts-lua`);
-    assert.deepEqual(found['allnewmts-lua'].duplicates, []);
+    assert.ok(found['allnewmts-runtime'], `${platform} autolinking did not find allnewmts-runtime`);
+    assert.ok(found['allnewmts-networking'], `${platform} autolinking did not find allnewmts-networking`);
+    assert.deepEqual(found['allnewmts-runtime'].duplicates, []);
+    assert.deepEqual(found['allnewmts-networking'].duplicates, []);
   }
-  console.log('PASS native autolinking: Expo 57 found one local module for iOS and Android');
+  console.log('PASS native autolinking: Expo 57 found the independent Runtime and Networking modules for iOS and Android');
 }
 
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'allnewmts-harness-'));

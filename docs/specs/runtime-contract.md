@@ -78,6 +78,8 @@ Transaction values preserve the evidenced `string|number` union, indices are fin
 
 Networking transport semantics, credentials, dependency and remote boundaries, provenance, and deterministic scenarios are owned by [`networking-contract.md`](networking-contract.md). The runtime stages ordinary and realtime logical commands but performs no network transport.
 
+The `allnewmts-runtime` Podspec and CMake graphs own only Lua/Host/runtime sources and the shared native SHA-256 implementation. Networking has independent native graphs and no runtime or Lua link dependency. Each graph namespaces its compiled SHA-256 export so the final application can link both targets without a duplicate symbol. Because CocoaPods does not compile a `source_files` path outside a local Pod root, the iOS target compiles a one-line module-local wrapper that includes the single `native/common/sha256.c` owner; it must not contain a copy of that implementation.
+
 ## Production limits
 
 The shared core enforces overflow-safe bounds:
@@ -102,7 +104,7 @@ The verification harness embeds the official unmodified Lua 5.1.5 source behind 
 
 The harness has a 32 MiB allocator ceiling and 50 ms instruction-hook deadline; either guard destroys the state. It intentionally has no worker, revision, snapshot, queue, staging, token, rollback, close choreography, or multi-runtime coordination. Exact source and build truth is [`native/lua-source-manifest.json`](../../native/lua-source-manifest.json).
 
-Repository resources and the JS runtime fixture are generated from that manifest's logical paths, approved bytes, and hashes; drift in any of the three fails verification. The Apple build consumes the evaluated Podspec graph rather than a verifier-selected source list. An explicit local verification flag runs the same generated fixture through the actual Expo module three times and compares every result with the independent golden; it does not select product behavior or vary by operating system.
+Repository resources and the JS runtime fixture are generated from that manifest's logical paths, approved bytes, and hashes; drift in any of the three fails verification. Apple and Android verification consume the independent runtime and networking native graphs and prove their source and symbol sets remain disjoint. An explicit local verification flag runs the same generated fixture through the actual Expo runtime module three times and compares every result with the independent golden; it does not select product behavior or vary by operating system.
 
 ## Limits and security
 

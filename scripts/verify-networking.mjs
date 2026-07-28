@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { validateSchema } from './verify-foundation.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -13,6 +13,8 @@ const productConfigSchema = JSON.parse(fs.readFileSync(
   path.join(root, 'config/product-config.schema.json'), 'utf8'));
 const productSecretsSchema = JSON.parse(fs.readFileSync(
   path.join(root, 'config/product-secrets.schema.json'), 'utf8'));
+const { normalizeLoopbackPort } = await import(pathToFileURL(
+  path.join(root, 'modules/allnewmts-networking/src/loopback.ts')));
 const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'allnewmts-networking-'));
 const run = (file, args) => {
   const result = spawnSync(file, args, { cwd: root, encoding: 'utf8' });
@@ -22,6 +24,11 @@ const run = (file, args) => {
 };
 
 try {
+  assert.equal(normalizeLoopbackPort(1), 1);
+  assert.equal(normalizeLoopbackPort(65_535), 65_535);
+  for (const port of [0, 65_536, 1.5, NaN, Infinity]) {
+    assert.throws(() => normalizeLoopbackPort(port), RangeError);
+  }
   validateSchema(productConfigSchema, productConfig, 'product config');
   validateSchema(productSecretsSchema, {
     $schema: './product-secrets.schema.json',
@@ -51,8 +58,9 @@ try {
     run(process.env.CXX || 'c++', [
       '-std=c++17', '-Wall', '-Wextra', '-Werror',
       `-DALLNEWMTS_PRODUCT_MCI_CHANNEL_DETAIL="${expected}"`,
-      '-I', 'modules/allnewmts-lua/shared',
-      'modules/allnewmts-lua/shared/allnewmts_product_config.cpp',
+      '-I', 'modules/allnewmts-networking/shared',
+      '-I', 'native/common',
+      'modules/allnewmts-networking/shared/allnewmts_product_config.cpp',
       'native/test/product_config_test.cpp',
       '-o', configTest,
     ]);
@@ -67,52 +75,58 @@ try {
   const restTrProbe = path.join(temporary, 'rest-beta-tr-probe');
   run(process.env.CC || 'cc', [
     '-std=c99', '-Wall', '-Wextra', '-Werror',
-    '-I', 'modules/allnewmts-lua/shared',
-    '-c', 'modules/allnewmts-lua/shared/sha256.c', '-o', object,
+    '-I', 'modules/allnewmts-networking/shared',
+    '-I', 'native/common',
+    '-c', 'native/common/sha256.c', '-o', object,
   ]);
   run(process.env.CXX || 'c++', [
     '-std=c++17', '-Wall', '-Wextra', '-Werror',
-    '-I', 'modules/allnewmts-lua/shared',
-    'modules/allnewmts-lua/shared/allnewmts_rest_auth.cpp',
+    '-I', 'modules/allnewmts-networking/shared',
+    '-I', 'native/common',
+    'modules/allnewmts-networking/shared/allnewmts_rest_auth.cpp',
     'native/test/rest_auth_test.cpp',
     '-pthread', '-o', restAuth,
   ]);
   run(process.env.CXX || 'c++', [
     '-std=c++17', '-Wall', '-Wextra', '-Werror',
     '-DALLNEWMTS_MCI_TESTING',
-    '-I', 'modules/allnewmts-lua/shared',
-    'modules/allnewmts-lua/shared/allnewmts_mci.cpp',
-    'modules/allnewmts-lua/shared/allnewmts_mci_socket.cpp',
+    '-I', 'modules/allnewmts-networking/shared',
+    '-I', 'native/common',
+    'modules/allnewmts-networking/shared/allnewmts_mci.cpp',
+    'modules/allnewmts-networking/shared/allnewmts_mci_socket.cpp',
     'native/test/mci_transport_test.cpp',
     object, '-pthread', '-o', executable,
   ]);
   run(process.env.CXX || 'c++', [
     '-std=c++17', '-Wall', '-Wextra', '-Werror',
     '-DALLNEWMTS_PRODUCT_MCI_CHANNEL_DETAIL="CC320"',
-    '-I', 'modules/allnewmts-lua/shared',
-    'modules/allnewmts-lua/shared/allnewmts_mci.cpp',
-    'modules/allnewmts-lua/shared/allnewmts_mci_socket.cpp',
-    'modules/allnewmts-lua/shared/allnewmts_product_config.cpp',
+    '-I', 'modules/allnewmts-networking/shared',
+    '-I', 'native/common',
+    'modules/allnewmts-networking/shared/allnewmts_mci.cpp',
+    'modules/allnewmts-networking/shared/allnewmts_mci_socket.cpp',
+    'modules/allnewmts-networking/shared/allnewmts_product_config.cpp',
     'native/test/mci_beta_probe.cpp',
     object, '-pthread', '-o', probe,
   ]);
   run(process.env.CXX || 'c++', [
     '-std=c++17', '-Wall', '-Wextra', '-Werror',
     '-DALLNEWMTS_PRODUCT_MCI_CHANNEL_DETAIL="CC320"',
-    '-I', 'modules/allnewmts-lua/shared',
-    'modules/allnewmts-lua/shared/allnewmts_mci.cpp',
-    'modules/allnewmts-lua/shared/allnewmts_mci_socket.cpp',
-    'modules/allnewmts-lua/shared/allnewmts_product_config.cpp',
+    '-I', 'modules/allnewmts-networking/shared',
+    '-I', 'native/common',
+    'modules/allnewmts-networking/shared/allnewmts_mci.cpp',
+    'modules/allnewmts-networking/shared/allnewmts_mci_socket.cpp',
+    'modules/allnewmts-networking/shared/allnewmts_product_config.cpp',
     'native/test/mci_beta_realtime_probe.cpp',
     object, '-pthread', '-o', realtimeProbe,
   ]);
   run(process.env.CXX || 'c++', [
     '-std=c++17', '-Wall', '-Wextra', '-Werror',
     '-DALLNEWMTS_PRODUCT_MCI_CHANNEL_DETAIL="CC321"',
-    '-I', 'modules/allnewmts-lua/shared',
-    'modules/allnewmts-lua/shared/allnewmts_mci.cpp',
-    'modules/allnewmts-lua/shared/allnewmts_mci_socket.cpp',
-    'modules/allnewmts-lua/shared/allnewmts_product_config.cpp',
+    '-I', 'modules/allnewmts-networking/shared',
+    '-I', 'native/common',
+    'modules/allnewmts-networking/shared/allnewmts_mci.cpp',
+    'modules/allnewmts-networking/shared/allnewmts_mci_socket.cpp',
+    'modules/allnewmts-networking/shared/allnewmts_product_config.cpp',
     'native/test/mci_beta_tr_probe.cpp',
     object, '-pthread', '-o', trProbe,
   ]);

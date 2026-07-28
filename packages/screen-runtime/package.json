@@ -1,0 +1,11 @@
+{
+  "name": "@allnewmts/screen-runtime",
+  "version": "0.0.1",
+  "main": "src/index.ts",
+  "private": true,
+  "peerDependencies": {
+    "allnewmts-runtime": "0.0.1",
+    "react": "19.2.3",
+    "react-native": "0.86.0"
+  }
+}

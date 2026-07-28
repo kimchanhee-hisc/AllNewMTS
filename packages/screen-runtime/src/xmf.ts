@@ -1,4 +1,4 @@
-import registryDocument from '../contracts/control-registry.json';
+import registryDocument from '../../../contracts/control-registry.json';
 import { createControl, projectControl } from './controls';
 import type { XmfColor, XmfControl, XmfPadding, XmfRect, XmfRenderDescriptor } from './controls';
 

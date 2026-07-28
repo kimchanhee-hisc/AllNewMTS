@@ -1,0 +1,23 @@
+{
+  "name": "@allnewmts/networking-lab",
+  "version": "0.0.1",
+  "main": "index.ts",
+  "private": true,
+  "dependencies": {
+    "allnewmts-networking": "0.0.1",
+    "expo": "~57.0.4",
+    "react": "19.2.3",
+    "react-native": "0.86.0"
+  },
+  "expo": {
+    "autolinking": {
+      "exclude": [
+        "allnewmts-runtime"
+      ],
+      "nativeModulesDir": "../../../modules",
+      "searchPaths": [
+        "../../../node_modules"
+      ]
+    }
+  }
+}

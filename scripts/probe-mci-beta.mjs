@@ -44,16 +44,18 @@ try {
   const executable = path.join(temporary, 'mci-beta-probe');
   run(process.env.CC || 'cc', [
     '-std=c99', '-Wall', '-Wextra', '-Werror',
-    '-I', 'modules/allnewmts-lua/shared',
-    '-c', 'modules/allnewmts-lua/shared/sha256.c', '-o', object,
+    '-I', 'modules/allnewmts-networking/shared',
+    '-I', 'native/common',
+    '-c', 'native/common/sha256.c', '-o', object,
   ]);
   run(process.env.CXX || 'c++', [
     '-std=c++17', '-Wall', '-Wextra', '-Werror',
     `-DALLNEWMTS_PRODUCT_MCI_CHANNEL_DETAIL="${channelDetail}"`,
-    '-I', 'modules/allnewmts-lua/shared',
-    'modules/allnewmts-lua/shared/allnewmts_mci.cpp',
-    'modules/allnewmts-lua/shared/allnewmts_mci_socket.cpp',
-    'modules/allnewmts-lua/shared/allnewmts_product_config.cpp',
+    '-I', 'modules/allnewmts-networking/shared',
+    '-I', 'native/common',
+    'modules/allnewmts-networking/shared/allnewmts_mci.cpp',
+    'modules/allnewmts-networking/shared/allnewmts_mci_socket.cpp',
+    'modules/allnewmts-networking/shared/allnewmts_product_config.cpp',
     'native/test/mci_beta_probe.cpp',
     object, '-pthread', '-o', executable,
   ]);

@@ -1,0 +1,9 @@
+{
+  "name": "allnewmts-networking",
+  "version": "0.0.1",
+  "description": "AllNewMTS MCI and REST networking core",
+  "main": "src/index.ts",
+  "type": "module",
+  "license": "MIT",
+  "private": true
+}

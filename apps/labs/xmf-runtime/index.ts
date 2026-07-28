@@ -9,7 +9,7 @@ registerRootComponent(App);
 
 if (process.env.EXPO_PUBLIC_NATIVE_HARNESS === '1') {
   setTimeout(async () => {
-    const { runVerificationHarness } = await import('./modules/allnewmts-lua/src/verification-harness-runtime');
+    const { runVerificationHarness } = await import('allnewmts-runtime/src/verification-harness-runtime');
     runVerificationHarness();
   }, 0);
 }

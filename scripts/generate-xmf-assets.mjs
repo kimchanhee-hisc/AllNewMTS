@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sourcePath = 'test/oracles/sources/mts_screen/HS1200P08.xmf_';
-const outputPath = 'src/generated/approved-xmf.ts';
+const outputPath = 'apps/labs/xmf-runtime/generated/approved-xmf.ts';
 const expectedBytes = 10179;
 const expectedSha256 = '4d63ba22ac5339cfd3068cffa91710e0099481da81d974e2aff0ce7ae39ed53e';
 

@@ -11,7 +11,7 @@ import { safeRepoFile, validateSchema } from './verify-foundation.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const phases = ['parser-model', 'projection-render', 'runtime-client', 'unseen-generality', 'module-stub-smoke', 'ctlimage', 'control-modules'];
-const controlModuleFiles = ['button', 'edit', 'image', 'label'].map((name) => `src/controls/${name}.ts`);
+const controlModuleFiles = ['button', 'edit', 'image', 'label'].map((name) => `packages/screen-runtime/src/controls/${name}.ts`);
 const focusedPhases = phases;
 const argv = process.argv.slice(2);
 const forwardingRegression = argv.length === 1 && argv[0] === '--build-failure-forwarding-regression';
@@ -339,8 +339,8 @@ function compileTypeScript() {
   run('node_modules/.bin/tsc', [
     '--ignoreConfig', '--module', 'commonjs', '--moduleResolution', 'node', '--target', 'es2022',
     '--jsx', 'react-jsx', '--resolveJsonModule', '--esModuleInterop', '--skipLibCheck', '--noCheck', '--ignoreDeprecations', '6.0',
-    '--outDir', temp, '--rootDir', '.', 'src/xmf.ts', 'src/runtime-client.ts', 'src/controls/image.ts',
-    'src/controls/ControlView.tsx', 'src/XmfScreen.tsx'
+    '--outDir', temp, '--rootDir', '.', 'packages/screen-runtime/src/xmf.ts', 'packages/screen-runtime/src/runtime-client.ts', 'packages/screen-runtime/src/controls/image.ts',
+    'packages/screen-runtime/src/controls/ControlView.tsx', 'packages/screen-runtime/src/XmfScreen.tsx'
   ]);
   const require = createRequire(import.meta.url);
   const runtimeModules = path.join(temp, 'node_modules');
@@ -349,10 +349,10 @@ function compileTypeScript() {
   fs.mkdirSync(path.join(runtimeModules, 'react-native'), { recursive: true });
   fs.writeFileSync(path.join(runtimeModules, 'react-native', 'index.js'), "module.exports = { Image: 'Image', Pressable: 'Pressable', Text: 'Text', TextInput: 'TextInput', View: 'View' };\n");
   return {
-    xmf: require(path.join(temp, 'src/xmf.js')),
-    runtimeClient: require(path.join(temp, 'src/runtime-client.js')),
-    image: require(path.join(temp, 'src/controls/image.js')),
-    screen: require(path.join(temp, 'src/XmfScreen.js'))
+    xmf: require(path.join(temp, 'packages/screen-runtime/src/xmf.js')),
+    runtimeClient: require(path.join(temp, 'packages/screen-runtime/src/runtime-client.js')),
+    image: require(path.join(temp, 'packages/screen-runtime/src/controls/image.js')),
+    screen: require(path.join(temp, 'packages/screen-runtime/src/XmfScreen.js'))
   };
 }
 
@@ -469,7 +469,7 @@ function contractRegistry() {
     ['OnEditComplete', '_OnEditComplete'], ['OnClick', '_OnClick'], ['OnClick', '_OnClick']
   ]);
   assert.equal(new Set(registry.policies.map(({ id }) => id)).size, registry.policies.length);
-  const parserSource = read('src/xmf.ts', 'utf8');
+  const parserSource = read('packages/screen-runtime/src/xmf.ts', 'utf8');
   assert.doesNotMatch(parserSource, /export\s+(?:const|let|var)\s+.*(?:grammar|policy)/i, 'parser must not export a shadow grammar/policy table');
   const contract = read('docs/specs/xmf-lua-runtime.md', 'utf8');
   const imageContract = read('docs/specs/controls/image.md', 'utf8');
@@ -702,8 +702,8 @@ function projectionRender() {
     assert.throws(() => modules.xmf.toRenderDescriptors(model, state), ({ code }) => code === 'INVALID_PROPERTY');
     assert.deepEqual(modules.xmf.toRenderDescriptors(model), baseline);
   }
-  const screen = read('src/XmfScreen.tsx', 'utf8');
-  const renderer = read('src/controls/ControlView.tsx', 'utf8');
+  const screen = read('packages/screen-runtime/src/XmfScreen.tsx', 'utf8');
+  const renderer = read('packages/screen-runtime/src/controls/ControlView.tsx', 'utf8');
   assert.match(renderer, /TextInput/);
   assert.match(renderer, /Pressable/);
   assert.match(screen, /toRenderDescriptors\(model,\s*Object\.fromEntries/);
@@ -885,8 +885,8 @@ function ctlImage() {
   const rows = (count) => Array.from({ length: count }, (_, index) => `\t\t<IMAGE name="img${index}" ly_vert="0,0,1,1,1" />`).join('\r\n');
   parses(mutate(original, '\t\t<TABORDER_INFO', `${rows(64)}\r\n\t\t<TABORDER_INFO`));
   rejects(mutate(original, '\t\t<TABORDER_INFO', `${rows(65)}\r\n\t\t<TABORDER_INFO`), 'INVALID_STRUCTURE');
-  const screen = read('src/XmfScreen.tsx', 'utf8');
-  const renderer = read('src/controls/ControlView.tsx', 'utf8');
+  const screen = read('packages/screen-runtime/src/XmfScreen.tsx', 'utf8');
+  const renderer = read('packages/screen-runtime/src/controls/ControlView.tsx', 'utf8');
   assert.match(screen, /<ControlView /);
   assert.match(screen, /imageSources: ControlImageSources/);
   assert.doesNotMatch(screen, /imageSources\?|imageSources\s*=\s*\{\}/);
@@ -909,7 +909,7 @@ function ctlImage() {
 }
 
 function controlModules() {
-  const types = read('src/controls/types.ts', 'utf8');
+  const types = read('packages/screen-runtime/src/controls/types.ts', 'utf8');
   assert.match(types, /interface ControlModule<T extends XmfControl>/);
   const expected = [
     ['button', 'ButtonControl', 'Button'],
@@ -918,24 +918,24 @@ function controlModules() {
     ['label', 'LabelControl', 'Label']
   ];
   for (const [file, controlType, normalizedType] of expected) {
-    const source = read(`src/controls/${file}.ts`, 'utf8');
+    const source = read(`packages/screen-runtime/src/controls/${file}.ts`, 'utf8');
     assert.match(source, new RegExp(`ControlModule<${controlType}>`));
     assert.match(source, new RegExp(`type: '${normalizedType}'`));
     assert.match(source, /create:/);
     assert.match(source, /project:/);
     assert.doesNotMatch(source, /Platform\.(?:OS|select)|require\(|import\(|readdir|glob|(?:https?|ftp|sftp):\/\//i);
   }
-  const dispatch = read('src/controls/index.ts', 'utf8');
+  const dispatch = read('packages/screen-runtime/src/controls/index.ts', 'utf8');
   for (const [file, , normalizedType] of expected) {
     assert.match(dispatch, new RegExp(`from './${file}'`));
     assert.equal((dispatch.match(new RegExp(`case '${normalizedType}'`, 'g')) ?? []).length, 2);
   }
   assert.doesNotMatch(dispatch, /require\(|import\(|readdir|glob|Platform\.(?:OS|select)/);
-  const parser = read('src/xmf.ts', 'utf8');
+  const parser = read('packages/screen-runtime/src/xmf.ts', 'utf8');
   assert.match(parser, /return createControl\(descriptor\.normalizedType,/);
   assert.match(parser, /projectControl\(control, normalized\.get\(control\.name\) \?\? \{\}\)/);
   assert.doesNotMatch(parser, /descriptor\.normalizedType === '(?:Label|Edit|Button|Image)'/);
-  const screen = read('src/XmfScreen.tsx', 'utf8');
+  const screen = read('packages/screen-runtime/src/XmfScreen.tsx', 'utf8');
   assert.match(screen, /<ControlView key=\{descriptor\.key\}/);
   assert.doesNotMatch(screen, /<(?:Text|TextInput|Pressable|Image)\b|switch \(descriptor\.component\)/);
 
@@ -1164,7 +1164,7 @@ async function runtimeClient() {
   assert.equal(maxHarness.evidence.dispatched, 2);
   await maxHarness.client.destroy();
 
-  const source = read('src/runtime-client.ts', 'utf8');
+  const source = read('packages/screen-runtime/src/runtime-client.ts', 'utf8');
   assert.doesNotMatch(source, /Request|DATAMANAGER_OnReceive|CCS2000|HS1200P08|\.qry|closeForm\s*\(/);
   return { admissionRevision: '1', appliedRevision: '1', commands: 1, imageRuntimeState: true, hostileResults: invalidResults.length + 2, maximumDerivedHandlers: 2 };
 }
@@ -1186,7 +1186,7 @@ function unseenBytes() {
 }
 
 function productionHashes() {
-  return Object.fromEntries(['src/xmf.ts', 'src/runtime-client.ts', 'src/XmfScreen.tsx', 'src/controls/ControlView.tsx', ...controlModuleFiles, 'src/controls/index.ts', 'src/controls/types.ts', 'App.tsx', 'contracts/control-registry.json']
+  return Object.fromEntries(['packages/screen-runtime/src/xmf.ts', 'packages/screen-runtime/src/runtime-client.ts', 'packages/screen-runtime/src/XmfScreen.tsx', 'packages/screen-runtime/src/controls/ControlView.tsx', ...controlModuleFiles, 'packages/screen-runtime/src/controls/index.ts', 'packages/screen-runtime/src/controls/types.ts', 'apps/labs/xmf-runtime/App.tsx', 'contracts/control-registry.json']
     .map((file) => [file, sha256(read(file))]));
 }
 
@@ -1206,7 +1206,7 @@ function unseenGenerality() {
 }
 
 function compilerHelpers() {
-  const include = ['-I', 'modules/allnewmts-lua/vendor/lua-5.1.5/src', '-I', 'modules/allnewmts-lua/shared'];
+  const include = ['-I', 'modules/allnewmts-runtime/vendor/lua-5.1.5/src', '-I', 'modules/allnewmts-runtime/shared', '-I', 'native/common'];
   const compile = (compiler, language, source, name, definitions = []) => {
     const object = path.join(temp, `${name}.o`);
     run(compiler, [language, '-Wall', '-Wextra', '-Werror', ...definitions, ...include, '-c', source, '-o', object]);
@@ -1222,13 +1222,13 @@ function compilerHelpers() {
   const provider = path.join(temp, 'liblua51.a');
   run('ar', ['rcs', provider, ...luaObjects]);
   const runtimeObjects = [
-    cxx('modules/allnewmts-lua/shared/allnewmts_runtime.cpp', 'runtime', ['-DALLNEWMTS_RUNTIME_TESTING']),
-    c('modules/allnewmts-lua/shared/allnewmts_runtime_lua.c', 'runtime-lua', ['-DALLNEWMTS_RUNTIME_TESTING']),
-    c('modules/allnewmts-lua/shared/allnewmts_runtime_adapters.c', 'runtime-adapters'),
-    c('modules/allnewmts-lua/ios/allnewmts_runtime_ios_adapter.c', 'runtime-ios'),
-    c('modules/allnewmts-lua/android/allnewmts_runtime_android_adapter.c', 'runtime-android'),
-    c('modules/allnewmts-lua/shared/resource_bundle.c', 'resources', ['-DALLNEWMTS_LUA_TESTING']),
-    c('modules/allnewmts-lua/shared/sha256.c', 'sha')
+    cxx('modules/allnewmts-runtime/shared/allnewmts_runtime.cpp', 'runtime', ['-DALLNEWMTS_RUNTIME_TESTING']),
+    c('modules/allnewmts-runtime/shared/allnewmts_runtime_lua.c', 'runtime-lua', ['-DALLNEWMTS_RUNTIME_TESTING']),
+    c('modules/allnewmts-runtime/shared/allnewmts_runtime_adapters.c', 'runtime-adapters'),
+    c('modules/allnewmts-runtime/ios/allnewmts_runtime_ios_adapter.c', 'runtime-ios'),
+    c('modules/allnewmts-runtime/android/allnewmts_runtime_android_adapter.c', 'runtime-android'),
+    c('modules/allnewmts-runtime/shared/resource_bundle.c', 'resources', ['-DALLNEWMTS_LUA_TESTING']),
+    c('native/common/sha256.c', 'sha')
   ];
   return { include, provider, runtimeObjects };
 }
@@ -1243,8 +1243,8 @@ function moduleStubSmoke() {
   const entryRoot = path.join(temp, 'ordinary-package-entry');
   run('node_modules/.bin/tsc', [
     '--ignoreConfig', '--module', 'commonjs', '--moduleResolution', 'node', '--target', 'es2022',
-    '--skipLibCheck', '--noCheck', '--ignoreDeprecations', '6.0', '--outDir', entryRoot, '--rootDir', 'modules/allnewmts-lua/src',
-    'modules/allnewmts-lua/src/index.ts', 'modules/allnewmts-lua/src/runtime.ts'
+    '--skipLibCheck', '--noCheck', '--ignoreDeprecations', '6.0', '--outDir', entryRoot, '--rootDir', 'modules/allnewmts-runtime/src',
+    'modules/allnewmts-runtime/src/index.ts', 'modules/allnewmts-runtime/src/runtime.ts'
   ]);
   const stubRoot = path.join(entryRoot, 'node_modules/expo-modules-core');
   fs.mkdirSync(stubRoot, { recursive: true });
@@ -1260,11 +1260,11 @@ module.exports = { requests, runtime, requireNativeModule(name) { requests.push(
   assert.equal(stub.requests.includes('AllNewMTSLua'), false, 'ordinary package entry reached the NATIVE_HARNESS harness');
   assert.equal(entry.runtime, stub.runtime, 'named runtime export lost the production binding');
   assert.equal(entry.default, entry.runtime, 'default and named runtime exports diverged');
-  const packageJson = json('modules/allnewmts-lua/package.json');
+  const packageJson = json('modules/allnewmts-runtime/package.json');
   assert.equal(packageJson.main, 'src/index.ts');
-  const entrySource = read(`modules/allnewmts-lua/${packageJson.main}`, 'utf8');
+  const entrySource = read(`modules/allnewmts-runtime/${packageJson.main}`, 'utf8');
   assert.equal(entrySource, "export { runtime, runtime as default } from './runtime';\nexport type { RuntimeAdmission, RuntimeBinding, RuntimeResultEvent } from './runtime';\n");
-  assert.match(read('modules/allnewmts-lua/src/runtime.ts', 'utf8'), /requireNativeModule<RuntimeBinding>\('AllNewMTSRuntime'\)/);
+  assert.match(read('modules/allnewmts-runtime/src/runtime.ts', 'utf8'), /requireNativeModule<RuntimeBinding>\('AllNewMTSRuntime'\)/);
 
   const { include, provider, runtimeObjects } = compilerHelpers();
   const config = JSON.stringify({
@@ -1276,11 +1276,11 @@ module.exports = { requests, runtime, requireNativeModule(name) { requests.push(
   });
   const event = JSON.stringify({ schemaVersion: 1, kind: 'handler', baseRevision: '0', handler: 'Success', arguments: [{ type: 'string', value: 'value' }], controlMutations: [{ id: 'Input', property: 'caption', value: { type: 'string', value: 'value' } }] });
   const objcAdapter = path.join(temp, 'runtime-objc.o');
-  run('xcrun', ['clang++', '-std=c++17', '-fobjc-arc', '-fblocks', '-Wall', '-Wextra', '-Werror', '-I', 'modules/allnewmts-lua/ios', ...include, '-c', 'modules/allnewmts-lua/ios/AllNewMTSRuntimeAdapter.mm', '-o', objcAdapter]);
+  run('xcrun', ['clang++', '-std=c++17', '-fobjc-arc', '-fblocks', '-Wall', '-Wextra', '-Werror', '-I', 'modules/allnewmts-runtime/ios', ...include, '-c', 'modules/allnewmts-runtime/ios/AllNewMTSRuntimeAdapter.mm', '-o', objcAdapter]);
   const swiftLibrary = path.join(temp, 'libExpoModulesCore.dylib');
   run('xcrun', ['swiftc', '-emit-library', '-emit-module', '-module-name', 'ExpoModulesCore', 'native/test/runtime_swift_expo_stub.swift', '-o', swiftLibrary]);
   const swiftExecutable = path.join(temp, 'ui-swift-module-smoke');
-  run('xcrun', ['swiftc', '-I', temp, '-L', temp, '-lExpoModulesCore', '-import-objc-header', 'modules/allnewmts-lua/ios/AllNewMTSRuntimeAdapter.h', 'modules/allnewmts-lua/ios/AllNewMTSRuntimeModule.swift', 'native/test/runtime_swift_module_golden_test.swift', objcAdapter, ...runtimeObjects, provider, '-Xlinker', '-lm', '-Xlinker', '-lc++', '-o', swiftExecutable]);
+  run('xcrun', ['swiftc', '-I', temp, '-L', temp, '-lExpoModulesCore', '-import-objc-header', 'modules/allnewmts-runtime/ios/AllNewMTSRuntimeAdapter.h', 'modules/allnewmts-runtime/ios/AllNewMTSRuntimeModule.swift', 'native/test/runtime_swift_module_golden_test.swift', objcAdapter, ...runtimeObjects, provider, '-Xlinker', '-lm', '-Xlinker', '-lc++', '-o', swiftExecutable]);
   const swiftOutput = run(swiftExecutable, [config, event], { env: { ...process.env, DYLD_LIBRARY_PATH: temp } });
   assert.equal(swiftOutput, expectedGolden);
 
@@ -1294,19 +1294,19 @@ module.exports = { requests, runtime, requireNativeModule(name) { requests.push(
   assert.ok(stdlib, 'TOOLCHAIN_BLOCKED: cached Kotlin stdlib unavailable');
   const classes = path.join(temp, 'kotlin-classes');
   fs.mkdirSync(classes);
-  const kotlinSources = ['native/test/runtime_android_os_stubs.kt', 'native/test/runtime_expo_kotlin_stubs.kt', ...filesUnder(path.join(root, 'modules/allnewmts-lua/android/src/main/java'), '.kt'), 'native/test/runtime_kotlin_module_golden_test.kt'];
+  const kotlinSources = ['native/test/runtime_android_os_stubs.kt', 'native/test/runtime_expo_kotlin_stubs.kt', ...filesUnder(path.join(root, 'modules/allnewmts-runtime/android/src/main/java'), '.kt'), 'native/test/runtime_kotlin_module_golden_test.kt'];
   run(java, ['-cp', `${gradleLib}/*`, 'org.jetbrains.kotlin.cli.jvm.K2JVMCompiler', '-no-stdlib', '-no-reflect', '-jvm-target', '17', '-classpath', stdlib, '-d', classes, ...kotlinSources]);
   const androidSdk = process.env.ANDROID_HOME || path.join(os.homedir(), 'Library/Android/sdk');
   const jni = path.join(androidSdk, 'ndk/27.1.12297006/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include');
   assert.ok(fs.existsSync(path.join(jni, 'jni.h')), 'TOOLCHAIN_BLOCKED: Android JNI headers unavailable');
   const jniObject = path.join(temp, 'runtime-jni.o');
-  run(process.env.CXX || 'c++', ['-std=c++17', '-Wall', '-Wextra', '-Werror', '-fPIC', '-idirafter', jni, ...include, '-c', 'modules/allnewmts-lua/android/runtime_jni.cpp', '-o', jniObject]);
+  run(process.env.CXX || 'c++', ['-std=c++17', '-Wall', '-Wextra', '-Werror', '-fPIC', '-idirafter', jni, ...include, '-c', 'modules/allnewmts-runtime/android/runtime_jni.cpp', '-o', jniObject]);
   const jniLibrary = path.join(temp, 'liballnewmts_lua.dylib');
   run(process.env.CXX || 'c++', ['-dynamiclib', jniObject, ...runtimeObjects, provider, '-lm', '-pthread', '-o', jniLibrary]);
   const kotlinOutput = run(java, [`-Djava.library.path=${temp}`, '-cp', `${classes}${path.delimiter}${stdlib}`, 'RuntimeKotlinModuleGoldenTest', config, event, expectedGolden]);
   assert.equal(kotlinOutput, expectedGolden);
-  assert.match(read('modules/allnewmts-lua/ios/AllNewMTSRuntimeModule.swift', 'utf8'), /create[\s\S]+dispatch[\s\S]+destroy/);
-  assert.match(read('modules/allnewmts-lua/android/src/main/java/com/allnewmts/lua/AllNewMTSRuntimeModule.kt', 'utf8'), /create[\s\S]+dispatch[\s\S]+destroy/);
+  assert.match(read('modules/allnewmts-runtime/ios/AllNewMTSRuntimeModule.swift', 'utf8'), /create[\s\S]+dispatch[\s\S]+destroy/);
+  assert.match(read('modules/allnewmts-runtime/android/src/main/java/com/allnewmts/lua/AllNewMTSRuntimeModule.kt', 'utf8'), /create[\s\S]+dispatch[\s\S]+destroy/);
   const javaVersion = spawnSync(java, ['-version'], { encoding: 'utf8' });
   assert.equal(javaVersion.status, 0, 'TOOLCHAIN_BLOCKED: cached JBR is not executable');
   const platforms = fs.readdirSync(path.join(androidSdk, 'platforms')).filter((name) => /^android-[0-9]+$/.test(name)).sort((a, b) => Number(a.slice(8)) - Number(b.slice(8)));
@@ -1329,16 +1329,16 @@ module.exports = { requests, runtime, requireNativeModule(name) { requests.push(
 
 function assetAndComposition() {
   run('node', ['scripts/generate-xmf-assets.mjs', '--check']);
-  const generated = read('src/generated/approved-xmf.ts', 'utf8');
+  const generated = read('apps/labs/xmf-runtime/generated/approved-xmf.ts', 'utf8');
   const values = [...generated.matchAll(/(?:^|\s)([0-9]{1,3}),/gm)].map((match) => Number(match[1]));
   assert.equal(values.length, 10_179);
   assert.deepEqual(Buffer.from(values), original);
   assert.match(generated, /approvedXmfBytesCount = 10179/);
   assert.match(generated, new RegExp(`approvedXmfSha256 = '${expectedSourceHash}'`));
-  const app = read('App.tsx', 'utf8');
+  const app = read('apps/labs/xmf-runtime/App.tsx', 'utf8');
   assert.doesNotMatch(app, /readFile|https?:|Platform\.(?:OS|select)|dispatch\s*\(/);
   const ts = createRequire(import.meta.url)('typescript');
-  const source = ts.createSourceFile('App.tsx', app, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const source = ts.createSourceFile('apps/labs/xmf-runtime/App.tsx', app, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const nodes = [];
   const visit = (node) => { nodes.push(node); ts.forEachChild(node, visit); };
   visit(source);
@@ -1349,8 +1349,9 @@ function assetAndComposition() {
   assert.deepEqual(callText('client.create'), [['buildAppRuntimeConfig(model)']], 'App must create exactly once from the model-owned config');
   assert.equal(calls.some(({ expression }) => expression.getText(source).endsWith('.dispatch')), false, 'Development Build App must not dispatch');
   const imports = nodes.filter(ts.isImportDeclaration).map((node) => [node.moduleSpecifier.text, node.importClause?.namedBindings?.getText(source)]);
-  assert.ok(imports.some(([module, names]) => module === './modules/allnewmts-lua/src' && names === '{ runtime }'));
-  assert.ok(imports.some(([module, names]) => module === './src/generated/approved-xmf' && names?.includes('approvedXmfBytes') && names.includes('approvedXmfBytesCount') && names.includes('approvedXmfSha256')));
+  assert.ok(imports.some(([module, names]) => module === 'allnewmts-runtime' && names === '{ runtime }'));
+  assert.ok(imports.some(([module, names]) => module === '@allnewmts/screen-runtime' && names?.includes('createRuntimeClient') && names.includes('ingestApprovedXmf') && names.includes('XmfScreen')));
+  assert.ok(imports.some(([module, names]) => module === './generated/approved-xmf' && names?.includes('approvedXmfBytes') && names.includes('approvedXmfBytesCount') && names.includes('approvedXmfSha256')));
   const builder = nodes.find((node) => ts.isFunctionDeclaration(node) && node.name?.text === 'buildAppRuntimeConfig');
   const returned = builder && nodes.find((node) => node.parent === builder.body && ts.isReturnStatement(node))?.expression;
   assert.ok(returned && ts.isObjectLiteralExpression(returned), 'App config builder must return one object literal');

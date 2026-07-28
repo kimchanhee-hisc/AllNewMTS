@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
-import { runtime } from './modules/allnewmts-lua/src';
-import { XmfScreen } from './src/XmfScreen';
-import { approvedXmfBytes, approvedXmfBytesCount, approvedXmfSha256 } from './src/generated/approved-xmf';
-import { createRuntimeClient, type RuntimeConfig } from './src/runtime-client';
-import { ingestApprovedXmf, type XmfModel } from './src/xmf';
+import { runtime } from 'allnewmts-runtime';
+import {
+  createRuntimeClient,
+  ingestApprovedXmf,
+  XmfScreen,
+  type RuntimeConfig,
+  type XmfModel,
+} from '@allnewmts/screen-runtime';
+import { approvedXmfBytes, approvedXmfBytesCount, approvedXmfSha256 } from './generated/approved-xmf';
 
 const model = ingestApprovedXmf({
   bytes: approvedXmfBytes,

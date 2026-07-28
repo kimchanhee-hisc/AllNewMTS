@@ -1,8 +1,0 @@
-{
-  "name": "allnewmts-lua",
-  "version": "0.0.1",
-  "description": "Local official Lua 5.1 harness for AllNewMTS",
-  "main": "src/index.ts",
-  "license": "MIT",
-  "private": true
-}

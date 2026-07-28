@@ -1,7 +1,11 @@
 {
-  "name": "allnewmts",
+  "name": "allnewmts-workspace",
   "version": "1.0.0",
-  "main": "index.ts",
+  "workspaces": [
+    "apps/labs/*",
+    "modules/*",
+    "packages/*"
+  ],
   "dependencies": {
     "expo": "~57.0.4",
     "expo-status-bar": "~57.0.0",
@@ -34,12 +38,12 @@
     "verify:ui": "node scripts/verify-ui.mjs",
     "verify:ctlimage": "node scripts/verify-ui.mjs --phase ctlimage",
     "verify:control-modules": "node scripts/verify-ui.mjs --phase control-modules",
+    "verify:layers": "node scripts/verify-layers.mjs",
     "verify:fast": "node scripts/verify-foundation.mjs fast",
     "verify:ci": "node scripts/verify-foundation.mjs ci",
-    "start": "expo start",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
-    "web": "expo start --web",
+    "lab:xmf": "node scripts/run-xmf-lab.mjs",
+    "lab:networking": "node scripts/run-networking-lab.mjs",
+    "lab:xmf:smoke": "node scripts/run-ui-development-build.mjs",
     "verify:runtime": "node scripts/verify-runtime.mjs"
   },
   "private": true

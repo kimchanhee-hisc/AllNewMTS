@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const projectRoot = path.join(root, 'apps/labs/xmf-runtime');
 const marker = 'ALLNEWMTS_NATIVE_HARNESS_RESULT=';
 const expected = fs.readFileSync(path.join(root, 'native/test/adapter-golden.txt'), 'utf8').trim();
 const runEnv = {
@@ -151,20 +152,20 @@ function androidTargets() {
 }
 
 function gradleBinary() {
-  const properties = fs.readFileSync(path.join(root, 'android/gradle/wrapper/gradle-wrapper.properties'), 'utf8');
+  const properties = fs.readFileSync(path.join(projectRoot, 'android/gradle/wrapper/gradle-wrapper.properties'), 'utf8');
   const url = properties.match(/^distributionUrl=(.+)$/m)?.[1]?.replaceAll('\\:', ':');
   assert.ok(url, 'generated Android wrapper omits distributionUrl');
   const archive = path.basename(url);
   const version = archive.match(/^gradle-(.+)-(?:bin|all)\.zip$/)?.[1];
   assert.ok(version, `unsupported Gradle distribution: ${archive}`);
   const cache = path.join(os.homedir(), '.gradle/wrapper/dists', archive.slice(0, -4));
-  if (!fs.existsSync(cache)) return path.join(root, 'android/gradlew');
+  if (!fs.existsSync(cache)) return path.join(projectRoot, 'android/gradlew');
   const binaries = fs.readdirSync(cache).flatMap((hash) => {
     const binary = path.join(cache, hash, `gradle-${version}/bin/gradle`);
     return fs.existsSync(binary) ? [binary] : [];
   });
   assert.ok(binaries.length <= 1, `ambiguous cached Gradle distribution: ${archive}`);
-  return binaries[0] ?? path.join(root, 'android/gradlew');
+  return binaries[0] ?? path.join(projectRoot, 'android/gradlew');
 }
 
 function inspectApplePackage(app, temp) {
@@ -217,8 +218,8 @@ function androidIdentityFromApk(apk) {
 }
 
 export async function runNativeHarnessDevelopmentBuild(temp) {
-  for (const directory of ['ios', 'android']) assert.equal(fs.existsSync(path.join(root, directory)), false, `refusing to replace existing ${directory}/`);
-  const moduleConfigPath = path.join(root, 'modules/allnewmts-lua/expo-module.config.json');
+  for (const directory of ['ios', 'android']) assert.equal(fs.existsSync(path.join(projectRoot, directory)), false, `refusing to replace existing XMF Lab ${directory}/`);
+  const moduleConfigPath = path.join(root, 'modules/allnewmts-runtime/expo-module.config.json');
   const productionModuleConfig = fs.readFileSync(moduleConfigPath, 'utf8');
   const verificationModuleConfig = JSON.parse(productionModuleConfig);
   verificationModuleConfig.apple.modules.unshift('AllNewMTSLuaModule');
@@ -243,9 +244,9 @@ export async function runNativeHarnessDevelopmentBuild(temp) {
     metroReservation = await reserveMetroPort();
     metroPort = metroReservation.port;
     runEnv.RCT_METRO_PORT = String(metroPort);
-    command(path.join(root, 'node_modules/.bin/expo'), ['prebuild', '--no-install', '--platform', 'all']);
+    command(path.join(root, 'node_modules/.bin/expo'), ['prebuild', projectRoot, '--no-install', '--platform', 'all']);
     const pod = command('which', ['pod']).trim();
-    command(pod, ['install', '--no-repo-update'], { cwd: path.join(root, 'ios') });
+    command(pod, ['install', '--no-repo-update'], { cwd: path.join(projectRoot, 'ios') });
 
     if (apple.bootedByRunner) {
       command('xcrun', ['simctl', 'boot', apple.udid]);
@@ -253,9 +254,9 @@ export async function runNativeHarnessDevelopmentBuild(temp) {
       command('xcrun', ['simctl', 'bootstatus', apple.udid, '-b']);
     }
     const derived = path.join(temp, 'ios-derived');
-    command('xcodebuild', ['-quiet', '-workspace', 'ios/AllNewMTS.xcworkspace', '-scheme', 'AllNewMTS', '-configuration', 'Debug', '-sdk', 'iphonesimulator', '-destination', `id=${apple.udid}`, '-derivedDataPath', derived, 'CODE_SIGNING_ALLOWED=NO', `RCT_METRO_PORT=${metroPort}`, 'build']);
+    command('xcodebuild', ['-quiet', '-workspace', path.join(projectRoot, 'ios/AllNewMTSXMFLab.xcworkspace'), '-scheme', 'AllNewMTSXMFLab', '-configuration', 'Debug', '-sdk', 'iphonesimulator', '-destination', `id=${apple.udid}`, '-derivedDataPath', derived, 'CODE_SIGNING_ALLOWED=NO', `RCT_METRO_PORT=${metroPort}`, 'build']);
     const apps = fs.readdirSync(path.join(derived, 'Build/Products/Debug-iphonesimulator')).filter((name) => name.endsWith('.app'));
-    assert.deepEqual(apps, ['AllNewMTS.app'], 'unexpected iOS Development Build output');
+    assert.deepEqual(apps, ['AllNewMTSXMFLab.app'], 'unexpected iOS Development Build output');
     const app = path.join(derived, 'Build/Products/Debug-iphonesimulator', apps[0]);
     iosPackage = inspectApplePackage(app, temp);
     ({ bundleId: iosBundleId } = iosPackage);
@@ -265,7 +266,7 @@ export async function runNativeHarnessDevelopmentBuild(temp) {
     assert.notEqual(installed.status, 0, `refusing to replace pre-existing simulator app ${iosBundleId}`);
     await metroReservation.release();
     metroReservation = undefined;
-    metro = spawn(path.join(root, 'node_modules/.bin/expo'), ['start', '--port', String(metroPort)], { cwd: root, env: runEnv, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    metro = spawn(path.join(root, 'node_modules/.bin/expo'), ['start', projectRoot, '--port', String(metroPort)], { cwd: root, env: runEnv, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
     metroLog = fs.createWriteStream(path.join(temp, 'metro.log'));
     metro.stdout.pipe(metroLog); metro.stderr.pipe(metroLog);
     await waitForMetro(metroPort);
@@ -281,10 +282,10 @@ export async function runNativeHarnessDevelopmentBuild(temp) {
     assert.ok(fs.existsSync(javaHome), 'local Android Studio JDK is unavailable');
     runEnv.JAVA_HOME = javaHome;
     const gradle = gradleBinary();
-    const build = spawnSync(gradle, [':app:assembleDebug', '--no-daemon', `-PreactNativeDevServerPort=${metroPort}`], { cwd: path.join(root, 'android'), encoding: 'utf8', env: runEnv, maxBuffer: 100 * 1024 * 1024 });
+    const build = spawnSync(gradle, [':app:assembleDebug', '--no-daemon', `-PreactNativeDevServerPort=${metroPort}`], { cwd: path.join(projectRoot, 'android'), encoding: 'utf8', env: runEnv, maxBuffer: 100 * 1024 * 1024 });
     assert.equal(build.error, undefined, `${gradle} could not start: ${build.error?.message}`);
     assert.equal(build.status, 0, `Android build failed:\n${`${build.stdout ?? ''}${build.stderr ?? ''}`.slice(-20000)}`);
-    const apk = path.join(root, 'android/app/build/outputs/apk/debug/app-debug.apk');
+    const apk = path.join(projectRoot, 'android/app/build/outputs/apk/debug/app-debug.apk');
     assert.ok(fs.existsSync(apk), 'Android Development Build APK missing');
     const androidPackage = inspectAndroidPackage(apk, temp);
 
@@ -363,9 +364,9 @@ export async function runNativeHarnessDevelopmentBuild(temp) {
       assert.equal(fs.readFileSync(moduleConfigPath, 'utf8'), productionModuleConfig, 'production module registration was not restored');
     });
     await cleanup('generated native directories', () => {
-      fs.rmSync(path.join(root, 'ios'), { recursive: true, force: true });
-      fs.rmSync(path.join(root, 'android'), { recursive: true, force: true });
-      assert.equal(fs.existsSync(path.join(root, 'ios')) || fs.existsSync(path.join(root, 'android')), false, 'generated native directories remain after cleanup');
+      fs.rmSync(path.join(projectRoot, 'ios'), { recursive: true, force: true });
+      fs.rmSync(path.join(projectRoot, 'android'), { recursive: true, force: true });
+      assert.equal(fs.existsSync(path.join(projectRoot, 'ios')) || fs.existsSync(path.join(projectRoot, 'android')), false, 'generated XMF Lab native directories remain after cleanup');
     });
     if (primaryError && cleanupErrors.length) {
       primaryError.cleanupErrors = cleanupErrors;

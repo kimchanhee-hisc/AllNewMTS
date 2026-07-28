@@ -168,7 +168,10 @@ function foundationFiles() {
     'scripts/probe-rest-beta-tr.swift',
     'scripts/run-ui-development-build.mjs',
     'scripts/run-native-harness-development-build.mjs',
+    'scripts/run-xmf-lab.mjs',
+    'scripts/run-networking-lab.mjs',
     'scripts/verify-foundation.mjs',
+    'scripts/verify-layers.mjs',
     'scripts/verify-networking.mjs',
     'scripts/verify-native.mjs',
     'scripts/verify-runtime.mjs',
@@ -213,7 +216,10 @@ export const expectedIntegrityPaths = [
   'scripts/probe-rest-beta-tr.swift',
   'scripts/run-ui-development-build.mjs',
   'scripts/run-native-harness-development-build.mjs',
+  'scripts/run-xmf-lab.mjs',
+  'scripts/run-networking-lab.mjs',
   'scripts/verify-foundation.mjs',
+  'scripts/verify-layers.mjs',
   'scripts/verify-networking.mjs',
   'scripts/verify-native.mjs',
   'scripts/verify-runtime.mjs',
@@ -283,8 +289,8 @@ export function verifyVerifierPaths(manifest, readVerifier = read) {
   }
   const native = sources.get('scripts/verify-native.mjs');
   assert.ok(native, 'native verifier source is missing');
-  assert.match(native, /modules\/allnewmts-lua\/android\/src\/verification\/java\/com\/allnewmts\/lua\/AllNewMTSLuaModule\.kt/, 'native verifier must read the flag-gated Kotlin source set');
-  assert.doesNotMatch(native, /modules\/allnewmts-lua\/android\/src\/main\/java\/com\/allnewmts\/lua\/AllNewMTSLuaModule\.kt/, 'native verifier must not reference the production Kotlin source set for the harness');
+  assert.match(native, /modules\/allnewmts-runtime\/android\/src\/verification\/java\/com\/allnewmts\/lua\/AllNewMTSLuaModule\.kt/, 'native verifier must read the flag-gated Kotlin source set');
+  assert.doesNotMatch(native, /modules\/allnewmts-runtime\/android\/src\/main\/java\/com\/allnewmts\/lua\/AllNewMTSLuaModule\.kt/, 'native verifier must not reference the production Kotlin source set for the harness');
 }
 
 export function verifyContractInventories(host, controls) {
@@ -363,8 +369,8 @@ function verifyDocs() {
   }
 
   verifySuites(manifest);
-  assert.deepEqual(manifest.suites.fast.checks, ['format', 'docs', 'policy', 'type', 'unit']);
-  assert.deepEqual(manifest.suites.ci.checks, ['format', 'docs', 'policy', 'type', 'unit', 'fixtures', 'networking', 'native', 'runtime', 'ui']);
+  assert.deepEqual(manifest.suites.fast.checks, ['format', 'docs', 'policy', 'type', 'unit', 'layers']);
+  assert.deepEqual(manifest.suites.ci.checks, ['format', 'docs', 'policy', 'type', 'unit', 'layers', 'fixtures', 'networking', 'native', 'runtime', 'ui']);
 
   assert.equal(host.inventoryStatus, 'active');
   assert.deepEqual(host.publicApis.map(({ name }) => name), [

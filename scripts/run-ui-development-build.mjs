@@ -10,8 +10,11 @@ import { TextDecoder } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const projectRoot = path.join(root, 'apps/labs/xmf-runtime');
+const projectRelative = 'apps/labs/xmf-runtime';
+const targetName = 'AllNewMTSXMFLab';
 const markerPrefix = 'ALLNEWMTS_UI_READY=';
-const bundleId = 'com.anonymous.allnewmts';
+const bundleId = 'com.allnewmts.lab.xmf';
 const maximumSelectionAttempts = 3;
 const portReleaseTimeoutMs = 1000;
 const truthProbeTimeoutMs = 5000;
@@ -19,6 +22,7 @@ const simulatorCleanupStableSamples = 4;
 const simulatorCleanupSampleIntervalMs = 250;
 const simulatorCleanupTimeoutMs = 30000;
 const simulatorCommandTimeoutMs = 30000;
+const maximumCustodianResponseBytes = 8 * 1024 * 1024;
 const allowedArguments = new Set(['', '--preflight', '--network-regression', '--pod-cache-regression', '--metro-evidence-regression', '--simulator-cleanup-regression', '--build-failure-marker-transport-child', '--generic-failure-marker-transport-child', '--nested-swiftpm-regression']);
 const requestedMode = process.argv.slice(2).join(' ');
 assert.ok(allowedArguments.has(requestedMode), 'usage: node scripts/run-ui-development-build.mjs [--preflight|--network-regression|--pod-cache-regression|--metro-evidence-regression|--simulator-cleanup-regression|--build-failure-marker-transport-child|--generic-failure-marker-transport-child|--nested-swiftpm-regression]');
@@ -26,6 +30,7 @@ assert.ok(allowedArguments.has(requestedMode), 'usage: node scripts/run-ui-devel
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 const unrefDelay = (milliseconds, value = undefined) => new Promise((resolve) => { const timer = setTimeout(resolve, milliseconds, value); timer.unref(); });
 const exists = (file) => fs.existsSync(path.join(root, file));
+const projectExists = (file) => fs.existsSync(path.join(projectRoot, file));
 const commandPath = (name) => {
   const result = spawnSync('/usr/bin/which', [name], { encoding: 'utf8' });
   assert.equal(result.status, 0, `TOOLCHAIN_BLOCKED: ${name} is unavailable`);
@@ -1424,7 +1429,7 @@ async function startNoFollowSession(options = {}) {
   child.stdout.setEncoding('utf8');
   child.stdout.on('data', (chunk) => {
     stdout += chunk;
-    if (Buffer.byteLength(stdout) > 1024 * 1024) return failSession(new Error('custodian response exceeded 1 MiB'));
+    if (Buffer.byteLength(stdout) > maximumCustodianResponseBytes) return failSession(new Error('custodian response exceeded 8 MiB'));
     for (let newline; (newline = stdout.indexOf('\n')) >= 0;) {
       const line = stdout.slice(0, newline); stdout = stdout.slice(newline + 1);
       try { pending.shift()?.resolve(JSON.parse(line)); } catch (error) { failSession(error); }
@@ -1990,7 +1995,7 @@ function validateFinalExpoModulesJsiXcframework(packageRoot, useTool, expectedHa
 
 async function prepareNestedSwiftPm(session, profiles, env) {
   const packageRoot = path.join(root, 'node_modules/expo-modules-jsi/apple');
-  const podsRoot = path.join(root, 'ios/Pods');
+  const podsRoot = path.join(projectRoot, 'ios/Pods');
   const rnRoot = path.join(root, 'node_modules/react-native');
   const developerDir = fs.realpathSync(env.DEVELOPER_DIR || process.env.DEVELOPER_DIR || run('/usr/bin/xcode-select', ['-p']).trim());
   assert.ok(fs.statSync(developerDir).isDirectory(), 'selected DEVELOPER_DIR is not a directory');
@@ -2950,15 +2955,16 @@ function cachedPodSource(name, version, requiredPaths, cache = path.join(os.home
   const matches = fs.readdirSync(specs).filter((file) => file.endsWith('.podspec.json')).filter((file) => {
     const spec = JSON.parse(fs.readFileSync(path.join(specs, file), 'utf8'));
     return spec.name === name && spec.version === version;
-  });
-  assert.equal(matches.length, 1, `OFFLINE_DEPENDENCY_UNAVAILABLE: expected one local ${name} ${version} cache entry`);
-  const key = matches[0].slice(0, -'.podspec.json'.length);
-  const source = path.join(cache, 'External', name, key);
-  for (const requiredPath of requiredPaths) {
+  }).sort();
+  assert.ok(matches.length, `OFFLINE_DEPENDENCY_UNAVAILABLE: no local ${name} ${version} cache entry`);
+  const candidates = matches.map((file) => path.join(cache, 'External', name, file.slice(0, -'.podspec.json'.length)));
+  const fingerprints = candidates.map((source) => requiredPaths.map((requiredPath) => {
     const file = path.join(source, requiredPath);
     assert.ok(fs.existsSync(file) && fs.statSync(file).isFile() && fs.statSync(file).size > 0, `OFFLINE_DEPENDENCY_UNAVAILABLE: cached ${name} ${version} is incomplete`);
-  }
-  return source;
+    return createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+  }).join(':'));
+  assert.equal(new Set(fingerprints).size, 1, `OFFLINE_DEPENDENCY_UNAVAILABLE: conflicting local ${name} ${version} cache entries`);
+  return candidates[0];
 }
 
 function cachedAppleDependencies(cache) {
@@ -2990,7 +2996,7 @@ function preflightSnapshot(podCaches) {
   ]);
   return {
     dirty: run('git', ['status', '--porcelain=v1', '-z']),
-    nativeDirectories: { ios: exists('ios'), android: exists('android') },
+    nativeDirectories: { ios: projectExists('ios'), android: projectExists('android') },
     tempEntries: fs.readdirSync(os.tmpdir()).filter((entry) => entry.startsWith('allnewmts-ui-')).sort(),
     cacheFiles: files.map((file) => ({
       file,
@@ -3101,11 +3107,12 @@ function toolchainProvenance() {
 }
 
 async function preflight() {
-  assert.equal(exists('ios'), false, 'TOOLCHAIN_BLOCKED: root ios/ must not exist before UI smoke');
-  assert.equal(exists('android'), false, 'TOOLCHAIN_BLOCKED: root android/ must not exist before UI smoke');
-  for (const file of ['node_modules/.bin/expo', 'node_modules/react-native/package.json', 'app.json']) {
+  assert.equal(projectExists('ios'), false, 'TOOLCHAIN_BLOCKED: XMF Lab ios/ must not exist before UI smoke');
+  assert.equal(projectExists('android'), false, 'TOOLCHAIN_BLOCKED: XMF Lab android/ must not exist before UI smoke');
+  for (const file of ['node_modules/.bin/expo', 'node_modules/react-native/package.json']) {
     assert.ok(exists(file), `TOOLCHAIN_BLOCKED: missing ${file}`);
   }
+  assert.ok(projectExists('app.json'), 'TOOLCHAIN_BLOCKED: missing XMF Lab app.json');
   for (const tool of ['xcrun', 'swift', 'pod', 'lsof', 'sandbox-exec']) commandPath(tool);
   const podCaches = assertPodCaches();
   const before = preflightSnapshot(podCaches);
@@ -3119,7 +3126,7 @@ async function preflight() {
       status: 'PASS',
       mode: 'preflight',
       simulator: simulator.name,
-      rootNativeDirectoriesAbsent: true,
+      labNativeDirectoriesAbsent: true,
       offlineCachesPresent: true,
       offlineAppleDependencies: podCaches.map(({ name, version }) => ({ name, version })),
       toolchain: toolchainProvenance(),
@@ -3176,10 +3183,17 @@ function podCacheRegression() {
     assert.match(run('tar', ['-tzf', env.HERMES_ENGINE_TARBALL_PATH]), /hermesvm\.xcframework/);
     assert.match(run('tar', ['-tzf', env.RCT_USE_LOCAL_RN_DEP]), /ReactNativeDependencies\.xcframework/);
 
+    const duplicate = seedPodCache(cache, requirements[0], 'equivalent-duplicate');
+    assert.equal(cachedPodSource(requirements[0].name, requirements[0].version, requirements[0].requiredPaths, cache), duplicate);
+    fs.appendFileSync(path.join(duplicate, requirements[0].requiredPaths[0]), 'conflict\n');
+    assert.throws(() => cachedPodSource(requirements[0].name, requirements[0].version, requirements[0].requiredPaths, cache), /conflicting local/);
+    fs.rmSync(path.join(cache, 'Specs/External', requirements[0].name, 'equivalent-duplicate.podspec.json'));
+    fs.rmSync(duplicate, { recursive: true });
+
     const hostileSpec = path.join(cache, 'Specs/External', requirements[0].name, 'exact-0.podspec.json');
     const exactSpec = fs.readFileSync(hostileSpec);
     fs.writeFileSync(hostileSpec, JSON.stringify({ name: requirements[0].name, version: '0.0.0-hostile' }));
-    assert.throws(() => cachedPodSource(requirements[0].name, requirements[0].version, requirements[0].requiredPaths, cache), /expected one local/);
+    assert.throws(() => cachedPodSource(requirements[0].name, requirements[0].version, requirements[0].requiredPaths, cache), /no local/);
     fs.writeFileSync(hostileSpec, exactSpec);
     fs.truncateSync(path.join(sources[1], requirements[1].requiredPaths[0]), 0);
     assert.throws(() => cachedPodSource(requirements[1].name, requirements[1].version, requirements[1].requiredPaths, cache), /is incomplete/);
@@ -3187,6 +3201,8 @@ function podCacheRegression() {
       status: 'PASS',
       mode: 'pod-cache-regression',
       exactVersionsMatched: true,
+      equivalentDuplicatesAccepted: true,
+      conflictingDuplicatesRejected: true,
       hostileVersionRejected: true,
       hostileMissingContentRejected: true,
       localArtifactsPrepared: true,
@@ -3805,7 +3821,7 @@ function assertSelectedPort(port, value, label) {
 }
 
 const appCommandLineSection = 'Build settings from command line:';
-const appResolvedSection = 'Build settings for action build and target AllNewMTS:';
+const appResolvedSection = `Build settings for action build and target ${targetName}:`;
 
 function appMetroSettingRecords(source) {
   let section = null;
@@ -4031,21 +4047,21 @@ function metroEvidenceRegression() {
     assert.throws(() => assertGeneratedMetroRecords([{ file: 'React-Core.debug.xcconfig', source }]));
   }
 
-  const app = `Build settings from command line:\n    RCT_METRO_PORT = ${port}\nBuild settings for action build and target AllNewMTS:\n    SDK_VERSION = 18.4\n    RCT_METRO_PORT = ${port}\n    UNRELATED = 8081`;
+  const app = `Build settings from command line:\n    RCT_METRO_PORT = ${port}\nBuild settings for action build and target AllNewMTSXMFLab:\n    SDK_VERSION = 18.4\n    RCT_METRO_PORT = ${port}\n    UNRELATED = 8081`;
   const pods = `GCC_PREPROCESSOR_DEFINITIONS = SDK_VERSION=18.4 RCT_METRO_PORT=${port} OTHER=8081`;
   const appEvidence = assertMetroSettings(port, app, pods);
   assert.deepEqual(appEvidence, [
     { section: 'Build settings from command line:', line: 2, raw: `    RCT_METRO_PORT = ${port}`, rhs: ` ${port}` },
-    { section: 'Build settings for action build and target AllNewMTS:', line: 5, raw: `    RCT_METRO_PORT = ${port}`, rhs: ` ${port}` }
+    { section: 'Build settings for action build and target AllNewMTSXMFLab:', line: 5, raw: `    RCT_METRO_PORT = ${port}`, rhs: ` ${port}` }
   ]);
   const badApps = [
     '',
     `Build settings from command line:\n    RCT_METRO_PORT = ${port}`,
-    `Build settings for action build and target AllNewMTS:\n    RCT_METRO_PORT = ${port}`,
-    `Build settings from command line:\nBuild settings from command line:\n    RCT_METRO_PORT = ${port}\nBuild settings for action build and target AllNewMTS:\n    RCT_METRO_PORT = ${port}`,
+    `Build settings for action build and target AllNewMTSXMFLab:\n    RCT_METRO_PORT = ${port}`,
+    `Build settings from command line:\nBuild settings from command line:\n    RCT_METRO_PORT = ${port}\nBuild settings for action build and target AllNewMTSXMFLab:\n    RCT_METRO_PORT = ${port}`,
     `${app}\n    RCT_METRO_PORT = ${port}`,
-    `Build settings from command line:\n    RCT_METRO_PORT = ${port}\nBuild settings for action build and target AllNewMTS:\n    RCT_METRO_PORT = ${port}\nOther heading:\n    RCT_METRO_PORT = ${port}`,
-    `Build settings from command line:\n    RCT_METRO_PORT = ${port}\nBuild settings for action clean and target AllNewMTS:\n    RCT_METRO_PORT = ${port}`,
+    `Build settings from command line:\n    RCT_METRO_PORT = ${port}\nBuild settings for action build and target AllNewMTSXMFLab:\n    RCT_METRO_PORT = ${port}\nOther heading:\n    RCT_METRO_PORT = ${port}`,
+    `Build settings from command line:\n    RCT_METRO_PORT = ${port}\nBuild settings for action clean and target AllNewMTSXMFLab:\n    RCT_METRO_PORT = ${port}`,
     `RCT_METRO_PORT = ${port}\n${app}`,
     app.replace(`RCT_METRO_PORT = ${port}`, 'RCT_METRO_PORT = '),
     app.replace(`RCT_METRO_PORT = ${port}`, 'RCT_METRO_PORT = port'),
@@ -4063,7 +4079,7 @@ function metroEvidenceRegression() {
   }
   assert.deepEqual(preservedFailure?.appMetroSettings, [
     { section: 'Build settings from command line:', line: 2, raw: '    RCT_METRO_PORT = 8081', rhs: ' 8081' },
-    { section: 'Build settings for action build and target AllNewMTS:', line: 5, raw: `    RCT_METRO_PORT = ${port}`, rhs: ` ${port}` }
+    { section: 'Build settings for action build and target AllNewMTSXMFLab:', line: 5, raw: `    RCT_METRO_PORT = ${port}`, rhs: ` ${port}` }
   ]);
   for (const bad of ['GCC_PREPROCESSOR_DEFINITIONS = OTHER=18.4', 'GCC_PREPROCESSOR_DEFINITIONS = RCT_METRO_PORT=', 'GCC_PREPROCESSOR_DEFINITIONS = RCT_METRO_PORT=43211', 'GCC_PREPROCESSOR_DEFINITIONS = RCT_METRO_PORT=8081', `GCC_PREPROCESSOR_DEFINITIONS = RCT_METRO_PORT=${port} RCT_METRO_PORT=${port}`]) {
     assert.throws(() => assertMetroSettings(port, app, bad));
@@ -4099,7 +4115,7 @@ function metroEvidenceRegression() {
 }
 
 function generatedMetroSettings() {
-  const directory = path.join(root, 'ios/Pods/Target Support Files/React-Core');
+  const directory = path.join(projectRoot, 'ios/Pods/Target Support Files/React-Core');
   const files = fs.readdirSync(directory, { withFileTypes: true })
     .filter((entry) => entry.isFile() && entry.name.endsWith('.xcconfig'))
     .map((entry) => ({ file: path.relative(root, path.join(directory, entry.name)), source: fs.readFileSync(path.join(directory, entry.name), 'utf8') }));
@@ -4119,12 +4135,26 @@ async function reapChild(child) {
   assert.equal(processIsLive(child), false, 'owned Metro launcher was not reaped');
 }
 
+function processGroupMembers(pgid) {
+  const result = spawnSync('ps', ['-axo', 'pid=,pgid='], { encoding: 'utf8' });
+  assert.equal(result.status, 0, 'could not inspect owned Metro process group');
+  return result.stdout.split(/\r?\n/).map((line) => line.trim().split(/\s+/).map(Number))
+    .filter(([pid, group]) => Number.isSafeInteger(pid) && group === pgid).map(([pid]) => pid);
+}
+
 async function stopProcessGroup(child, pgid) {
   if (!pgid) return;
   for (const signal of ['SIGTERM', 'SIGKILL']) {
     try { process.kill(-pgid, signal); } catch (error) { if (error.code !== 'ESRCH') throw error; }
     for (let attempt = 0; attempt < 30; attempt += 1) {
-      try { process.kill(-pgid, 0); } catch (error) { if (error.code === 'ESRCH') break; throw error; }
+      try { process.kill(-pgid, 0); } catch (error) {
+        if (error.code === 'ESRCH') break;
+        if (error.code === 'EPERM') {
+          await reapChild(child);
+          if (processGroupMembers(pgid).length === 0) return;
+        }
+        throw error;
+      }
       await delay(100);
     }
     try { process.kill(-pgid, 0); } catch (error) {
@@ -4243,6 +4273,14 @@ async function waitForMarker(stdoutFile, stderrFile, unifiedLogFile, pid, port) 
   throw new Error(`Development Build emitted no ${markerPrefix} marker`);
 }
 
+function inspectXmfLabBinary(app) {
+  const executable = path.join(app, targetName);
+  assert.ok(fs.existsSync(executable), 'XMF Lab executable is missing');
+  const symbols = run('nm', ['-U', executable]);
+  assert.doesNotMatch(symbols, /_allnewmts_(?:mci|networking|rest|product)_/, 'XMF Lab linked Networking symbols');
+  return { binaryNetworkingSymbols: false, networking: false };
+}
+
 async function developmentBuild() {
   await preflight();
   const baseline = run('git', ['status', '--porcelain=v1', '-z']);
@@ -4288,14 +4326,14 @@ async function developmentBuild() {
     fs.mkdirSync(env.CP_CACHE_DIR);
     failurePhase = 'offline-dependencies';
     offlineAppleDependencies = prepareLocalAppleDependencies(temp, env);
-    const sandbox = (args) => run('/usr/bin/sandbox-exec', ['-f', profiles.deny, ...args], { env });
+    const sandbox = (args, options = {}) => run('/usr/bin/sandbox-exec', ['-f', profiles.deny, ...args], { env, ...options });
     failurePhase = 'package-custodian';
     await nofollow.request({ op: 'arm' });
     packageMutationArmed = true;
     failurePhase = 'prebuild';
-    sandbox([path.join(root, 'node_modules/.bin/expo'), 'prebuild', '--no-install', '--platform', 'ios']);
+    sandbox([path.join(root, 'node_modules/.bin/expo'), 'prebuild', '--no-install', '--platform', 'ios'], { cwd: projectRoot });
     failurePhase = 'pods';
-    sandbox(['pod', 'install', '--no-repo-update', '--project-directory=ios']);
+    sandbox(['pod', 'install', '--no-repo-update', '--project-directory=ios'], { cwd: projectRoot });
     failurePhase = 'nested-swiftpm';
     const swiftPm = await prepareNestedSwiftPm(nofollow, profiles, env);
     nestedSwiftPm = swiftPm.evidence;
@@ -4303,10 +4341,10 @@ async function developmentBuild() {
     failurePhase = 'build-settings';
     const generatedSettings = generatedMetroSettings();
     const destination = `id=${simulator.udid}`;
-    const appShow = sandbox([swiftPm.useXcodebuild(), '-workspace', 'ios/AllNewMTS.xcworkspace', '-scheme', 'AllNewMTS', '-configuration', 'Debug', '-sdk', 'iphonesimulator', '-destination', destination, `RCT_METRO_PORT=${port}`, '-showBuildSettings']);
-    const podShow = sandbox([swiftPm.useXcodebuild(), '-project', 'ios/Pods/Pods.xcodeproj', '-target', 'React-Core', '-configuration', 'Debug', `RCT_METRO_PORT=${port}`, '-showBuildSettings']);
+    const appShow = sandbox([swiftPm.useXcodebuild(), '-workspace', `${projectRelative}/ios/${targetName}.xcworkspace`, '-scheme', targetName, '-configuration', 'Debug', '-sdk', 'iphonesimulator', '-destination', destination, `RCT_METRO_PORT=${port}`, '-showBuildSettings']);
+    const podShow = sandbox([swiftPm.useXcodebuild(), '-project', `${projectRelative}/ios/Pods/Pods.xcodeproj`, '-target', 'React-Core', '-configuration', 'Debug', `RCT_METRO_PORT=${port}`, '-showBuildSettings']);
     appMetroSettings = assertMetroSettings(port, appShow, podShow);
-    const buildArgs = [swiftPm.useXcodebuild(), '-quiet', '-workspace', 'ios/AllNewMTS.xcworkspace', '-scheme', 'AllNewMTS', '-configuration', 'Debug', '-sdk', 'iphonesimulator', '-destination', destination, '-derivedDataPath', path.join(temp, 'ios-derived'), 'CODE_SIGNING_ALLOWED=NO', `RCT_METRO_PORT=${port}`, 'build'];
+    const buildArgs = [swiftPm.useXcodebuild(), '-quiet', '-workspace', `${projectRelative}/ios/${targetName}.xcworkspace`, '-scheme', targetName, '-configuration', 'Debug', '-sdk', 'iphonesimulator', '-destination', destination, '-derivedDataPath', path.join(temp, 'ios-derived'), 'CODE_SIGNING_ALLOWED=NO', `RCT_METRO_PORT=${port}`, 'build'];
     assertBuildArgv(port, buildArgs);
     failurePhase = 'compiled-build';
     const compiled = runCompiledBuild('/usr/bin/sandbox-exec', ['-f', profiles.deny, ...buildArgs], { env });
@@ -4320,7 +4358,7 @@ async function developmentBuild() {
     }
     failurePhase = 'metro';
     const metroFile = '/usr/bin/sandbox-exec';
-    const metroArgs = ['-f', profiles.metro, path.join(root, 'node_modules/.bin/expo'), 'start', '--localhost', '--port', String(port)];
+    const metroArgs = ['-f', profiles.metro, path.join(root, 'node_modules/.bin/expo'), 'start', projectRoot, '--localhost', '--port', String(port)];
     assertExpoArgv(port, metroArgs);
     metroStdoutFd = fs.openSync(path.join(temp, 'metro.stdout.log'), 'w');
     metroStderrFd = fs.openSync(path.join(temp, 'metro.stderr.log'), 'w');
@@ -4341,8 +4379,9 @@ async function developmentBuild() {
     await waitForMetro(port, metro, metroPgid);
     const readinessNetwork = await assertMetroNetwork(port, metro, metroPgid);
     failurePhase = 'app-install';
-    const app = path.join(temp, 'ios-derived/Build/Products/Debug-iphonesimulator/AllNewMTS.app');
+    const app = path.join(temp, `ios-derived/Build/Products/Debug-iphonesimulator/${targetName}.app`);
     assert.ok(fs.existsSync(app), 'built iOS app is missing');
+    const nativeGraph = inspectXmfLabBinary(app);
     const existing = simulatorAppRegistrationSnapshot(simulator, env);
     assert.deepEqual(existing, { containerPresent: false, launchServicesRegistered: false }, `refusing to replace pre-existing ${bundleId}`);
     run('xcrun', ['simctl', 'install', simulator.udid, app], { env });
@@ -4380,6 +4419,11 @@ async function developmentBuild() {
       appMetroSettings,
       offlineAppleDependencies,
       nestedSwiftPm,
+      nativeGraph: {
+        ...nativeGraph,
+        runtime: observed.payload.module,
+        runtimeCreateCode: observed.payload.createCode
+      },
       toolchain: toolchainProvenance(),
       developmentBuildInvocations: 1
     };
@@ -4445,11 +4489,11 @@ async function developmentBuild() {
       assert.equal(restoration.wholeSha256, packageBaseline.wholeSha256);
     }
   });
-  await attempt(async () => fs.rmSync(path.join(root, 'ios'), { recursive: true, force: true }));
+  await attempt(async () => fs.rmSync(path.join(projectRoot, 'ios'), { recursive: true, force: true }));
   await attempt(async () => closeNoFollowSession(nofollow));
   await attempt(async () => { if (temp) fs.rmSync(temp, { recursive: true, force: true }); });
-  await attempt(async () => assert.equal(exists('ios'), false, 'cleanup left root ios/'));
-  await attempt(async () => assert.equal(exists('android'), false, 'cleanup created root android/'));
+  await attempt(async () => assert.equal(projectExists('ios'), false, 'cleanup left XMF Lab ios/'));
+  await attempt(async () => assert.equal(projectExists('android'), false, 'cleanup created XMF Lab android/'));
   await attempt(async () => assert.equal(run('git', ['status', '--porcelain=v1', '-z']), baseline, 'cleanup did not restore the working-tree baseline'));
   if (primaryError) {
     primaryError.cleanupErrors = cleanupErrors;

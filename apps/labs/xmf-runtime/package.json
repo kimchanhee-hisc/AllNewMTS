@@ -1,0 +1,24 @@
+{
+  "name": "@allnewmts/xmf-runtime-lab",
+  "version": "0.0.1",
+  "main": "index.ts",
+  "private": true,
+  "dependencies": {
+    "@allnewmts/screen-runtime": "0.0.1",
+    "allnewmts-runtime": "0.0.1",
+    "expo": "~57.0.4",
+    "react": "19.2.3",
+    "react-native": "0.86.0"
+  },
+  "expo": {
+    "autolinking": {
+      "exclude": [
+        "allnewmts-networking"
+      ],
+      "nativeModulesDir": "../../../modules",
+      "searchPaths": [
+        "../../../node_modules"
+      ]
+    }
+  }
+}

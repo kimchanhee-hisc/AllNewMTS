@@ -1,0 +1,8 @@
+{
+  "name": "allnewmts-runtime",
+  "version": "0.0.1",
+  "description": "AllNewMTS Lua and Host runtime",
+  "main": "src/index.ts",
+  "license": "MIT",
+  "private": true
+}

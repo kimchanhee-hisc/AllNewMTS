@@ -65,8 +65,8 @@ export const verificationFixture = ${JSON.stringify(fixture)};
 export const verificationGolden = ${JSON.stringify(golden)};
 `;
   return new Map([
-    ['modules/allnewmts-lua/shared/resource_bundle.c', cSource],
-    ['modules/allnewmts-lua/src/verification-fixture.generated.ts', typescript]
+    ['modules/allnewmts-runtime/shared/resource_bundle.c', cSource],
+    ['modules/allnewmts-runtime/src/verification-fixture.generated.ts', typescript]
   ]);
 }
 

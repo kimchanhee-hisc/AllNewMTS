@@ -50,29 +50,29 @@ phase('contract-ledger', () => {
 });
 
 phase('limits-security', () => {
-  const source = read('modules/allnewmts-lua/shared/allnewmts_runtime.cpp');
-  const luaBoundary = read('modules/allnewmts-lua/shared/allnewmts_runtime_lua.c');
+  const source = read('modules/allnewmts-runtime/shared/allnewmts_runtime.cpp');
+  const luaBoundary = read('modules/allnewmts-runtime/shared/allnewmts_runtime_lua.c');
   assert.doesNotMatch(source, /std::map<uint64_t,std::string>\s+\w+\s*=\s*tokens_/, 'token commit must not copy the published token map');
   assert.match(source, /for\(const auto &token:stage\.tokens\)if\(tokens_\.count\(token\.first\)\)throw std::bad_alloc\(\);tokens_\.merge\(stage\.tokens\)/, 'token commit must precheck collisions and transfer nodes without copying strings');
   for (const literal of ['32u * 1024u * 1024u','8u * 1024u * 1024u','4u * 1024u * 1024u','256u * 1024u','1000000','milliseconds(500)','kPendingEvents = 64','kStageCommands = 1024','kTokens = 32']) assert.ok(source.includes(literal), `missing runtime limit ${literal}`);
   assert.doesNotMatch(source + luaBoundary, /luaL_openlibs\s*\(/); assert.match(luaBoundary, /clear_global\(state, "(?:loadfile|package|io|os|debug)"\)/);
   assert.doesNotMatch(source, /MVigsEngine|ftp|sftp|https?:\/\/|react-native-lua/i);
-  const production = [source, read('modules/allnewmts-lua/src/runtime.ts'), read('modules/allnewmts-lua/ios/AllNewMTSRuntimeAdapter.mm'), read('modules/allnewmts-lua/android/runtime_jni.cpp')].join('\n');
-  assert.doesNotMatch(production, /Success|Rollback|Timeout|CloseTwice|T_ALPHA/); assert.doesNotMatch(read('modules/allnewmts-lua/src/runtime.ts'), /Platform\.|Platform\.OS|\bios\b|\bandroid\b/);
+  const production = [source, read('modules/allnewmts-runtime/src/runtime.ts'), read('modules/allnewmts-runtime/ios/AllNewMTSRuntimeAdapter.mm'), read('modules/allnewmts-runtime/android/runtime_jni.cpp')].join('\n');
+  assert.doesNotMatch(production, /Success|Rollback|Timeout|CloseTwice|T_ALPHA/); assert.doesNotMatch(read('modules/allnewmts-runtime/src/runtime.ts'), /Platform\.|Platform\.OS|\bios\b|\bandroid\b/);
 });
 
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'allnewmts-runtime-'));
 const cleanupTemp = () => fs.rmSync(temp, { recursive: true, force: true });
 process.once('exit', cleanupTemp);
-const include = ['-I','modules/allnewmts-lua/vendor/lua-5.1.5/src','-I','modules/allnewmts-lua/shared'];
+const include = ['-I','modules/allnewmts-runtime/vendor/lua-5.1.5/src','-I','modules/allnewmts-runtime/shared','-I','native/common'];
 const providerObjects = sourceManifest.compiledSources.map((source, index) => {
   const object = path.join(temp, `lua-${index}.o`); run(process.env.CC || 'cc', ['-w','-std=c99',...include,'-c',`${sourceManifest.vendoredRoot}/${source}`,'-o',object]); return object;
 });
 const provider = path.join(temp, 'liblua51.a'); run('ar',['rcs',provider,...providerObjects]);
 const compileC = (source, name, definitions = []) => { const object=path.join(temp,`${name}.o`);run(process.env.CC||'cc',['-std=c99','-Wall','-Wextra','-Werror',...definitions,...include,'-c',source,'-o',object]);return object; };
 const compileCxx = (source, name, definitions = []) => { const object=path.join(temp,`${name}.o`);run(process.env.CXX||'c++',['-std=c++17','-Wall','-Wextra','-Werror',...definitions,...include,'-c',source,'-o',object]);return object; };
-const common = [compileC('modules/allnewmts-lua/shared/resource_bundle.c','resources',['-DALLNEWMTS_LUA_TESTING']),compileC('modules/allnewmts-lua/shared/sha256.c','sha')];
-const runtimeObjects = [compileCxx('modules/allnewmts-lua/shared/allnewmts_runtime.cpp','runtime',['-DALLNEWMTS_RUNTIME_TESTING']),compileC('modules/allnewmts-lua/shared/allnewmts_runtime_lua.c','runtime-lua',['-DALLNEWMTS_RUNTIME_TESTING']),compileC('modules/allnewmts-lua/shared/allnewmts_runtime_adapters.c','runtime-adapter-common'),compileC('modules/allnewmts-lua/ios/allnewmts_runtime_ios_adapter.c','runtime-ios'),compileC('modules/allnewmts-lua/android/allnewmts_runtime_android_adapter.c','runtime-android'),...common];
+const common = [compileC('modules/allnewmts-runtime/shared/resource_bundle.c','resources',['-DALLNEWMTS_LUA_TESTING']),compileC('native/common/sha256.c','sha')];
+const runtimeObjects = [compileCxx('modules/allnewmts-runtime/shared/allnewmts_runtime.cpp','runtime',['-DALLNEWMTS_RUNTIME_TESTING']),compileC('modules/allnewmts-runtime/shared/allnewmts_runtime_lua.c','runtime-lua',['-DALLNEWMTS_RUNTIME_TESTING']),compileC('modules/allnewmts-runtime/shared/allnewmts_runtime_adapters.c','runtime-adapter-common'),compileC('modules/allnewmts-runtime/ios/allnewmts_runtime_ios_adapter.c','runtime-ios'),compileC('modules/allnewmts-runtime/android/allnewmts_runtime_android_adapter.c','runtime-android'),...common];
 const runtimeTest = compileCxx('native/test/runtime_conformance_test.cpp','runtime-test',['-DALLNEWMTS_RUNTIME_TESTING']);
 const executable = path.join(temp,'runtime-test'); run(process.env.CXX||'c++',[runtimeTest,...runtimeObjects,provider,'-lm','-pthread','-o',executable]);
 const captureDirectory = path.join(temp, 'envelopes'); fs.mkdirSync(captureDirectory);
@@ -117,17 +117,17 @@ phase('adapter-parity', () => {
   assert.equal(iosGolden, expectedGolden); assert.equal(androidGolden, expectedGolden);
   validateSchema(json('contracts/runtime-result.schema.json'), JSON.parse(iosGolden), 'iOS adapter golden');
   validateSchema(json('contracts/runtime-result.schema.json'), JSON.parse(androidGolden), 'Android adapter golden');
-  const ios = read('modules/allnewmts-lua/ios/allnewmts_runtime_ios_adapter.c').replaceAll('ios','platform');
-  const android = read('modules/allnewmts-lua/android/allnewmts_runtime_android_adapter.c').replaceAll('android','platform');
-  assert.equal(ios, android); assert.match(read('modules/allnewmts-lua/ios/AllNewMTSRuntimeModule.swift'),/create[\s\S]+dispatch[\s\S]+destroy/);
-  assert.match(read('modules/allnewmts-lua/android/src/main/java/com/allnewmts/lua/AllNewMTSRuntimeModule.kt'),/create[\s\S]+dispatch[\s\S]+destroy/);
+  const ios = read('modules/allnewmts-runtime/ios/allnewmts_runtime_ios_adapter.c').replaceAll('ios','platform');
+  const android = read('modules/allnewmts-runtime/android/allnewmts_runtime_android_adapter.c').replaceAll('android','platform');
+  assert.equal(ios, android); assert.match(read('modules/allnewmts-runtime/ios/AllNewMTSRuntimeModule.swift'),/create[\s\S]+dispatch[\s\S]+destroy/);
+  assert.match(read('modules/allnewmts-runtime/android/src/main/java/com/allnewmts/lua/AllNewMTSRuntimeModule.kt'),/create[\s\S]+dispatch[\s\S]+destroy/);
 
   const objcAdapter = path.join(temp, 'runtime-objc-host.o');
   const objcGoldenTest = path.join(temp, 'runtime-objc-golden-test.o');
   for (const [source, output] of [
-    ['modules/allnewmts-lua/ios/AllNewMTSRuntimeAdapter.mm', objcAdapter],
+    ['modules/allnewmts-runtime/ios/AllNewMTSRuntimeAdapter.mm', objcAdapter],
     ['native/test/runtime_objc_adapter_golden_test.mm', objcGoldenTest]
-  ]) run('xcrun', ['clang++','-std=c++17','-fobjc-arc','-fblocks','-Wall','-Wextra','-Werror','-I','modules/allnewmts-lua/ios',...include,'-c',source,'-o',output]);
+  ]) run('xcrun', ['clang++','-std=c++17','-fobjc-arc','-fblocks','-Wall','-Wextra','-Werror','-I','modules/allnewmts-runtime/ios',...include,'-c',source,'-o',output]);
   const objcGoldenExecutable = path.join(temp, 'runtime-objc-golden-test');
   run('xcrun', ['clang++',objcAdapter,objcGoldenTest,...runtimeObjects,provider,'-framework','Foundation','-lm','-pthread','-o',objcGoldenExecutable]);
   assert.equal(run(objcGoldenExecutable, [adapterConfig, adapterEvent, expectedGolden]).trim(), expectedGolden);
@@ -135,16 +135,16 @@ phase('adapter-parity', () => {
   const swiftStubLibrary = path.join(temp, 'libExpoModulesCore.dylib');
   run('xcrun', ['swiftc','-emit-library','-emit-module','-module-name','ExpoModulesCore','native/test/runtime_swift_expo_stub.swift','-o',swiftStubLibrary]);
   const swiftGoldenExecutable = path.join(temp, 'runtime-swift-module-golden-test');
-  run('xcrun', ['swiftc','-I',temp,'-L',temp,'-lExpoModulesCore','-import-objc-header','modules/allnewmts-lua/ios/AllNewMTSRuntimeAdapter.h','modules/allnewmts-lua/ios/AllNewMTSRuntimeModule.swift','native/test/runtime_swift_module_golden_test.swift',objcAdapter,...runtimeObjects,provider,'-Xlinker','-lm','-Xlinker','-lc++','-o',swiftGoldenExecutable]);
+  run('xcrun', ['swiftc','-I',temp,'-L',temp,'-lExpoModulesCore','-import-objc-header','modules/allnewmts-runtime/ios/AllNewMTSRuntimeAdapter.h','modules/allnewmts-runtime/ios/AllNewMTSRuntimeModule.swift','native/test/runtime_swift_module_golden_test.swift',objcAdapter,...runtimeObjects,provider,'-Xlinker','-lm','-Xlinker','-lc++','-o',swiftGoldenExecutable]);
   assert.equal(run(swiftGoldenExecutable, [adapterConfig, adapterEvent], { env: { ...process.env, DYLD_LIBRARY_PATH: temp } }).trim(), expectedGolden);
 
-  const productionKotlinRoot = path.join(root, 'modules/allnewmts-lua/android/src/main/java');
-  const verificationKotlinRoot = path.join(root, 'modules/allnewmts-lua/android/src/verification/java');
+  const productionKotlinRoot = path.join(root, 'modules/allnewmts-runtime/android/src/main/java');
+  const verificationKotlinRoot = path.join(root, 'modules/allnewmts-runtime/android/src/verification/java');
   const productionKotlin = filesUnder(productionKotlinRoot, '.kt');
   const verificationKotlin = filesUnder(verificationKotlinRoot, '.kt');
   assert.ok(productionKotlin.every((file) => !/AllNewMTSLuaModule\.kt$/.test(file) && !read(path.relative(root, file)).includes('Function("evaluate")')));
   assert.deepEqual(verificationKotlin.map((file) => path.basename(file)), ['AllNewMTSLuaModule.kt']);
-  const gradleSourceSets = read('modules/allnewmts-lua/android/build.gradle');
+  const gradleSourceSets = read('modules/allnewmts-runtime/android/build.gradle');
   assert.match(gradleSourceSets, /EXPO_PUBLIC_NATIVE_HARNESS[\s\S]+src\/verification\/java/);
 
   const javaHome = process.env.JAVA_HOME || '/Applications/Android Studio.app/Contents/jbr/Contents/Home';
@@ -171,7 +171,7 @@ phase('adapter-parity', () => {
   run(java, ['-cp',`${gradleLib}/*`,'org.jetbrains.kotlin.cli.jvm.K2JVMCompiler','-no-stdlib','-no-reflect','-jvm-target','17','-classpath',kotlinStdlib,'-d',harnessClasses,'native/test/runtime_expo_kotlin_harness_stubs.kt',...verificationKotlin], { env: { ...process.env, EXPO_PUBLIC_NATIVE_HARNESS: '1' } });
 
   const hostJni = path.join(temp, 'runtime-host-jni.o');
-  run(process.env.CXX || 'c++', ['-std=c++17','-Wall','-Wextra','-Werror','-fPIC','-idirafter',javaInclude,...include,'-c','modules/allnewmts-lua/android/runtime_jni.cpp','-o',hostJni]);
+  run(process.env.CXX || 'c++', ['-std=c++17','-Wall','-Wextra','-Werror','-fPIC','-idirafter',javaInclude,...include,'-c','modules/allnewmts-runtime/android/runtime_jni.cpp','-o',hostJni]);
   const hostJniLibrary = path.join(temp, 'liballnewmts_lua.dylib');
   run(process.env.CXX || 'c++', ['-dynamiclib',hostJni,...runtimeObjects,provider,'-lm','-pthread','-o',hostJniLibrary]);
   const kotlinGolden = run(java, ['-Djava.library.path='+temp,'-cp',`${kotlinClasses}${path.delimiter}${kotlinStdlib}`,'RuntimeKotlinModuleGoldenTest',adapterConfig,adapterEvent,expectedGolden]).trim();
@@ -179,10 +179,10 @@ phase('adapter-parity', () => {
 
   const sdk = run('xcrun', ['--sdk','iphonesimulator','--show-sdk-path']).trim();
   const appleCore=path.join(temp,'runtime-apple-core.o'),appleLua=path.join(temp,'runtime-apple-lua.o'),appleCommon=path.join(temp,'runtime-apple-common.o'),appleShim=path.join(temp,'runtime-apple-shim.o'),appleObjc=path.join(temp,'runtime-objc.o');
-  run('xcrun', ['--sdk','iphonesimulator','clang++','-std=c++17','-arch','arm64','-mios-simulator-version-min=16.4','-isysroot',sdk,...include,'-c','modules/allnewmts-lua/shared/allnewmts_runtime.cpp','-o',appleCore]);
-  run('xcrun', ['--sdk','iphonesimulator','clang','-std=c99','-arch','arm64','-mios-simulator-version-min=16.4','-isysroot',sdk,...include,'-c','modules/allnewmts-lua/shared/allnewmts_runtime_lua.c','-o',appleLua]);
-  for(const [source,output] of [['modules/allnewmts-lua/shared/allnewmts_runtime_adapters.c',appleCommon],['modules/allnewmts-lua/ios/allnewmts_runtime_ios_adapter.c',appleShim]])run('xcrun',['--sdk','iphonesimulator','clang','-std=c99','-arch','arm64','-mios-simulator-version-min=16.4','-isysroot',sdk,...include,'-c',source,'-o',output]);
-  run('xcrun', ['--sdk','iphonesimulator','clang++','-std=c++17','-fobjc-arc','-arch','arm64','-mios-simulator-version-min=16.4','-isysroot',sdk,...include,'-c','modules/allnewmts-lua/ios/AllNewMTSRuntimeAdapter.mm','-o',appleObjc]);
+  run('xcrun', ['--sdk','iphonesimulator','clang++','-std=c++17','-arch','arm64','-mios-simulator-version-min=16.4','-isysroot',sdk,...include,'-c','modules/allnewmts-runtime/shared/allnewmts_runtime.cpp','-o',appleCore]);
+  run('xcrun', ['--sdk','iphonesimulator','clang','-std=c99','-arch','arm64','-mios-simulator-version-min=16.4','-isysroot',sdk,...include,'-c','modules/allnewmts-runtime/shared/allnewmts_runtime_lua.c','-o',appleLua]);
+  for(const [source,output] of [['modules/allnewmts-runtime/shared/allnewmts_runtime_adapters.c',appleCommon],['modules/allnewmts-runtime/ios/allnewmts_runtime_ios_adapter.c',appleShim]])run('xcrun',['--sdk','iphonesimulator','clang','-std=c99','-arch','arm64','-mios-simulator-version-min=16.4','-isysroot',sdk,...include,'-c',source,'-o',output]);
+  run('xcrun', ['--sdk','iphonesimulator','clang++','-std=c++17','-fobjc-arc','-arch','arm64','-mios-simulator-version-min=16.4','-isysroot',sdk,...include,'-c','modules/allnewmts-runtime/ios/AllNewMTSRuntimeAdapter.mm','-o',appleObjc]);
   run('xcrun',['libtool','-static','-o',path.join(temp,'libAllNewMTSRuntime-focused.a'),appleCore,appleLua,appleCommon,appleShim,appleObjc]);
   const androidSdk = process.env.ANDROID_HOME || path.join(os.homedir(), 'Library/Android/sdk');
   const ndk = path.join(androidSdk, 'ndk/27.1.12297006');
@@ -190,12 +190,12 @@ phase('adapter-parity', () => {
   const ninja = path.join(androidSdk, 'cmake/3.22.1/bin/ninja');
   for (const required of [path.join(ndk,'build/cmake/android.toolchain.cmake'),cmake,ninja]) assert.ok(fs.existsSync(required), `missing pinned Android adapter compiler: ${required}`);
   const build = path.join(temp,'android');
-  run(cmake,['-S','modules/allnewmts-lua/android','-B',build,'-G','Ninja',`-DCMAKE_TOOLCHAIN_FILE=${path.join(ndk,'build/cmake/android.toolchain.cmake')}`,'-DANDROID_ABI=arm64-v8a','-DANDROID_PLATFORM=android-23','-DANDROID_STL=c++_shared',`-DCMAKE_MAKE_PROGRAM=${ninja}`]);
+  run(cmake,['-S','modules/allnewmts-runtime/android','-B',build,'-G','Ninja',`-DCMAKE_TOOLCHAIN_FILE=${path.join(ndk,'build/cmake/android.toolchain.cmake')}`,'-DANDROID_ABI=arm64-v8a','-DANDROID_PLATFORM=android-23','-DANDROID_STL=c++_shared',`-DCMAKE_MAKE_PROGRAM=${ninja}`]);
   run(cmake,['--build',build,'--target','allnewmts_lua','-j','4']);
 });
 
 phase('narrow-harness-smokes', () => {
-  const objects=[compileC('modules/allnewmts-lua/shared/allnewmts_lua.c','harness-core',['-DALLNEWMTS_LUA_TESTING']),compileC('modules/allnewmts-lua/ios/allnewmts_lua_ios_adapter.c','harness-ios'),compileC('modules/allnewmts-lua/android/allnewmts_lua_android_adapter.c','harness-android'),compileC('native/test/verification_harness_smoke_test.c','harness-test'),...common];
+  const objects=[compileC('modules/allnewmts-runtime/shared/allnewmts_lua.c','harness-core',['-DALLNEWMTS_LUA_TESTING']),compileC('modules/allnewmts-runtime/ios/allnewmts_lua_ios_adapter.c','harness-ios'),compileC('modules/allnewmts-runtime/android/allnewmts_lua_android_adapter.c','harness-android'),compileC('native/test/verification_harness_smoke_test.c','harness-test'),...common];
   const smoke=path.join(temp,'harness-smoke');run(process.env.CC||'cc',[...objects,provider,'-lm','-o',smoke]);assert.match(run(smoke,[]),/PASS narrow verification harness smokes/);
 });
 

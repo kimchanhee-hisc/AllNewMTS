@@ -1,4 +1,4 @@
-import type { RuntimeAdmission, RuntimeBinding, RuntimeResultEvent } from '../modules/allnewmts-lua/src';
+import type { RuntimeAdmission, RuntimeBinding, RuntimeResultEvent } from 'allnewmts-runtime';
 
 type Scalar = string | number | boolean;
 type TypedScalar = { type: 'string'; value: string } | { type: 'number'; value: number } | { type: 'boolean'; value: boolean };
