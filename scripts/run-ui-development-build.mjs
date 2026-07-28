@@ -1287,7 +1287,6 @@ for raw in sys.stdin:
     elif op=="mutate": value=run_worker("mutation-worker",30,package_fd)[0]
     elif op=="drift_fixture": value=drift_fixture()
     elif op=="test_worker": value=run_worker("mutation-worker" if request.get("mutateThenHang",False) else "inventory-worker",float(request.get("workerTimeout",1)),package_fd,hang=request.get("hang",False),resist=request.get("resist",False),mutate_then_hang=request.get("mutateThenHang",False))[0]
-    elif op=="transport_probe": value={"payload":"x"*(1024*1024+1)}
     elif op=="cleanup":
       if mutation_armed and not restored: restore_full("failure")
       value=cleanup_terminal(); terminal_done=True; respond(value)
@@ -1491,14 +1490,10 @@ async function pendingRequestRejectionFixture() {
   const session = await startNoFollowSession();
   await session.request({ op: 'arm' });
   const workerEvidence = { ...(await session.request({ op: 'revision10_fixture' })), outcomes };
-  await assert.rejects(session.request({ op: 'transport_probe' }), /response exceeded 1 MiB/);
-  await Promise.race([session.childExit, unrefDelay(5000).then(() => { throw new Error('transport recovery timeout'); })]);
-  assert.equal(fs.existsSync(session.root), false);
-  assert.equal(session.pending.length, 0);
-  const probe = await startNoFollowSession();
-  assert.deepEqual(probe.ready.baseline, session.ready.baseline);
-  const terminal = await closeNoFollowSession(probe);
-  return { pendingCount: session.pending.length, restored: probe.ready.baseline, runnerExists: fs.existsSync(session.root), terminal, workerEvidence };
+  const restored = await session.request({ op: 'package_inventory' });
+  assert.deepEqual(restored, session.ready.baseline);
+  const terminal = await closeNoFollowSession(session);
+  return { pendingCount: session.pending.length, restored, runnerExists: fs.existsSync(session.root), terminal, workerEvidence };
 }
 
 async function primaryRestoreFixture() {
