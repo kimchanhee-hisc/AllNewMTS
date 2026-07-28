@@ -23,6 +23,7 @@ Pod::Spec.new do |s|
   production_sources = [
     'shared/allnewmts_mci*.{cpp,h}',
     'shared/allnewmts_product_config.{cpp,h}',
+    'shared/allnewmts_rest_auth.{cpp,h}',
     'shared/allnewmts_runtime*.{c,cpp,h}',
     'shared/resource_bundle.{c,h}',
     'shared/sha256.{c,h}',

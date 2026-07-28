@@ -49,6 +49,7 @@ add_library(allnewmts_lua SHARED
   ${SHARED_ROOT}/allnewmts_mci.cpp
   ${SHARED_ROOT}/allnewmts_mci_socket.cpp
   ${SHARED_ROOT}/allnewmts_product_config.cpp
+  ${SHARED_ROOT}/allnewmts_rest_auth.cpp
   ${SHARED_ROOT}/allnewmts_runtime.cpp
   ${SHARED_ROOT}/allnewmts_runtime_lua.c
   ${SHARED_ROOT}/allnewmts_runtime_adapters.c

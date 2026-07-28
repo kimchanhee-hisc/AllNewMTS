@@ -208,6 +208,7 @@ function expectedPodSources(includeVerification) {
   const production = authored.filter((file) =>
     /^modules\/allnewmts-lua\/shared\/allnewmts_mci.*\.(?:cpp|h)$/.test(file) ||
     /^modules\/allnewmts-lua\/shared\/allnewmts_product_config\.(?:cpp|h)$/.test(file) ||
+    /^modules\/allnewmts-lua\/shared\/allnewmts_rest_auth\.(?:cpp|h)$/.test(file) ||
     /^modules\/allnewmts-lua\/shared\/(?:allnewmts_runtime.*|resource_bundle\.[ch]|sha256\.[ch])$/.test(file) ||
     /^modules\/allnewmts-lua\/ios\/(?:AllNewMTSRuntime.*\.(?:h|mm|swift)|allnewmts_runtime_ios_adapter\.c)$/.test(file)
   );

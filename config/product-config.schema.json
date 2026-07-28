@@ -7,6 +7,7 @@
     "$schema",
     "schemaVersion",
     "environment",
+    "restApi",
     "platforms",
     "secretStore"
   ],
@@ -19,6 +20,30 @@
     },
     "environment": {
       "const": "beta"
+    },
+    "restApi": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baseUrl",
+        "apiPath",
+        "clientId",
+        "htsId"
+      ],
+      "properties": {
+        "baseUrl": {
+          "const": "https://plus-cmn-beta.hanwhawm.com:1443"
+        },
+        "apiPath": {
+          "const": "/mts/os/1"
+        },
+        "clientId": {
+          "const": "PLUS_APP"
+        },
+        "htsId": {
+          "const": "NEWMTS"
+        }
+      }
     },
     "platforms": {
       "type": "object",

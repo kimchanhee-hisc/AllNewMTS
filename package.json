@@ -27,6 +27,7 @@
     "verify:networking": "node scripts/verify-networking.mjs",
     "mci:probe:beta": "node scripts/probe-mci-beta.mjs",
     "mci:probe:beta:tr": "node scripts/probe-mci-beta-tr.mjs",
+    "rest:probe:beta:tr": "swift scripts/probe-rest-beta-tr.swift",
     "verify:native": "node scripts/verify-native.mjs",
     "verify:provenance": "node scripts/verify-foundation.mjs provenance",
     "verify:ui": "node scripts/verify-ui.mjs",

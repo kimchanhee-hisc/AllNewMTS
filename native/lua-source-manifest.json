@@ -413,13 +413,13 @@
     },
     {
       "path": "modules/allnewmts-lua/AllNewMTSLua.podspec",
-      "bytes": 1988,
-      "sha256": "3df61c0db54271e1a1c2574f09f6c4c9a1f9695c312034a103f658d76a380d3d"
+      "bytes": 2030,
+      "sha256": "14f568b3f3afd828f596448435cbd0f6e702fa9ed263cf293cfd6edb3ff173d9"
     },
     {
       "path": "modules/allnewmts-lua/android/CMakeLists.txt",
-      "bytes": 2567,
-      "sha256": "c8cda7a07be0f45c8d1c565ea105e9e1de6c33e8c134687c4841db2aa82dbbc4"
+      "bytes": 2608,
+      "sha256": "1330eb364de8db6a91b20ed143022f9cbe678626a93788e90783c59f6d39084f"
     },
     {
       "path": "modules/allnewmts-lua/android/allnewmts_lua_android_adapter.c",
@@ -555,6 +555,16 @@
       "path": "modules/allnewmts-lua/shared/allnewmts_product_config.h",
       "bytes": 204,
       "sha256": "b4dc5b2df5649c67d7cd171d1e2480e34e8666c855aad0c6cdc6a9a5f06ab9d3"
+    },
+    {
+      "path": "modules/allnewmts-lua/shared/allnewmts_rest_auth.cpp",
+      "bytes": 37669,
+      "sha256": "a1b6d8aba025d1adb16842532e4e5815c2a00e3423935e99f39ce7959785ace6"
+    },
+    {
+      "path": "modules/allnewmts-lua/shared/allnewmts_rest_auth.h",
+      "bytes": 3524,
+      "sha256": "dde612d3e191753573db6d47ca8ed3bb91835c2cc8dac85737abde00b0af193e"
     },
     {
       "path": "modules/allnewmts-lua/shared/allnewmts_runtime.cpp",
@@ -700,6 +710,11 @@
       "path": "native/test/product_config_test.cpp",
       "bytes": 212,
       "sha256": "7e81fac93b5b42f71d215f5ad01377b053b6c756f42f56a5e479f2f07b7e1459"
+    },
+    {
+      "path": "native/test/rest_auth_test.cpp",
+      "bytes": 17863,
+      "sha256": "b40bcec0cbb5a9b055b4b5e5c16f4562d4aac5787c60fea0c13e11935c3655d0"
     },
     {
       "path": "native/test/verification_harness_smoke_test.c",

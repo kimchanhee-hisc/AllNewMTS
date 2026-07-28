@@ -2,6 +2,12 @@
   "$schema": "./product-config.schema.json",
   "schemaVersion": 1,
   "environment": "beta",
+  "restApi": {
+    "baseUrl": "https://plus-cmn-beta.hanwhawm.com:1443",
+    "apiPath": "/mts/os/1",
+    "clientId": "PLUS_APP",
+    "htsId": "NEWMTS"
+  },
   "platforms": {
     "ios": {
       "mciChannelDetail": "CC320"

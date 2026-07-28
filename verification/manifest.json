@@ -190,12 +190,12 @@
       "inputs": [
         "committed product config and uncommitted secret-store contract",
         "pinned BETA endpoint hashes",
-        "shared MCI framing and connection core",
+        "shared MCI framing, connection, and REST authentication cores",
         "synthetic transport fixtures",
-        "operator-only BETA init and GD1000Q1 probes"
+        "operator-only BETA init, GD1000Q1, and TR3200Q1 probes"
       ],
       "outputs": [
-        "BETA preflight, init and GD1000Q1 framing, polling, authentication gate, retry, and fail-closed probe evidence"
+        "BETA preflight, init and GD1000Q1 framing, polling, REST AccessKey/AccessToken issuance, TR3200Q1 mapping, retry, and fail-closed probe evidence"
       ],
       "budgetSeconds": 120
     },
@@ -354,11 +354,11 @@
     },
     {
       "path": "docs/specs/networking-contract.md",
-      "sha256": "5d909051093d0ad8ed5bafbde7ebc7bca0919641d7ecf18f42a625b2d22244a9"
+      "sha256": "33f66769aea8fcb5a032e3f12950cd5f5afde141d055d7472dc7e6d679894a4d"
     },
     {
       "path": "docs/testing.md",
-      "sha256": "c7491c94ca8985b8fe503b302e7c0cb292898f52e30c81d9f5dce13f8405556f"
+      "sha256": "ace617869c0515777dabcb49acdb77efff3c4fb9005d1ae2e2741c51b2ae0754"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
@@ -386,11 +386,11 @@
     },
     {
       "path": "config/product-config.json",
-      "sha256": "16bf953003daaaa45f43b2321cdbe32e84c50d0ee76fef0a04d67550b623a23c"
+      "sha256": "d5300dd532ceff9d401f99c940d1733552e587b8ab58a1dfd06f2ffdae8d95b1"
     },
     {
       "path": "config/product-config.schema.json",
-      "sha256": "91293e6ffb1c40eeeb22f65d86982d647d2a1652dbb4ad518969c664cbfe2fc8"
+      "sha256": "f4148abd81af54fae81098f07dd043fa530233464d6366b260f7e02d1ea59c4d"
     },
     {
       "path": "config/product-secrets.schema.json",
@@ -398,7 +398,7 @@
     },
     {
       "path": "native/lua-source-manifest.json",
-      "sha256": "6f8b4c606f4942572fcfa246f26b1154fbfa2c5bbbded62cf02f7acccb62f34d"
+      "sha256": "d684d013546ea07b79a481eca458d1985643616758fd1614d132525fc3996e4a"
     },
     {
       "path": "native/lua-source-manifest.schema.json",
@@ -410,7 +410,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "35e8b8a0835e285d837453c4a9147350af7b58c3ddf114b5ad87ce711c6283dc"
+      "sha256": "2b6a0db3b85b045688b3d9480b80d3ab6139829738e6549ef7e855ff8c0e1102"
     },
     {
       "path": "scripts/generate-xmf-assets.mjs",
@@ -433,6 +433,10 @@
       "sha256": "dae90f0ccf2b735641c3bab1c43338acdb70714e326d92cfa8bac4a28c8958c9"
     },
     {
+      "path": "scripts/probe-rest-beta-tr.swift",
+      "sha256": "62c549ec40d903a72c4d46a0675a936a74e0a752e382332acfab93f54129330b"
+    },
+    {
       "path": "scripts/run-ui-development-build.mjs",
       "sha256": "900522d0266814b9a809e1d2503aa9874b414c53b6b5625226990ee6ebd68421"
     },
@@ -442,15 +446,15 @@
     },
     {
       "path": "scripts/verify-foundation.mjs",
-      "sha256": "ffd64ea077f8ea96203010528bd087d1e1cc00cdc1162abdda533c07097db649"
+      "sha256": "0de8bdbd2889f760877e2be2ccb13c1c44dcb1df5f911f72e5280fa4499e86b5"
     },
     {
       "path": "scripts/verify-networking.mjs",
-      "sha256": "fa2a54a7d111e17da2a94aef4ac80a0304dc859f04e477d7ab99a8e8fcf5fcd6"
+      "sha256": "46a4e50644deee479a3fdbc3f36ff134da54ca2e53ade956d84f1bea40a2ee74"
     },
     {
       "path": "scripts/verify-native.mjs",
-      "sha256": "71042eeac9aafe52349f43e48d214fd440e665f12eb3c77aff5667616d5b3157"
+      "sha256": "465b219b8ad81fb515a3090d42a138ec0359fb6a13ccca67cdab4e9c1313ccc7"
     },
     {
       "path": "scripts/verify-runtime.mjs",

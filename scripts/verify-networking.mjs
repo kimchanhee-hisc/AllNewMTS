@@ -13,7 +13,7 @@ const productConfigSchema = JSON.parse(fs.readFileSync(
   path.join(root, 'config/product-config.schema.json'), 'utf8'));
 const productSecretsSchema = JSON.parse(fs.readFileSync(
   path.join(root, 'config/product-secrets.schema.json'), 'utf8'));
-const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'allnewmts-mci-'));
+const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'allnewmts-networking-'));
 const run = (file, args) => {
   const result = spawnSync(file, args, { cwd: root, encoding: 'utf8' });
   assert.equal(result.error, undefined, `${file} could not start`);
@@ -31,6 +31,12 @@ try {
   assert.deepEqual(Object.keys(productConfig.secretStore),
     ['localPath', 'easFileEnvironmentVariable', 'schemaPath', 'requiredFor'],
   'committed product config must contain only secret-store routing');
+  assert.deepEqual(productConfig.restApi, {
+    baseUrl: 'https://plus-cmn-beta.hanwhawm.com:1443',
+    apiPath: '/mts/os/1',
+    clientId: 'PLUS_APP',
+    htsId: 'NEWMTS',
+  }, 'REST BETA product values must stay pinned');
   const ignored = spawnSync('git', ['check-ignore', '--quiet',
     productConfig.secretStore.localPath], { cwd: root });
   assert.equal(ignored.status, 0, 'local product secret store must be ignored');
@@ -54,12 +60,21 @@ try {
   }
   const object = path.join(temporary, 'sha256.o');
   const executable = path.join(temporary, 'mci-transport-test');
+  const restAuth = path.join(temporary, 'rest-auth-test');
   const probe = path.join(temporary, 'mci-beta-probe');
   const trProbe = path.join(temporary, 'mci-beta-tr-probe');
+  const restTrProbe = path.join(temporary, 'rest-beta-tr-probe');
   run(process.env.CC || 'cc', [
     '-std=c99', '-Wall', '-Wextra', '-Werror',
     '-I', 'modules/allnewmts-lua/shared',
     '-c', 'modules/allnewmts-lua/shared/sha256.c', '-o', object,
+  ]);
+  run(process.env.CXX || 'c++', [
+    '-std=c++17', '-Wall', '-Wextra', '-Werror',
+    '-I', 'modules/allnewmts-lua/shared',
+    'modules/allnewmts-lua/shared/allnewmts_rest_auth.cpp',
+    'native/test/rest_auth_test.cpp',
+    '-pthread', '-o', restAuth,
   ]);
   run(process.env.CXX || 'c++', [
     '-std=c++17', '-Wall', '-Wextra', '-Werror',
@@ -106,6 +121,21 @@ try {
   });
   assert.equal(blockedTr.status, 64,
     'live BETA GD1000Q1 probe must fail without exact opt-in');
+  if (process.platform === 'darwin') {
+    delete blockedEnvironment.ALLNEWMTS_REST_LIVE_BETA_TR;
+    delete blockedEnvironment.ALLNEWMTS_PRODUCT_SECRETS_FILE;
+    run('swiftc', [
+      '-warnings-as-errors', 'scripts/probe-rest-beta-tr.swift',
+      '-o', restTrProbe,
+    ]);
+    const blockedRestTr = spawnSync(restTrProbe, [], {
+      cwd: root,
+      encoding: 'utf8',
+      env: blockedEnvironment,
+    });
+    assert.equal(blockedRestTr.status, 64,
+      'live BETA TR3200Q1 probe must fail without exact opt-in');
+  }
   const args = process.argv.slice(2);
   assert.ok(args.length === 0 ||
     (args.length === 2 && args[0] === '--beta-source'),
@@ -117,6 +147,7 @@ try {
   } else {
     console.log(run(executable, []).trim());
   }
+  console.log(run(restAuth, []).trim());
   console.log(JSON.stringify({ status: 'PASS', tier: 'networking', remoteOperations: 0 }));
 } finally {
   fs.rmSync(temporary, { recursive: true, force: true });
