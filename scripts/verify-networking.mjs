@@ -169,17 +169,10 @@ try {
     assert.equal(blockedRestTr.status, 64,
       'live BETA TR3200Q1 probe must fail without exact opt-in');
   }
-  const args = process.argv.slice(2);
-  assert.ok(args.length === 0 ||
-    (args.length === 2 && args[0] === '--beta-source'),
-  'usage: npm run verify:networking -- [--beta-source /path/to/ip.dat]');
-  if (args.length) {
-    const source = path.resolve(args[1]);
-    assert.ok(fs.statSync(source).isFile(), 'BETA source must be a regular file');
-    console.log(run(executable, [source]).trim());
-  } else {
-    console.log(run(executable, []).trim());
-  }
+  assert.equal(process.argv.length, 2, 'verify:networking accepts no arguments');
+  const source = path.join(root, 'apps/allnewmts/assets/ip.dat');
+  assert.ok(fs.statSync(source).isFile(), 'AllNewMTS BETA source must be a regular file');
+  console.log(run(executable, [source]).trim());
   console.log(run(restAuth, []).trim());
   console.log(JSON.stringify({ status: 'PASS', tier: 'networking', remoteOperations: 0 }));
 } finally {

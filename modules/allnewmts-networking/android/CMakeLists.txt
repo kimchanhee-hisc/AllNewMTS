@@ -17,7 +17,9 @@ add_library(allnewmts_networking SHARED
   ${SHARED_ROOT}/allnewmts_mci.cpp
   ${SHARED_ROOT}/allnewmts_mci_socket.cpp
   ${SHARED_ROOT}/allnewmts_product_config.cpp
+  ${SHARED_ROOT}/allnewmts_product_mci.cpp
   ${SHARED_ROOT}/allnewmts_rest_auth.cpp
+  networking_jni.cpp
   ${COMMON_ROOT}/sha256.c
 )
 target_compile_features(allnewmts_networking PRIVATE cxx_std_17)

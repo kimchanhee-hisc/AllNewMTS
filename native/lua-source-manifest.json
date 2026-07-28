@@ -418,18 +418,23 @@
     },
     {
       "path": "modules/allnewmts-networking/AllNewMTSNetworking.podspec",
-      "bytes": 1393,
-      "sha256": "f9ae744543f49182edc61a21b79b1c7c4d4df7f9cdf3f772fe96bb0bb4037d6e"
+      "bytes": 1437,
+      "sha256": "57f2db9f6bd13c192f6a1fd7549f0d46d0c584399a30a3493df38a014459b62c"
     },
     {
       "path": "modules/allnewmts-networking/android/CMakeLists.txt",
-      "bytes": 1302,
-      "sha256": "141dc1fcfa3df792e28bfea0629aad44d93f5ff3e16f137dec7520f3e9325d2e"
+      "bytes": 1366,
+      "sha256": "1d34f5b02dcd1f41cbd294c448ff74f832cc312e37642bee36093c26ecd5d934"
     },
     {
       "path": "modules/allnewmts-networking/android/build.gradle",
       "bytes": 608,
       "sha256": "13dd5aa2fd7d4f63ecd958e560b5f3453bb73f43e2d4ee5f42f671975be63501"
+    },
+    {
+      "path": "modules/allnewmts-networking/android/networking_jni.cpp",
+      "bytes": 1970,
+      "sha256": "ba883a32236579de1ddb55a5da676e30051ec2d7730c1885c8d0f8527e517059"
     },
     {
       "path": "modules/allnewmts-networking/android/src/main/AndroidManifest.xml",
@@ -438,8 +443,8 @@
     },
     {
       "path": "modules/allnewmts-networking/android/src/main/java/com/allnewmts/networking/AllNewMTSNetworkingModule.kt",
-      "bytes": 2372,
-      "sha256": "cd2665e21492388d1e6380650754d1f9844b6ab2c24744f3d43914b6589033fe"
+      "bytes": 4505,
+      "sha256": "f471511b3b8f72fffb676db4ec3fd7b69778d7f632694b5516bc805d4de34093"
     },
     {
       "path": "modules/allnewmts-networking/android/src/main/res/xml/allnewmts_network_security_config.xml",
@@ -453,8 +458,8 @@
     },
     {
       "path": "modules/allnewmts-networking/ios/AllNewMTSNetworkingModule.swift",
-      "bytes": 3365,
-      "sha256": "91b300e1f60a8953f80c29677ea84d246e1e8eeed1a13d79ed8179825b688532"
+      "bytes": 5675,
+      "sha256": "f216c45761ac3db7cef99e7f99dbfbb5290f8f4308220a5635cb9e0c6fb61104"
     },
     {
       "path": "modules/allnewmts-networking/package.json",
@@ -463,13 +468,13 @@
     },
     {
       "path": "modules/allnewmts-networking/shared/allnewmts_mci.cpp",
-      "bytes": 64427,
-      "sha256": "1a620b62affbbe074fd2b7c460fb018eecd8c780288930ba6900f9408905338d"
+      "bytes": 69685,
+      "sha256": "56338c3e503a76e06876bfe15d11c7ce8f7b5f36410d0a7e68fd99900daad96f"
     },
     {
       "path": "modules/allnewmts-networking/shared/allnewmts_mci.h",
-      "bytes": 11217,
-      "sha256": "280787dc147c62d866b3501d43fb38b77e2be62c39661a4389522fc00360fa34"
+      "bytes": 12030,
+      "sha256": "bda2e1aff1316099d904461741fe7e70c6b4b3cbb39e1585a7064af700e51983"
     },
     {
       "path": "modules/allnewmts-networking/shared/allnewmts_mci_socket.cpp",
@@ -497,6 +502,16 @@
       "sha256": "b4dc5b2df5649c67d7cd171d1e2480e34e8666c855aad0c6cdc6a9a5f06ab9d3"
     },
     {
+      "path": "modules/allnewmts-networking/shared/allnewmts_product_mci.cpp",
+      "bytes": 2341,
+      "sha256": "2c074e8a54765fa09e7a7e3b883a83e108fcc86a3b2eab3a2ed27d429bfb962d"
+    },
+    {
+      "path": "modules/allnewmts-networking/shared/allnewmts_product_mci.h",
+      "bytes": 621,
+      "sha256": "714e7f3bb454152d930572b34ff83d5e6d2943299403a8d7741c7a5ad297d554"
+    },
+    {
       "path": "modules/allnewmts-networking/shared/allnewmts_rest_auth.cpp",
       "bytes": 37669,
       "sha256": "a1b6d8aba025d1adb16842532e4e5815c2a00e3423935e99f39ce7959785ace6"
@@ -508,8 +523,8 @@
     },
     {
       "path": "modules/allnewmts-networking/src/index.ts",
-      "bytes": 122,
-      "sha256": "0312fa39b905fd52d566dfcaac184f57c5babcde73b721c18b7ec73c05467fc5"
+      "bytes": 254,
+      "sha256": "3efb4845f1e35c8db9ddae212ce4f4298f5112dc1ceb7fcfb86e14e1081bd9c9"
     },
     {
       "path": "modules/allnewmts-networking/src/loopback.ts",
@@ -518,8 +533,8 @@
     },
     {
       "path": "modules/allnewmts-networking/src/networking.ts",
-      "bytes": 674,
-      "sha256": "80561c815f9dd6d6631451afe8cf8c4be7202a002c7cfe989a62e22a9a4c0425"
+      "bytes": 1726,
+      "sha256": "ac24dd3372ca9ec0e2ec1c2d1d6bc4421d4e84be95673a511cb61829caa4d917"
     },
     {
       "path": "modules/allnewmts-runtime/AllNewMTSRuntime.podspec",
@@ -788,8 +803,8 @@
     },
     {
       "path": "native/test/mci_transport_test.cpp",
-      "bytes": 56068,
-      "sha256": "b79b9f730c16d59caa7065e67892c2d495f8188179dc912bdcc79b7984030ea2"
+      "bytes": 58410,
+      "sha256": "4d4838d4d778fac9620731e297fa705713e9946b4c81167c844086266704c2df"
     },
     {
       "path": "native/test/native_harness_test.c",

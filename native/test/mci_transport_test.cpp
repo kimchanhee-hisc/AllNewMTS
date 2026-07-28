@@ -72,12 +72,14 @@ std::vector<uint8_t> initRequestGolden() {
   return expected;
 }
 
-std::vector<uint8_t> gd1000q1Response(char response_code = '0') {
+std::vector<uint8_t> gd1000q1Response(
+    char response_code = '0', const char *instrument = "003530",
+    const char *current_price = "+70000") {
   std::vector<uint8_t> body;
   for (size_t index = 0; index < 104; ++index) {
     if (index != 0) body.push_back(0x1e);
-    const char *value =
-        index == 0 ? "003530" : index == 2 ? "+70000" : "";
+    const char *value = index == 0 ? instrument
+                                   : index == 2 ? current_price : "";
     body.insert(body.end(), value, value + std::strlen(value));
   }
   body.push_back(0x1f);
@@ -932,6 +934,16 @@ int main(int argc, char **argv) {
              "CC320", &parsed, "bad-nonce!", quote_request.data(),
              quote_request.size(), &quote_request_size) ==
          ALLNEWMTS_MCI_INVALID_ARGUMENT);
+  assert(allnewmts_mci_build_gd1000q1_quote_request(
+             "CC320", &parsed, "0000000002", "J", "005930", "K", "",
+             quote_request.data(), quote_request.size(),
+             &quote_request_size) == ALLNEWMTS_MCI_OK);
+  assert(std::search(
+             quote_request.begin() + ALLNEWMTS_MCI_REQUEST_HEADER_SIZE,
+             quote_request.begin() + quote_request_size,
+             reinterpret_cast<const uint8_t *>("005930"),
+             reinterpret_cast<const uint8_t *>("005930") + 6) !=
+         quote_request.begin() + quote_request_size);
   std::vector<uint8_t> quote_response = gd1000q1Response();
   AllNewMTSMciTransactionResponse generic_response{};
   assert(allnewmts_mci_parse_transaction_response(
@@ -944,6 +956,16 @@ int main(int argc, char **argv) {
   assert(allnewmts_mci_parse_gd1000q1_response(
              quote_response.data(), quote_response.size(), &parsed) ==
          ALLNEWMTS_MCI_OK);
+  quote_response = gd1000q1Response('0', "005930", "+71500");
+  AllNewMTSMciGd1000q1Quote samsung_quote{};
+  assert(allnewmts_mci_decode_gd1000q1_quote(
+             quote_response.data(), quote_response.size(), &parsed, "005930",
+             &samsung_quote) == ALLNEWMTS_MCI_OK);
+  assert(std::strcmp(samsung_quote.instrument, "005930") == 0 &&
+         samsung_quote.current_price == 71500);
+  assert(allnewmts_mci_decode_gd1000q1_quote(
+             quote_response.data(), quote_response.size(), &parsed, "003530",
+             &samsung_quote) == ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID);
   const char quote_fids[][5] = {"0004", "0005"};
   const std::vector<uint8_t> positional_body = {
       '+', '7', '0', '0', '0', '0', 0x1e, 0x1f};
@@ -1125,6 +1147,31 @@ int main(int argc, char **argv) {
          ALLNEWMTS_MCI_NOT_READY);
   allnewmts_mci_destroy(client);
   assert(quote.close_count == 1);
+
+  Fake product_quote;
+  product_quote.reads = {
+      initResponse(), gd1000q1Response('0', "005930", "-71500")};
+  client = nullptr;
+  assert(allnewmts_mci_create("CC320", &callbacks, &product_quote, &client) ==
+         ALLNEWMTS_MCI_OK);
+  assert(allnewmts_mci_test_set_beta_hashes(client, file_hash,
+                                            endpoint_hash) ==
+         ALLNEWMTS_MCI_OK);
+  assert(allnewmts_mci_connect_beta(
+             client, reinterpret_cast<const uint8_t *>(ip_dat.data()),
+             ip_dat.size()) == ALLNEWMTS_MCI_OK);
+  samsung_quote = {};
+  assert(allnewmts_mci_request_gd1000q1(
+             client, "J", "005930", "K", "", &samsung_quote) ==
+         ALLNEWMTS_MCI_OK);
+  assert(std::strcmp(samsung_quote.instrument, "005930") == 0);
+  assert(samsung_quote.current_price == 71500);
+  assert(product_quote.open_count == 1);
+  assert(product_quote.close_count == 0);
+  assert(product_quote.authenticate_count == 1);
+  assert(product_quote.writes.size() == 2);
+  allnewmts_mci_destroy(client);
+  assert(product_quote.close_count == 1);
 
   Fake realtime_probe;
   realtime_probe.reads = {initResponse(), s00Push(71500)};

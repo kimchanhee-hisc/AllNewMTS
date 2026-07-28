@@ -22,6 +22,7 @@ Pod::Spec.new do |s|
     'shared/allnewmts_mci*.{cpp,h}',
     'shared/allnewmts_networking_sha256.c',
     'shared/allnewmts_product_config.{cpp,h}',
+    'shared/allnewmts_product_mci.{cpp,h}',
     'shared/allnewmts_rest_auth.{cpp,h}',
     'ios/*.swift'
   ]

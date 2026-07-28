@@ -4,6 +4,8 @@ AllNewMTS is our product, composed from independently buildable screen-definitio
 
 Start with [`AGENTS.md`](AGENTS.md). It routes development layers, product, runtime, testing, ADR, machine-contract, and oracle ownership without duplicating those contracts.
 
-The current executables are isolated module labs: run `npm run lab:xmf -- ios|android` for XMF/runtime or `npm run lab:networking -- ios|android` for bounded native-loopback networking. The AllNewMTS product composition and its business logic are intentionally separate and not implemented yet. The project also includes a separate, opt-in native Lua verification harness.
+The product app now has a minimal Splash → Main flow: Splash loads the app-owned BETA `ip.dat` resource and connects, then Main requests the fixed Samsung Electronics `GD1000Q1` quote. Run it with `npm run app:allnewmts:ios` or `npm run app:allnewmts:android`. Main intentionally remains a direct React Native placeholder; XMS is still unsupported until its own contract and runnable fixture exist.
+
+The isolated module labs remain available through `npm run lab:xmf -- ios|android` for XMF/runtime and `npm run lab:networking -- ios|android` for bounded native-loopback networking. The project also includes a separate, opt-in native Lua verification harness.
 
 Run `npm run verify:fast` while editing and `npm run verify:ci` for the complete local verification suite.

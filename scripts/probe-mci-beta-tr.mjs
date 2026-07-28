@@ -16,7 +16,7 @@ const requireConfiguration = (valid, message) => {
 };
 requireConfiguration(args.length === 4 && args[0] === '--platform' &&
   ['ios', 'android'].includes(args[1]) && args[2] === '--source',
-  'use --platform ios|android --source /path/to/ip.dat');
+  'use --platform ios|android --source apps/allnewmts/assets/ip.dat');
 requireConfiguration(
   process.env.ALLNEWMTS_MCI_LIVE_BETA_TR === 'GD1000Q1',
   'ALLNEWMTS_MCI_LIVE_BETA_TR=GD1000Q1 is required');

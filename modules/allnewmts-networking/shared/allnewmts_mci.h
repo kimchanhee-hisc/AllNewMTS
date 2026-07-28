@@ -185,6 +185,11 @@ typedef struct {
 } AllNewMTSMciRealtimeQuote;
 
 typedef struct {
+  char instrument[7];
+  uint64_t current_price;
+} AllNewMTSMciGd1000q1Quote;
+
+typedef struct {
   int (*open)(void *context, const char *host, uint16_t port,
               uint32_t timeout_ms, uint64_t generation);
   int (*write)(void *context, const uint8_t *bytes, size_t size,
@@ -288,6 +293,12 @@ uint32_t allnewmts_mci_build_gd1000q1_request(
     const char request_nonce[10], uint8_t *output, size_t output_capacity,
     size_t *output_size);
 
+uint32_t allnewmts_mci_build_gd1000q1_quote_request(
+    const char channel_detail[5], const AllNewMTSMciSession *session,
+    const char request_nonce[10], const char *market, const char *instrument,
+    const char *exchange, const char *late, uint8_t *output,
+    size_t output_capacity, size_t *output_size);
+
 uint32_t allnewmts_mci_decode_sfid_body(
     const uint8_t *body, size_t body_size, const char gid[5],
     const char output_fids[][5], size_t output_count,
@@ -303,6 +314,16 @@ uint32_t allnewmts_mci_decode_sfid_occurrence_body(
 uint32_t allnewmts_mci_parse_gd1000q1_response(
     const uint8_t *frame, size_t frame_size,
     const AllNewMTSMciSession *session);
+
+uint32_t allnewmts_mci_decode_gd1000q1_quote(
+    const uint8_t *frame, size_t frame_size,
+    const AllNewMTSMciSession *session, const char *expected_instrument,
+    AllNewMTSMciGd1000q1Quote *quote);
+
+uint32_t allnewmts_mci_request_gd1000q1(
+    AllNewMTSMciClient *client, const char *market, const char *instrument,
+    const char *exchange, const char *late,
+    AllNewMTSMciGd1000q1Quote *quote);
 
 uint32_t allnewmts_mci_realtime_registry_create(
     AllNewMTSMciRealtimeRegistry **registry);

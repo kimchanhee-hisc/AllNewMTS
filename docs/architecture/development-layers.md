@@ -66,10 +66,11 @@ Each executable has a static entry, app configuration, package manifest, display
 
 | Target | Direct project dependencies | Availability |
 | --- | --- | --- |
-| `allnewmts` | Screen and networking modules required by selected business use cases | Created with the first product use case |
+| `allnewmts` | Networking module | Implemented: Splash MCI readiness and one Main quote |
 | `xmf-runtime-lab` | Screen-runtime and runtime-native only | Implemented |
 | `networking-lab` | Networking-native only | Implemented |
 
+The product app owns display/target name `AllNewMTS`, slug `allnewmts`, and iOS/Android identifier `com.allnewmts.app`.
 The XMF Lab owns display/target name `AllNewMTSXMFLab`, slug `allnewmts-xmf-runtime-lab`, and iOS/Android identifier `com.allnewmts.lab.xmf`. The Networking Lab owns display/target name `AllNewMTSNetworkingLab`, slug `allnewmts-networking-lab`, and iOS/Android identifier `com.allnewmts.lab.networking`. XMS remains `UNSUPPORTED_INPUT_ROLE`; an XMS lab is added only after an XMS contract and runnable fixture exist.
 
 The implemented target command accepts the platform as an argument:
@@ -80,6 +81,8 @@ npm run lab:networking -- ios
 ```
 
 Android uses `android` in the same position. Target commands invoke fixed entries; there is no generic `APP_TARGET` runtime switch. The Networking command owns a bounded numeric-loopback server; Android additionally owns and cleans one `adb reverse` mapping.
+
+The product commands are `npm run app:allnewmts:ios` and `npm run app:allnewmts:android`. AllNewMTS owns its BETA-only `assets/ip.dat`; Splash loads that bundled resource and injects its bytes into the reusable networking module before completing MCI init. There is no environment, command-line, or build-time endpoint input to the product app. Main directly requests the fixed Samsung Electronics `GD1000Q1` slice and renders only the instrument and current price. It intentionally has no navigation or screen-runtime dependency. A future XMS-based Main flow requires an XMS contract and runnable fixture first; this placeholder does not silently treat XMS as XMF.
 
 ## Composition flow
 
@@ -144,10 +147,13 @@ Acceptance requires `verify:fast`, `verify:ci`, and the XMF Lab device smoke to 
 
 Complete when the lab links only networking-native, works without credentials or DNS, and its device-smoke run leaves no installed app, process, port, reverse mapping, cache, or temporary file.
 
-### 4. Start the product app
+### 4. Start the product app (implemented)
 
-Start only when the first AllNewMTS business use case is selected. Create the product entry and wire only the modules required by that use case. Keep the first coordination directly in product `App.tsx`; extract application helpers only after the code has a second caller or becomes difficult to read.
+- `apps/allnewmts` owns the static product entry, identifiers, Splash/Main state, and retry UI.
+- Splash loads the app-owned BETA-only MCI resource and injects it into the reusable networking module before completing the bounded public MCI connection.
+- Main begins only after readiness and performs one fixed `GD1000Q1` Samsung Electronics query.
+- The first coordination remains directly in product `App.tsx`; screen-runtime and XMS are not linked.
 
-Complete when the selected business flow passes without importing lab or verification code.
+Acceptance requires the product to depend only on networking plus the standard Expo asset/file readers, import no lab or verification code, accept no external product configuration, fail closed on missing or invalid packaged base data, and emit no endpoint, session, or raw response.
 
 Rollback removes the newly extracted target or package and restores the preceding composition. Module extraction cannot change parser, runtime, control, or networking semantics.

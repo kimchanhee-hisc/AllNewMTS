@@ -95,6 +95,8 @@ private final class LoopbackProbe: NSObject, URLSessionDataDelegate, URLSessionT
 }
 
 public final class AllNewMTSNetworkingModule: Module {
+  private var mci: UnsafeMutableRawPointer?
+
   public func definition() -> ModuleDefinition {
     Name("AllNewMTSNetworking")
 
@@ -105,5 +107,83 @@ public final class AllNewMTSNetworkingModule: Module {
       }
       _ = LoopbackProbe(port: port, promise: promise)
     }
+
+    AsyncFunction("connectMciBeta") { (sourceBase64: String) -> [String: Any] in
+      guard sourceBase64.utf8.count <= 87_384,
+            let source = Data(base64Encoded: sourceBase64),
+            !source.isEmpty,
+            source.count <= 65_536 else {
+        return ["code": "INVALID_ARGUMENT"]
+      }
+      if self.mci == nil {
+        var handle: UnsafeMutableRawPointer?
+        let code = allnewmts_product_mci_create(&handle)
+        guard code == 0, let handle else {
+          return ["code": mciCode(code)]
+        }
+        self.mci = handle
+      }
+      let code = source.withUnsafeBytes { bytes in
+        allnewmts_product_mci_connect_beta(
+          self.mci,
+          bytes.bindMemory(to: UInt8.self).baseAddress,
+          source.count
+        )
+      }
+      return ["code": mciCode(code)]
+    }
+
+    AsyncFunction("fetchSamsungElectronicsQuote") { () -> [String: Any] in
+      guard let mci = self.mci else {
+        return ["code": "NOT_READY"]
+      }
+      var quote = AllNewMTSMciGd1000q1Quote()
+      let code = allnewmts_product_mci_fetch_samsung_electronics(mci, &quote)
+      guard code == 0 else {
+        return ["code": mciCode(code)]
+      }
+      let instrument = withUnsafePointer(to: &quote.instrument) {
+        $0.withMemoryRebound(to: CChar.self, capacity: 7) {
+          String(cString: $0)
+        }
+      }
+      return [
+        "code": "OK",
+        "instrument": instrument,
+        "currentPrice": String(quote.current_price),
+      ]
+    }
+
+    AsyncFunction("disconnectMci") {
+      self.destroyMci()
+    }
+
+    OnDestroy {
+      self.destroyMci()
+    }
+  }
+
+  private func destroyMci() {
+    allnewmts_product_mci_destroy(mci)
+    mci = nil
+  }
+}
+
+private func mciCode(_ code: UInt32) -> String {
+  switch code {
+  case 0: return "OK"
+  case 1: return "INVALID_ARGUMENT"
+  case 2: return "BETA_SOURCE_MISMATCH"
+  case 3: return "BETA_ENDPOINT_INVALID"
+  case 4: return "TRANSPORT_ERROR"
+  case 5: return "FRAME_INVALID"
+  case 6: return "INIT_INVALID"
+  case 7: return "AUTH_FAILED"
+  case 8: return "NOT_READY"
+  case 9: return "RESOURCE_LIMIT"
+  case 10: return "TRANSACTION_REJECTED"
+  case 11: return "TRANSACTION_INVALID"
+  case 12: return "TRANSACTION_BODY_INVALID"
+  default: return "TRANSPORT_ERROR"
   }
 }

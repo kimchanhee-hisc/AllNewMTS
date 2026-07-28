@@ -2,6 +2,7 @@
   "name": "allnewmts-workspace",
   "version": "1.0.0",
   "workspaces": [
+    "apps/allnewmts",
     "apps/labs/*",
     "modules/*",
     "packages/*"
@@ -41,6 +42,8 @@
     "verify:layers": "node scripts/verify-layers.mjs",
     "verify:fast": "node scripts/verify-foundation.mjs fast",
     "verify:ci": "node scripts/verify-foundation.mjs ci",
+    "app:allnewmts:ios": "npm run ios --workspace @allnewmts/app",
+    "app:allnewmts:android": "npm run android --workspace @allnewmts/app",
     "lab:xmf": "node scripts/run-xmf-lab.mjs",
     "lab:networking": "node scripts/run-networking-lab.mjs",
     "lab:xmf:smoke": "node scripts/run-ui-development-build.mjs",

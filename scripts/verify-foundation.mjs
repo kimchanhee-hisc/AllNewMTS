@@ -179,6 +179,7 @@ function foundationFiles() {
     'test/development-runners.test.mjs',
     'test/foundation.test.mjs',
     'test/ui/runtime-client-golden.json',
+    'apps/allnewmts/assets/ip.dat',
     'package.json'
   ];
 }
@@ -226,7 +227,8 @@ export const expectedIntegrityPaths = [
   'scripts/verify-ui.mjs',
   'test/development-runners.test.mjs',
   'test/foundation.test.mjs',
-  'test/ui/runtime-client-golden.json'
+  'test/ui/runtime-client-golden.json',
+  'apps/allnewmts/assets/ip.dat'
 ];
 
 function verifyFormat() {

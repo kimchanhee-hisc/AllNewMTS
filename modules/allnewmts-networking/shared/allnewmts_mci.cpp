@@ -17,16 +17,15 @@
 namespace {
 
 constexpr uint8_t kBetaFileSha256[32] = {
-    0xf4, 0xc8, 0x87, 0xff, 0x3c, 0x33, 0x1e, 0x46, 0x0f, 0x94, 0x90,
-    0xe2, 0xdf, 0xd4, 0x61, 0x2f, 0xeb, 0xa4, 0x57, 0xfc, 0xe0, 0x21,
-    0x18, 0x71, 0x5d, 0x8d, 0x23, 0x4b, 0x77, 0x1d, 0xc1, 0x44};
+    0xde, 0xc4, 0x22, 0x81, 0x94, 0x29, 0x04, 0xe9, 0xa7, 0x6e, 0xe4,
+    0x6b, 0x72, 0x79, 0xf9, 0x2f, 0x79, 0x7b, 0xa4, 0x6a, 0x1d, 0xd3,
+    0xbd, 0x7a, 0xbb, 0x7e, 0x49, 0x20, 0xad, 0x0b, 0x64, 0x5d};
 constexpr uint8_t kBetaEndpointSha256[32] = {
     0x42, 0x9a, 0x80, 0x1e, 0x3b, 0x3e, 0xc7, 0x48, 0x5a, 0x6e, 0xf5,
     0x81, 0x7c, 0xe7, 0xc0, 0x34, 0x15, 0x1f, 0x40, 0xb7, 0x99, 0xbc,
     0x33, 0x41, 0xc9, 0x3a, 0xc2, 0x71, 0x6d, 0xd9, 0x1a, 0x35};
 constexpr std::string_view kBetaSection =
     "[\xeb\xb2\xa0\xed\x83\x80]";
-constexpr size_t kGd1000q1BodySize = 569;
 constexpr std::array<std::string_view, 104> kGd1000q1OutputFids = {
     "0001",  "9241",  "*0004", "*0005", "0007",  "0006", "1731",
     "0011",  "1251",  "1682",  "1254",  "0003",  "2517", "2518",
@@ -246,13 +245,17 @@ size_t printableLength(const char *value, size_t capacity) {
   return length < capacity && length != 0 ? length : 0;
 }
 
-bool signedDecimal(const uint8_t *value, size_t size) {
+bool priceMagnitude(const uint8_t *value, size_t size, uint64_t &parsed) {
   if (!value || size == 0) return false;
-  size_t index = value[0] == '+' || value[0] == '-' ? 1 : 0;
-  if (index == size) return false;
-  for (; index < size; ++index)
-    if (value[index] < '0' || value[index] > '9') return false;
-  return true;
+  if (value[0] == '+' || value[0] == '-') {
+    ++value;
+    --size;
+  }
+  if (size == 0) return false;
+  const char *begin = reinterpret_cast<const char *>(value);
+  const char *end = begin + size;
+  auto result = std::from_chars(begin, end, parsed);
+  return result.ec == std::errc() && result.ptr == end;
 }
 
 bool structuralByte(uint8_t value) {
@@ -675,19 +678,38 @@ extern "C" uint32_t allnewmts_mci_build_gd1000q1_request(
     const char channel_detail[5], const AllNewMTSMciSession *session,
     const char request_nonce[10], uint8_t *output, size_t output_capacity,
     size_t *output_size) {
-  if (!session) return ALLNEWMTS_MCI_INVALID_ARGUMENT;
+  return allnewmts_mci_build_gd1000q1_quote_request(
+      channel_detail, session, request_nonce, "J", "003530", "K", "", output,
+      output_capacity, output_size);
+}
 
-  const uint8_t market[] = {'J'};
-  const uint8_t instrument[] = {'0', '0', '3', '5', '3', '0'};
-  const uint8_t exchange[] = {'K'};
+extern "C" uint32_t allnewmts_mci_build_gd1000q1_quote_request(
+    const char channel_detail[5], const AllNewMTSMciSession *session,
+    const char request_nonce[10], const char *market, const char *instrument,
+    const char *exchange, const char *late, uint8_t *output,
+    size_t output_capacity, size_t *output_size) {
+  if (!session || !market || !instrument || !exchange || !late)
+    return ALLNEWMTS_MCI_INVALID_ARGUMENT;
+  const size_t input_sizes[] = {
+      strnlen(market, 33), strnlen(instrument, 33), strnlen(exchange, 6),
+      strnlen(late, 2)};
+  if (input_sizes[0] == 0 || input_sizes[0] > 32 ||
+      input_sizes[1] == 0 || input_sizes[1] > 32 ||
+      input_sizes[2] == 0 || input_sizes[2] > 5 || input_sizes[3] > 1)
+    return ALLNEWMTS_MCI_INVALID_ARGUMENT;
+  const char *input_values[] = {market, instrument, exchange, late};
+  for (size_t input = 0; input < 4; ++input)
+    for (size_t index = 0; index < input_sizes[input]; ++index)
+      if (input_values[input][index] < 0x21 ||
+          input_values[input][index] > 0x7e)
+        return ALLNEWMTS_MCI_INVALID_ARGUMENT;
+
   AllNewMTSMciSfidInput inputs[4]{};
   const char *input_fids[] = {"9001", "9002", "9241", "9246"};
-  const uint8_t *input_values[] = {market, instrument, exchange, nullptr};
-  const size_t input_sizes[] = {sizeof(market), sizeof(instrument),
-                                sizeof(exchange), 0};
   for (size_t index = 0; index < 4; ++index) {
     std::memcpy(inputs[index].fid, input_fids[index], 5);
-    inputs[index].value = input_values[index];
+    inputs[index].value =
+        reinterpret_cast<const uint8_t *>(input_values[index]);
     inputs[index].value_size = input_sizes[index];
   }
   std::array<AllNewMTSMciSfidOutput, kGd1000q1OutputFids.size()> outputs{};
@@ -697,14 +719,14 @@ extern "C" uint32_t allnewmts_mci_build_gd1000q1_request(
     if (outputs[index].attribute != 0) fid.remove_prefix(1);
     std::memcpy(outputs[index].fid, fid.data(), fid.size());
   }
-  std::array<uint8_t, kGd1000q1BodySize> body{};
+  std::array<uint8_t, ALLNEWMTS_MCI_MAX_FRAME_SIZE -
+                          ALLNEWMTS_MCI_REQUEST_HEADER_SIZE>
+      body{};
   size_t body_size = 0;
   uint32_t code = allnewmts_mci_build_sfid_body(
       "1000", inputs, 4, outputs.data(), outputs.size(), body.data(),
       body.size(), &body_size);
-  if (code != ALLNEWMTS_MCI_OK || body_size != body.size())
-    return code == ALLNEWMTS_MCI_OK ? ALLNEWMTS_MCI_TRANSACTION_INVALID
-                                    : code;
+  if (code != ALLNEWMTS_MCI_OK) return code;
 
   AllNewMTSMciTransactionRequest request{};
   std::memcpy(request.transaction_id, "GD1000Q1", 9);
@@ -714,7 +736,7 @@ extern "C" uint32_t allnewmts_mci_build_gd1000q1_request(
   std::memcpy(request.private_identity, session->selected_private_ip,
               sizeof(request.private_identity));
   request.body = body.data();
-  request.body_size = body.size();
+  request.body_size = body_size;
   return allnewmts_mci_build_transaction_request(
       channel_detail, session, request_nonce, &request, output,
       output_capacity, output_size);
@@ -1042,6 +1064,15 @@ extern "C" uint32_t allnewmts_mci_parse_transaction_response(
 
 extern "C" uint32_t allnewmts_mci_parse_gd1000q1_response(
     const uint8_t *frame, size_t size, const AllNewMTSMciSession *session) {
+  AllNewMTSMciGd1000q1Quote quote{};
+  return allnewmts_mci_decode_gd1000q1_quote(frame, size, session, nullptr,
+                                              &quote);
+}
+
+extern "C" uint32_t allnewmts_mci_decode_gd1000q1_quote(
+    const uint8_t *frame, size_t size, const AllNewMTSMciSession *session,
+    const char *expected_instrument, AllNewMTSMciGd1000q1Quote *quote) {
+  if (!quote) return ALLNEWMTS_MCI_INVALID_ARGUMENT;
   AllNewMTSMciTransactionResponse response{};
   uint32_t code = allnewmts_mci_parse_transaction_response(
       frame, size, session, &response);
@@ -1064,12 +1095,22 @@ extern "C" uint32_t allnewmts_mci_parse_gd1000q1_response(
       kGd1000q1OutputFids.size(), values.data(), values.size(), &decoded);
   if (code != ALLNEWMTS_MCI_OK) return code;
   const uint8_t *body = frame + response.body_offset;
-  return decoded.record_count == 1 &&
-                 decoded.value_count == kGd1000q1OutputFids.size() &&
-                 decoded.continuation_size == 0 &&
-                 signedDecimal(body + values[2].offset, values[2].size)
-             ? ALLNEWMTS_MCI_OK
-             : ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID;
+  if (decoded.record_count != 1 ||
+      decoded.value_count != kGd1000q1OutputFids.size() ||
+      decoded.continuation_size != 0 || values[0].size != 6 ||
+      !bytesAreDigits(
+          reinterpret_cast<const char *>(body + values[0].offset), 6) ||
+      (expected_instrument &&
+       (std::strlen(expected_instrument) != 6 ||
+        std::memcmp(body + values[0].offset, expected_instrument, 6) != 0)))
+    return ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID;
+  AllNewMTSMciGd1000q1Quote parsed{};
+  if (!priceMagnitude(body + values[2].offset, values[2].size,
+                      parsed.current_price))
+    return ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID;
+  std::memcpy(parsed.instrument, body + values[0].offset, 6);
+  *quote = parsed;
+  return ALLNEWMTS_MCI_OK;
 }
 
 extern "C" uint32_t allnewmts_mci_create(
@@ -1325,6 +1366,89 @@ extern "C" uint32_t allnewmts_mci_connect_beta(
   return connectBeta(client, ip_dat, ip_dat_size,
                      ALLNEWMTS_MCI_AUTOMATIC_RETRIES, BetaMode::Connect,
                      nullptr);
+}
+
+extern "C" uint32_t allnewmts_mci_request_gd1000q1(
+    AllNewMTSMciClient *client, const char *market, const char *instrument,
+    const char *exchange, const char *late,
+    AllNewMTSMciGd1000q1Quote *quote) {
+  if (!client || !quote) return ALLNEWMTS_MCI_INVALID_ARGUMENT;
+  if (!client->open || !client->ready) return ALLNEWMTS_MCI_NOT_READY;
+  *quote = {};
+  uint32_t result = ALLNEWMTS_MCI_TRANSPORT_ERROR;
+  try {
+    std::array<uint8_t, ALLNEWMTS_MCI_MAX_FRAME_SIZE> request{};
+    char request_nonce[10];
+    nonce(client->generation, request_nonce);
+    size_t request_size = 0;
+    result = allnewmts_mci_build_gd1000q1_quote_request(
+        client->channel_detail, &client->session, request_nonce, market,
+        instrument, exchange, late, request.data(), request.size(),
+        &request_size);
+    if (result != ALLNEWMTS_MCI_OK) return result;
+    result = ALLNEWMTS_MCI_TRANSPORT_ERROR;
+    if (!client->transport.write(
+            client->context, request.data(), request_size,
+            ALLNEWMTS_MCI_TRANSACTION_TIMEOUT_MS, client->generation))
+      result = ALLNEWMTS_MCI_TRANSPORT_ERROR;
+    else {
+      std::vector<uint8_t> pending;
+      pending.reserve(ALLNEWMTS_MCI_MAX_FRAME_SIZE * 2);
+      const uint64_t started = client->transport.now_ms(client->context);
+      while (result == ALLNEWMTS_MCI_TRANSPORT_ERROR) {
+        const uint64_t now = client->transport.now_ms(client->context);
+        if (now < started ||
+            now - started >= ALLNEWMTS_MCI_TRANSACTION_TIMEOUT_MS)
+          break;
+        std::array<uint8_t, 4096> chunk{};
+        size_t amount = 0;
+        if (!client->transport.read(
+                client->context, chunk.data(), chunk.size(), &amount,
+                static_cast<uint32_t>(
+                    ALLNEWMTS_MCI_TRANSACTION_TIMEOUT_MS - (now - started)),
+                client->generation) ||
+            amount == 0 || amount > chunk.size() ||
+            pending.size() + amount > ALLNEWMTS_MCI_MAX_FRAME_SIZE * 2)
+          break;
+        pending.insert(pending.end(), chunk.begin(), chunk.begin() + amount);
+        while (pending.size() >= 8) {
+          size_t frame_size = 0;
+          if (!frameSize(pending.data(), pending.size(), frame_size)) {
+            result = ALLNEWMTS_MCI_FRAME_INVALID;
+            break;
+          }
+          if (pending.size() < frame_size) break;
+          if (pending[8] == 'H') {
+            if (!client->transport.write(
+                    client->context, pending.data(), frame_size,
+                    ALLNEWMTS_MCI_TRANSACTION_TIMEOUT_MS,
+                    client->generation)) {
+              result = ALLNEWMTS_MCI_TRANSPORT_ERROR;
+              break;
+            }
+          } else if (pending[8] == 'R') {
+            result = allnewmts_mci_decode_gd1000q1_quote(
+                pending.data(), frame_size, &client->session, instrument,
+                quote);
+            break;
+          } else {
+            result = ALLNEWMTS_MCI_FRAME_INVALID;
+            break;
+          }
+          pending.erase(pending.begin(), pending.begin() + frame_size);
+        }
+      }
+    }
+  } catch (const std::bad_alloc &) {
+    result = ALLNEWMTS_MCI_RESOURCE_LIMIT;
+  }
+  if (result != ALLNEWMTS_MCI_OK) {
+    client->transport.close(client->context, client->generation);
+    client->open = false;
+    client->ready = false;
+    std::memset(&client->session, 0, sizeof(client->session));
+  }
+  return result;
 }
 
 extern "C" uint32_t allnewmts_mci_probe_beta(

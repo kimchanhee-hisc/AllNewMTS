@@ -43,5 +43,9 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+/apps/allnewmts/ios
+/apps/allnewmts/android
 /apps/labs/*/ios
 /apps/labs/*/android
+/modules/allnewmts-networking/android/.cxx
+/modules/allnewmts-networking/android/build

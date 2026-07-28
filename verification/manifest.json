@@ -141,7 +141,7 @@
       ],
       "inputs": [
         "workspace package manifests",
-        "XMF and Networking Lab entries and app configurations",
+        "AllNewMTS product and isolated Lab entries and app configurations",
         "screen-runtime imports",
         "Expo native autolinking graph"
       ],
@@ -213,14 +213,14 @@
       ],
       "inputs": [
         "committed product config and uncommitted secret-store contract",
-        "pinned BETA endpoint hashes",
+        "AllNewMTS-owned BETA resource and endpoint hashes",
         "bounded app-visible loopback port contract",
-        "shared MCI framing, connection, and REST authentication cores",
+        "shared MCI framing, product connection/quote, and REST authentication cores",
         "synthetic transport fixtures",
         "operator-only BETA init, GD1000Q1, S00/005930 realtime, and TR3200Q1 probes"
       ],
       "outputs": [
-        "loopback validation, BETA preflight, init, GD1000Q1 and S00 realtime framing, polling, REST AccessKey/AccessToken issuance, TR3200Q1 mapping, retry, and fail-closed probe evidence"
+        "loopback validation, BETA preflight, retained init plus Samsung GD1000Q1, S00 realtime framing, polling, REST AccessKey/AccessToken issuance, TR3200Q1 mapping, retry, and fail-closed probe evidence"
       ],
       "budgetSeconds": 120
     },
@@ -357,19 +357,23 @@
     },
     {
       "path": ".gitignore",
-      "sha256": "f83c0bc69c9ba38c2af1390626abbb14c5969e13c252d2653bd8993a8323393b"
+      "sha256": "a059d5f67ad5330e47cc672e0504e4685d02f5fc46ca6a704dfd111e6e4560c6"
     },
     {
       "path": "AGENTS.md",
       "sha256": "069f92add5758fe138969ee782c15025a9a1a68c07754b4e1c5862f8aabc7881"
     },
     {
+      "path": "apps/allnewmts/assets/ip.dat",
+      "sha256": "dec42281942904e9a76ee46b7279f92f797ba46a1dd3bd7abb7e4920ad0b645d"
+    },
+    {
       "path": "README.md",
-      "sha256": "8af07c57da63d3bdf363c1e5786d863dacedd099e8539655d4888cca0f244a63"
+      "sha256": "7b9806d839aff4b928568489771e848f8c045428849706a5cb9fa0d3ed4758b9"
     },
     {
       "path": "docs/architecture/development-layers.md",
-      "sha256": "3b8568c622ba26d06c867e1927c111d67fd5385f70b06fc26e20f399d717ec75"
+      "sha256": "1f97bb41f86aa029474cde6f75f0fca6e18035e0b525b0bf6a47ad89ed6801c1"
     },
     {
       "path": "docs/specs/xmf-lua-runtime.md",
@@ -385,11 +389,11 @@
     },
     {
       "path": "docs/specs/networking-contract.md",
-      "sha256": "302e9bd92cd1db020bb0b1c66bd0f6b8dc45b75b7079a9e32eec8ec22c7991c9"
+      "sha256": "3e32a9fd1cdede11a46616ce56e7ce10a48e1eb5b4b18640a5373a50563a26c7"
     },
     {
       "path": "docs/testing.md",
-      "sha256": "ec2a7fe688b4ed5772fee861cc2dc438dedc5803fa20387cc170ca818b6d6120"
+      "sha256": "d3221edc3b79b73527016cdc735517c93d50cef9d566379c6b1ae84a01874840"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
@@ -429,7 +433,7 @@
     },
     {
       "path": "native/lua-source-manifest.json",
-      "sha256": "3daf27c8c8c16080ee3a39e8e87c8704ecdfcb368eb7dbc11dc4cfccbe9fb8b4"
+      "sha256": "53f912fba5b89b6f8375fb25e3c3b6ff9d848d6919b25a7c62108dcbbe2479d7"
     },
     {
       "path": "native/lua-source-manifest.schema.json",
@@ -441,7 +445,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "95439fae37df5197f45ca28f5ded8644aa5281fd6e0423c86ab49329cdf76b01"
+      "sha256": "b62ba173fdf146b92301e31905a234dbb236c969ec25949bd1410131243730b2"
     },
     {
       "path": "scripts/generate-xmf-assets.mjs",
@@ -457,15 +461,15 @@
     },
     {
       "path": "scripts/probe-mci-beta.mjs",
-      "sha256": "fdd1625efe94287e71e9b32dd6f46fda96013d8bfbd00bf2167f43ec9662183f"
+      "sha256": "04351514e1e5c1f4209e4cc771308f9cca410649f78961363f7c73887316ffec"
     },
     {
       "path": "scripts/probe-mci-beta-realtime.mjs",
-      "sha256": "11749b380c15503a652a404e42163144e93171baa2283baaf16ad1e8749b0dcf"
+      "sha256": "47c829530e2f90f503206c69ebdc4382a2b6e293433e24e2fd8b7d2e71640fb3"
     },
     {
       "path": "scripts/probe-mci-beta-tr.mjs",
-      "sha256": "98fec778f8f2695c07eb1e2ca36ddcf904b4de7f3146d5fa616b5d8a81447cbb"
+      "sha256": "1c848936f2560192712cd65510bee4aabf3e0e72ae2a2689649f972c7bee94b2"
     },
     {
       "path": "scripts/probe-rest-beta-tr.swift",
@@ -489,19 +493,19 @@
     },
     {
       "path": "scripts/verify-foundation.mjs",
-      "sha256": "03c1dfc43e7cbfdb162abd2106fb7aaa6312d96cf9d446e3ac20f07f69a58b7a"
+      "sha256": "9708287f8f0ad3f11ebf513c282c6289a211354d4c5c674634210373c87ebf65"
     },
     {
       "path": "scripts/verify-layers.mjs",
-      "sha256": "e37eb9f69d2c96459e8fca49334968c60d38a5d85a1026174a8f2ae96c6087ca"
+      "sha256": "1a072a71cb226222e3677962c7f22229f21bfec5e9a0332836985714a5f7ce42"
     },
     {
       "path": "scripts/verify-networking.mjs",
-      "sha256": "e3d3300bae144d0c3994097c91c0d1b977d356c3a739b47b02f23eac77f14ffe"
+      "sha256": "496b2046794242cadb08d4d40e1eeffd09e4de885a02b76a0108120bd17d4836"
     },
     {
       "path": "scripts/verify-native.mjs",
-      "sha256": "7ebe43c70b0def05b74a3f32a971031a110813b56767392d443f684f1d939037"
+      "sha256": "e48294d5ad7954cfd1c49701017d56c4061dc542264131f7cb41f3f40e558a5a"
     },
     {
       "path": "scripts/verify-runtime.mjs",

@@ -122,7 +122,7 @@ function verifyContracts() {
   assert.match(networkingCmake, /add_library\(allnewmts_networking SHARED/);
   assert.doesNotMatch(networkingCmake, /allnewmts_(?:runtime|lua)|LUA_ROOT/);
   const runtimeCmake = read('modules/allnewmts-runtime/android/CMakeLists.txt').toString('utf8');
-  assert.doesNotMatch(runtimeCmake, /allnewmts_(?:mci|rest_auth|product_config)|PRODUCT_MCI/);
+  assert.doesNotMatch(runtimeCmake, /allnewmts_(?:mci|rest_auth|product_(?:config|mci))|PRODUCT_MCI/);
 
   for (const resource of manifest.resources) assert.equal(sha256(read(resource.path)), resource.sha256, `resource hash drift: ${resource.path}`);
   assert.equal(sha256(read(manifest.testOnlyHashMismatch.path)), manifest.testOnlyHashMismatch.actualSha256, 'hostile resource drift');
@@ -139,7 +139,12 @@ function verifyContracts() {
   const networkingAndroid = read('modules/allnewmts-networking/android/src/main/java/com/allnewmts/networking/AllNewMTSNetworkingModule.kt').toString('utf8');
   const networkingAppleFunctions = [...networkingApple.matchAll(/AsyncFunction\("([^"]+)"/g)].map((match) => match[1]);
   const networkingAndroidFunctions = [...networkingAndroid.matchAll(/AsyncFunction\("([^"]+)"/g)].map((match) => match[1]);
-  assert.deepEqual(networkingAppleFunctions, ['probeLoopback']);
+  assert.deepEqual(networkingAppleFunctions, [
+    'probeLoopback',
+    'connectMciBeta',
+    'fetchSamsungElectronicsQuote',
+    'disconnectMci',
+  ]);
   assert.deepEqual(networkingAndroidFunctions, networkingAppleFunctions);
   assert.doesNotMatch(androidModule, /\b(?:val|var)\s+runtime\b/, 'Android module state must not hide Expo Module.runtime');
   const appEntry = read('apps/labs/xmf-runtime/index.ts').toString('utf8');
@@ -258,7 +263,7 @@ function evaluatedNetworkingPodGraph() {
   'evaluated Networking Pod graph has the wrong iOS product config');
   const sources = expandPodSources(Array.isArray(spec.source_files) ? spec.source_files : [spec.source_files], path.join(root, 'modules/allnewmts-networking'));
   const expected = manifest.authoredInventory.map(({ path: file }) => file).filter((file) =>
-    /^modules\/allnewmts-networking\/shared\/allnewmts_(?:mci.*|networking_sha256|product_config|rest_auth)\.(?:c|cpp|h)$/.test(file) ||
+    /^modules\/allnewmts-networking\/shared\/allnewmts_(?:mci.*|networking_sha256|product_(?:config|mci)|rest_auth)\.(?:c|cpp|h)$/.test(file) ||
     file === 'modules/allnewmts-networking/ios/AllNewMTSNetworkingModule.swift'
   ).sort();
   assert.deepEqual(sources, expected, 'evaluated Networking Pod source graph drift');
