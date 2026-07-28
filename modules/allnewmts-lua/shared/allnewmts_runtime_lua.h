@@ -66,7 +66,6 @@ typedef struct {
   const void *event;
   const char *handler;
   size_t handler_size;
-  int internal_close;
 } AllNewMTSLuaInvocation;
 
 void *allnewmts_lua_runtime(lua_State *state);

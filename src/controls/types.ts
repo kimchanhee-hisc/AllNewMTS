@@ -7,6 +7,7 @@ export type XmfControlBase = Readonly<{ name: string; layout: XmfRect }>;
 export type LabelControl = XmfControlBase & Readonly<{
   type: 'Label';
   caption: string;
+  foregroundColor?: XmfColor;
   fontsize?: string;
   fontstyle?: string;
 }>;

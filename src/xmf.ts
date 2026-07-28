@@ -30,7 +30,7 @@ export type XmfModel = Readonly<{
     screenType: string;
     scriptType: string;
   }>;
-  form: Readonly<{ name: string; backgroundColor: XmfColor; layout: XmfRect }>;
+  form: Readonly<{ name: string; backgroundColor?: XmfColor; layout: XmfRect }>;
   controls: readonly XmfControl[];
   tabOrder: Readonly<{ horizontal: readonly string[]; vertical: readonly string[] }>;
   script: Readonly<{ length: string; uncompressedLength: string; bytes: Uint8Array }>;
@@ -568,19 +568,26 @@ function parseXmfInternal(source: Uint8Array): XmfModel {
   scanner.whitespace();
   const formRaw = scanner.opening('FORM_INFO', false, 'form');
   const formRequired = registry.form.properties.filter(({ required }) => required).map(({ name }) => name);
-  attributes(formRaw, formRequired, [], 'form');
-  const formValues = Object.fromEntries(registry.form.properties.map((entry) => {
-    if (encoder.encode(formRaw[entry.name]).length > entry.maxBytes) fail('INVALID_PROPERTY', `form.${entry.name}`);
-    return [entry.name, coerce(entry.policy, formRaw[entry.name], `form.${entry.name}`)];
+  const formOptional = registry.form.properties.filter(({ required }) => !required).map(({ name }) => name);
+  attributes(formRaw, formRequired, formOptional, 'form');
+  const formValues = Object.fromEntries(registry.form.properties.flatMap((entry) => {
+    const source = formRaw[entry.name];
+    if (source === undefined) return [];
+    if (encoder.encode(source).length > entry.maxBytes) fail('INVALID_PROPERTY', `form.${entry.name}`);
+    return [[entry.name, coerce(entry.policy, source, `form.${entry.name}`)]];
   }));
-  const form = Object.freeze({ name: formValues.name as string, backgroundColor: formValues.bgcolor as XmfColor, layout: formValues.ly_vert as XmfRect });
+  const form = Object.freeze({
+    name: formValues.name as string,
+    ...(formValues.bgcolor === undefined ? {} : { backgroundColor: formValues.bgcolor as XmfColor }),
+    layout: formValues.ly_vert as XmfRect,
+  });
 
   scanner.whitespace();
   attributes(scanner.opening('CONTROL_INFO', true, 'controls'), [], [], 'controls');
   const warnings = new Map<string, XmfWarning>();
   const controls: XmfControl[] = [];
   const imageLimit = registry.controls.find(({ normalizedType }) => normalizedType === 'Image')?.maxPerScope ?? 0;
-  while (controls.length < 5 + imageLimit) {
+  while (controls.length < 69) {
     scanner.whitespace();
     if (starts(bytes, scanner.position, ascii('<TABORDER_INFO'))) break;
     const tag = registry.controls.flatMap(({ sourceTags }) => sourceTags).find((candidate) => starts(bytes, scanner.position, ascii(`<${candidate}`)));
@@ -588,13 +595,14 @@ function parseXmfInternal(source: Uint8Array): XmfModel {
     controls.push(controlFrom(tag, scanner.opening(tag, false, 'control'), warnings));
   }
   const counts = controls.reduce<Record<string, number>>((result, control) => ({ ...result, [control.type]: (result[control.type] ?? 0) + 1 }), {});
-  if (counts.Label !== 2 || counts.Edit !== 1 || counts.Button !== 2 || (counts.Image ?? 0) > imageLimit || new Set(controls.map(({ name }) => name)).size !== controls.length) fail('INVALID_STRUCTURE', 'controls');
+  if (controls.length < 1 || (counts.Image ?? 0) > imageLimit || new Set(controls.map(({ name }) => name)).size !== controls.length) fail('INVALID_STRUCTURE', 'controls');
   scanner.whitespace();
   const tabRaw = scanner.opening('TABORDER_INFO', false, 'tab-order');
   attributes(tabRaw, ['horz', 'vert'], [], 'tab-order');
   const focusable = new Set(controls.filter(({ type }) => type === 'Edit' || type === 'Button').map(({ name }) => name));
   const tabList = (value: string): readonly string[] => {
     if (encoder.encode(value).length > 644) fail('INVALID_STRUCTURE', 'tab-order');
+    if (value === '') return Object.freeze([]);
     const names = value.split('`');
     if (names.length < 1 || names.length > 5 || names.some((name) => !isIdentifier(name) || !focusable.has(name)) || new Set(names).size !== names.length) fail('INVALID_STRUCTURE', 'tab-order');
     return Object.freeze(names);
@@ -611,57 +619,59 @@ function parseXmfInternal(source: Uint8Array): XmfModel {
   const script = opaque({ length: scriptRaw._len, uncompressedLength: scriptRaw._ulen } as { length: string; uncompressedLength: string; bytes: Uint8Array }, 'bytes', scriptBytes) as XmfModel['script'];
 
   scanner.whitespace();
-  attributes(scanner.opening('DATAIO_INFO', true, 'data'), [], [], 'data');
-  scanner.whitespace();
-  attributes(scanner.opening('TRID_INFO', true, 'transaction-ids'), [], [], 'transaction-ids');
   const transactionIds: Array<XmfModel['transactionIds'][number]> = [];
-  for (let index = 0; index < 2; index += 1) {
-    scanner.whitespace();
-    const raw = scanner.opening('TRAN', false, 'transaction-id');
-    attributes(raw, ['tranid', 'trcode', 'encryption', 'useattr'], [], 'transaction-id');
-    if (!isIdentifier(raw.tranid) || !isToken(raw.trcode) || !isDecimal(raw.encryption, 3) || !isDecimal(raw.useattr, 3)) fail('INVALID_STRUCTURE', 'transaction-id');
-    transactionIds.push(Object.freeze({ id: raw.tranid, code: raw.trcode, encryption: raw.encryption, useAttributes: raw.useattr }));
-  }
-  if (new Set(transactionIds.map(({ id }) => id)).size !== 2) fail('INVALID_STRUCTURE', 'transaction-ids');
-  scanner.whitespace();
-  scanner.close('TRID_INFO', 'transaction-ids');
-
-  scanner.whitespace();
-  attributes(scanner.opening('TRIO_INFO', true, 'transactions'), [], [], 'transactions');
   const transactions: Array<XmfModel['transactions'][number]> = [];
-  for (let index = 0; index < 2; index += 1) {
+  if (starts(bytes, scanner.position, ascii('<DATAIO_INFO'))) {
+    attributes(scanner.opening('DATAIO_INFO', true, 'data'), [], [], 'data');
     scanner.whitespace();
-    const raw = scanner.opening('TRAN', true, 'transaction');
-    attributes(raw, ['name', 'title', 'realdata', 'dessvr', 'occurslen', 'memfieldlen'], [], 'transaction');
-    if (!isIdentifier(raw.name) || !isDecimal(raw.realdata, 10) || !isToken(raw.dessvr, 32) || !isDecimal(raw.occurslen, 10) || !isDecimal(raw.memfieldlen, 10)) fail('INVALID_STRUCTURE', 'transaction');
-    bounded(raw, 'title', 512, 'transaction');
-    const blocks: XmfBlock[] = [];
-    for (let blockIndex = 0; blockIndex < 4; blockIndex += 1) {
+    attributes(scanner.opening('TRID_INFO', true, 'transaction-ids'), [], [], 'transaction-ids');
+    for (let index = 0; index < 2; index += 1) {
       scanner.whitespace();
-      if (!starts(bytes, scanner.position, ascii('<TRBLOCK'))) fail('INVALID_STRUCTURE', 'transaction.blocks');
-      blocks.push(parseBlock(scanner));
-      const saved = scanner.position;
-      scanner.whitespace();
-      const expected = blockIndex < 3 ? '<TRBLOCK' : '</TRAN>';
-      if (!starts(bytes, scanner.position, ascii(expected))) fail('INVALID_STRUCTURE', 'transaction.blocks');
-      scanner.position = saved;
+      const raw = scanner.opening('TRAN', false, 'transaction-id');
+      attributes(raw, ['tranid', 'trcode', 'encryption', 'useattr'], [], 'transaction-id');
+      if (!isIdentifier(raw.tranid) || !isToken(raw.trcode) || !isDecimal(raw.encryption, 3) || !isDecimal(raw.useattr, 3)) fail('INVALID_STRUCTURE', 'transaction-id');
+      transactionIds.push(Object.freeze({ id: raw.tranid, code: raw.trcode, encryption: raw.encryption, useAttributes: raw.useattr }));
     }
-    const blockNames = new Set(blocks.map(({ name }) => name));
-    const directionValid = (direction: 'in' | 'out') => {
-      const matches = blocks.filter((block) => block.direction === direction);
-      return matches.length === 2 && matches.filter(({ occurs }) => occurs === undefined).length === 1 && matches.filter(({ occurs }) => occurs === '1').length === 1;
-    };
-    if (blockNames.size !== 4 || !directionValid('in') || !directionValid('out')) fail('INVALID_STRUCTURE', 'transaction.blocks');
+    if (new Set(transactionIds.map(({ id }) => id)).size !== 2) fail('INVALID_STRUCTURE', 'transaction-ids');
     scanner.whitespace();
-    scanner.close('TRAN', 'transaction');
-    transactions.push(Object.freeze({ name: raw.name, title: raw.title, realData: raw.realdata, destinationServer: raw.dessvr, occursLength: raw.occurslen, memoryFieldLength: raw.memfieldlen, blocks: Object.freeze(blocks) }));
+    scanner.close('TRID_INFO', 'transaction-ids');
+
+    scanner.whitespace();
+    attributes(scanner.opening('TRIO_INFO', true, 'transactions'), [], [], 'transactions');
+    for (let index = 0; index < 2; index += 1) {
+      scanner.whitespace();
+      const raw = scanner.opening('TRAN', true, 'transaction');
+      attributes(raw, ['name', 'title', 'realdata', 'dessvr', 'occurslen', 'memfieldlen'], [], 'transaction');
+      if (!isIdentifier(raw.name) || !isDecimal(raw.realdata, 10) || !isToken(raw.dessvr, 32) || !isDecimal(raw.occurslen, 10) || !isDecimal(raw.memfieldlen, 10)) fail('INVALID_STRUCTURE', 'transaction');
+      bounded(raw, 'title', 512, 'transaction');
+      const blocks: XmfBlock[] = [];
+      for (let blockIndex = 0; blockIndex < 4; blockIndex += 1) {
+        scanner.whitespace();
+        if (!starts(bytes, scanner.position, ascii('<TRBLOCK'))) fail('INVALID_STRUCTURE', 'transaction.blocks');
+        blocks.push(parseBlock(scanner));
+        const saved = scanner.position;
+        scanner.whitespace();
+        const expected = blockIndex < 3 ? '<TRBLOCK' : '</TRAN>';
+        if (!starts(bytes, scanner.position, ascii(expected))) fail('INVALID_STRUCTURE', 'transaction.blocks');
+        scanner.position = saved;
+      }
+      const blockNames = new Set(blocks.map(({ name }) => name));
+      const directionValid = (direction: 'in' | 'out') => {
+        const matches = blocks.filter((block) => block.direction === direction);
+        return matches.length === 2 && matches.filter(({ occurs }) => occurs === undefined).length === 1 && matches.filter(({ occurs }) => occurs === '1').length === 1;
+      };
+      if (blockNames.size !== 4 || !directionValid('in') || !directionValid('out')) fail('INVALID_STRUCTURE', 'transaction.blocks');
+      scanner.whitespace();
+      scanner.close('TRAN', 'transaction');
+      transactions.push(Object.freeze({ name: raw.name, title: raw.title, realData: raw.realdata, destinationServer: raw.dessvr, occursLength: raw.occurslen, memoryFieldLength: raw.memfieldlen, blocks: Object.freeze(blocks) }));
+    }
+    const idSet = new Set(transactionIds.map(({ id }) => id));
+    if (new Set(transactions.map(({ name }) => name)).size !== 2 || transactions.some(({ name }) => !idSet.has(name))) fail('INVALID_STRUCTURE', 'transactions');
+    scanner.whitespace();
+    scanner.close('TRIO_INFO', 'transactions');
+    scanner.whitespace();
+    scanner.close('DATAIO_INFO', 'data');
   }
-  const idSet = new Set(transactionIds.map(({ id }) => id));
-  if (new Set(transactions.map(({ name }) => name)).size !== 2 || transactions.some(({ name }) => !idSet.has(name))) fail('INVALID_STRUCTURE', 'transactions');
-  scanner.whitespace();
-  scanner.close('TRIO_INFO', 'transactions');
-  scanner.whitespace();
-  scanner.close('DATAIO_INFO', 'data');
   scanner.whitespace();
   scanner.close('ROOT', 'root');
   scanner.whitespace();

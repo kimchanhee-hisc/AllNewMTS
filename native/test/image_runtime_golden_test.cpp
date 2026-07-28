@@ -79,6 +79,17 @@ int main(int argc, char **argv) {
   assert(destroy(created.runtime_id).code == ALLNEWMTS_RUNTIME_OK);
   waitRelease(success);
 
+  Capture missing;
+  created = create(missing);
+  assert(created.code == ALLNEWMTS_RUNTIME_OK);
+  assert(dispatch(created.runtime_id, event("Hero_OnClick")).code == ALLNEWMTS_RUNTIME_OK);
+  waitOutput(missing);
+  assert(missing.output.find("\"event\":\"Hero_OnClick\"") != std::string::npos);
+  assert(missing.output.find("\"status\":\"ok\"") != std::string::npos);
+  assert(missing.output.find("\"imgpath\":\"initial\"") != std::string::npos);
+  assert(destroy(created.runtime_id).code == ALLNEWMTS_RUNTIME_OK);
+  waitRelease(missing);
+
   for (const auto &probe : {
       std::pair<const char *, const char *>{"ImageRollback", "LUA_ERROR"},
       {"ImageDenied", "HOST_LOOKUP_MISS"},

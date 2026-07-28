@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ROOT>
+	<MAP_INFO scrno="1100" scrname="주식현재가_미거래종목공통S" version="3" writer="김영서" scrtype="1" scripttype="1" />
+	<FORM_INFO name="Form" ly_vert="0,0,360,78,1" />
+	<CONTROL_INFO>
+		<IMAGE name="imgNoData" tmpdnfiledel="5505102" imgpath="ic_emo_24_06" ly_vert="99,36,24,24,1" />
+		<LABEL name="lblNoNxt" fgcolor="104:111111111" caption="NXT 미거래 종목이에요." ly_vert="131,38,180,20,1" />
+		<TABORDER_INFO horz="" vert="" />
+	</CONTROL_INFO>
+	<SCRIPT_INFO _len="321" _ulen="269" >
+--===========================================================================
+-- 화  면  명 : 주식현재가_미거래종목공통S
+-- 화  면  ID : 
+-- 개      요 : 
+-- 작      성 : 2025.01.08 김영서
+-- 수      정 : 
+--===========================================================================
+
+	</SCRIPT_INFO>
+</ROOT>

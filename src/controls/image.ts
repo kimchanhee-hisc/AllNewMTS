@@ -1,4 +1,15 @@
-import { descriptorBase, type ControlModule, type ImageControl } from './types';
+import { descriptorBase, type ControlModule, type ImageControl, type ImageResourceTarget } from './types';
+
+export type ImageSourceMap<T> = Readonly<Partial<Record<ImageResourceTarget, Readonly<Record<string, T>>>>>;
+
+export function resolveImageSource<T>(resource: string, target: ImageResourceTarget, fallback: string, sources: ImageSourceMap<T>): T | undefined {
+  const bucket = Object.hasOwn(sources, target) ? sources[target] : undefined;
+  let source = resource && bucket && Object.hasOwn(bucket, resource) ? bucket[resource] : undefined;
+  const local = Object.hasOwn(sources, 0) ? sources[0] : undefined;
+  if (source === undefined && fallback && local && Object.hasOwn(local, fallback)) source = local[fallback];
+  if ((resource || fallback) && source === undefined) throw new Error('UNRESOLVED_IMAGE_RESOURCE');
+  return source;
+}
 
 export const imageControl: ControlModule<ImageControl> = {
   type: 'Image',

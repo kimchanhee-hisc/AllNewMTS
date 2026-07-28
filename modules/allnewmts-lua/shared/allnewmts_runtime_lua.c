@@ -444,7 +444,7 @@ static int invoke_frame(lua_State *state) {
   lua_settop(state, 0);
   lua_pushlstring(state, call->handler, call->handler_size);
   lua_gettable(state, LUA_GLOBALSINDEX);
-  if (lua_isnil(state, -1) && call->internal_close) return 0;
+  if (lua_isnil(state, -1)) return 0;
   if (!lua_isfunction(state, -1)) return luaL_error(state, "HOST_LOOKUP_MISS");
   count = allnewmts_runtime_lua_argument_count(call->event);
   for (index = 0; index < count; ++index) {

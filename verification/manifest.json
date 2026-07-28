@@ -296,19 +296,19 @@
     },
     {
       "path": "docs/specs/xmf-lua-runtime.md",
-      "sha256": "e77a7c420507103b254a00720b269953bb1ce92f68a0f68f6a94640782986a0a"
+      "sha256": "a5bb5fcce54da59afd34049e61e17efc1de143c1d2560af07bd01fd55b81852d"
     },
     {
       "path": "docs/specs/controls/image.md",
-      "sha256": "03636a7a2336d5b398179f13b87853f18deebf5774196191bcb3f628e2dc319e"
+      "sha256": "ee2b7c5a2ba4df6b4703d4fd4f3a4dddaec56ebc6ec534737fe8257c3e819382"
     },
     {
       "path": "docs/specs/runtime-contract.md",
-      "sha256": "8dd6fc3ed276bd2d92de26cb17bece0a76aed1519a5055a691a7177dd24840cc"
+      "sha256": "7c6b22f3bba5f01267039a1911b592feb88195fa1d4cb23097e9212ec236fd40"
     },
     {
       "path": "docs/testing.md",
-      "sha256": "cfdc1e2792409df1319692ca02c2a08bd0b0747f372e761459a4a52dec3515aa"
+      "sha256": "02c2cd51d679da39b35e260979e75d3ee8abf8022c343da12aa0df5e59a3e5b2"
     },
     {
       "path": "docs/adr/0001-official-lua-5.1.5.md",
@@ -316,11 +316,11 @@
     },
     {
       "path": "contracts/host-api.json",
-      "sha256": "287996d864a0348424bbc65067b26be45e15148dd900c2d9eb1a1c999f5e70c1"
+      "sha256": "4e84a1169ee581c2162d995f442450415558b401714eb1219be3f22c277f5705"
     },
     {
       "path": "contracts/host-api.schema.json",
-      "sha256": "6192dc997d4211a1ed4e95d8e1f7aecf6e0d35b8dc7fda1d0c75a239572c3ca7"
+      "sha256": "1acc03f651b02a18d915a059a86997a3cd1b15a1a85c5d74d42c896b87e63c6b"
     },
     {
       "path": "contracts/runtime-result.schema.json",
@@ -328,7 +328,7 @@
     },
     {
       "path": "contracts/control-registry.json",
-      "sha256": "20f766760dab375eec6d986338dd3de74f53b12fdb2458e25d2aa106ea451bf3"
+      "sha256": "b61876da8fa92b46ede24b380369a4f826e58ec0b8318c67bb9744f254895e31"
     },
     {
       "path": "contracts/control-registry.schema.json",
@@ -336,7 +336,7 @@
     },
     {
       "path": "native/lua-source-manifest.json",
-      "sha256": "3d9384563a1e6e153c478baf714c92b0b1ee509a4397286a1b3cc67afd637312"
+      "sha256": "b6ebc79ad63fcb3ff4800128d29374ffab7dfbdd678107e0015ff82cd415e362"
     },
     {
       "path": "native/lua-source-manifest.schema.json",
@@ -384,7 +384,7 @@
     },
     {
       "path": "scripts/verify-ui.mjs",
-      "sha256": "2735cdd414e24d14c8e6c9b2f786d2c13ca7f1b717085b99be6436d3c77a2a7a"
+      "sha256": "da1c072b08b687cc3d03d8e09fa794d9d2048950b6ec35bf82b33559394cdc30"
     },
     {
       "path": "test/foundation.test.mjs",

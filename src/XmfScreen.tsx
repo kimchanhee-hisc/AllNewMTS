@@ -15,7 +15,7 @@ export function XmfScreen({ model, runtimeControls = {}, imageSources = {}, onCo
   const controls = new Map(model.controls.map((control) => [control.name, control]));
   const descriptors = toRenderDescriptors(model, Object.fromEntries(Object.entries(runtimeControls).map(([name, state]) => [name, state.properties])));
   return (
-    <View style={{ position: 'relative', width: model.form.layout.width, height: model.form.layout.height, backgroundColor: model.form.backgroundColor.value }}>
+    <View style={{ position: 'relative', width: model.form.layout.width, height: model.form.layout.height, backgroundColor: model.form.backgroundColor?.value }}>
       {descriptors.map((descriptor) => {
         const control = controls.get(descriptor.control);
         if (!control) throw new Error('INVALID_RENDER_DESCRIPTOR');

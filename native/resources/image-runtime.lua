@@ -6,15 +6,15 @@ function ImageState()
   assert(Hero.width == 32)
   assert(Hero.height == 24)
   Hero.imgpath = "changed"
-  Hero.imagetarget = 2
-  Hero.visible = false
-  Hero.enable = false
-  Hero.left = -8
+  Hero.imagetarget = "2"
+  Hero.visible = "0"
+  Hero.enable = 0
+  Hero.left = "-8"
   Hero.top = 12
-  Hero.width = 0
+  Hero.width = "0"
   Hero.height = 48
-  Hero.autosize = true
-  Hero.circle = true
+  Hero.autosize = 1
+  Hero.circle = "1"
 end
 
 function ImageRollback()
@@ -31,11 +31,11 @@ function ImageBadTarget()
 end
 
 function ImageBadBoolean()
-  Hero.visible = "0"
+  Hero.visible = "true"
 end
 
 function ImageBadGeometry()
-  Hero.left = 0.5
+  Hero.left = "08"
 end
 
 function ImageBadResource()

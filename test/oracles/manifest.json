@@ -24,6 +24,26 @@
       }
     },
     {
+      "path": "test/oracles/sources/mts_screen/HS1100S64.xmf_",
+      "bytes": 911,
+      "sha256": "22355b775c39410a28321a01f8a805b945de155a76ccb1fa78ae09b0532b21b1",
+      "sourceRepositoryCommit": "f079792bcf383b2743676384ffda6c6671ddda10",
+      "classification": "approved-original-image-xmf",
+      "allowedDerivation": "Byte-for-byte real-screen parser, descriptor, and injected Image-provider evidence only.",
+      "sourceRepositoryPath": "SmartMTS/Resource/Main/scr_xmf/HS1100S64.xmf_",
+      "gitBlobOid": "95f6ffa7d72fa88905759c1417a2cabfba3ef2c5"
+    },
+    {
+      "path": "test/oracles/sources/mts_screen/HS2003S10.image-scalars.lua.source",
+      "bytes": 71,
+      "sha256": "86b0cdcfdc8b9aba349482d3eb507e18e391093e0c758ba81fa5a65ab53e57cb",
+      "sourceRepositoryCommit": "f079792bcf383b2743676384ffda6c6671ddda10",
+      "classification": "approved-authored-image-lua-excerpt",
+      "allowedDerivation": "Exact authored Lua lines 72-73 extracted from the identified XMF blob; scalar representation evidence only.",
+      "sourceRepositoryPath": "SmartMTS/Resource/Main/scr_xmf/HS2003S10.xmf_",
+      "gitBlobOid": "367d64600123901496f25d28fa6af6d2161fc9a4"
+    },
+    {
       "path": "test/oracles/sources/mts_screen/script.lua",
       "bytes": 38172,
       "sha256": "dfa28a8eecf55b8fbd67322fd101e37a2ef2671cc3ac938e9be0c682bd0fc8d4",

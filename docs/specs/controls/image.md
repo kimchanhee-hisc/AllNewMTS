@@ -17,6 +17,10 @@ Read-only extraction on 2026-07-27 used:
 
 The authored corpus contains 4,612 Image tags in 1,688 files. It has 3,234 `imgpath` references, 1,706 `visible` references, 1,173 geometry references, 336 `OnClick` handlers, and 14 `OnImageDownload` handlers. The exact candidate decisions and counts are frozen in the Image migration inventory in `control-registry.json`. Plus and mts_screen are observational inputs, not copied implementation or self-authenticating expected output. MVigsEngine is not evidence.
 
+The immutable [`HS2003S10` excerpt](../../../test/oracles/sources/mts_screen/HS2003S10.image-scalars.lua.source) freezes two representative authored writes from blob `367d64600123901496f25d28fa6af6d2161fc9a4`: `circle = "1"` and `imagetarget = "2"`. The native registrations expose these properties through string-shaped calls, while the authored corpus also uses Lua booleans and numbers for selected mutable Image members. The shared boundary therefore normalizes only the exact scalar forms below.
+
+The first complete real-screen fixture is [`HS1100S64.xmf_`](../../../test/oracles/sources/mts_screen/HS1100S64.xmf_). It proves one local provider key, one Image metadata warning, one Label, empty tab order, and absent transactions without adding screen-specific behavior.
+
 ## Parsing and normalized model
 
 A flat `CONTROL_INFO` accepts zero through 64 self-closing Image elements. Names remain unique across the supported flat control scope. The corpus contains up to 44 Images in a file; 64 is the explicit resource ceiling, not a product identity switch.
@@ -61,13 +65,15 @@ The production Host state stores Image `imgpath`, `imagetarget`, `visible`, `ena
 Lua exposes:
 
 - read/write `imgpath` as a bounded string;
-- read/write `visible` as a boolean;
-- read/write `left` and `top` as integers in `-8192..8192`, and `width` and `height` as integers in `0..8192`;
-- write-only `imagetarget` as integer `0..3`;
-- write-only `enable`, `autosize`, and `circle` as booleans; and
+- read `visible` as a boolean and write it as a boolean, numeric `0|1`, or exact string `"0"|"1"`;
+- read `left` and `top` as integers in `-8192..8192`, and `width` and `height` as integers in `0..8192`; writes accept either a Lua integer or its canonical decimal string;
+- write-only `imagetarget` as integer or canonical decimal string `0..3`;
+- write-only `enable`, `autosize`, and `circle` in the same boolean/`0|1` forms as `visible`; and
 - `OnClick`, dispatched as `${name}_OnClick` with no arguments or pre-handler mutation.
 
-Historical string/number/boolean bridge coercions are not reproduced. These members use the exact shared types above; wrong types return `HOST_ARGUMENT_ERROR`. Undeclared Image members fail closed through the Host denylist.
+Canonical decimal strings have no whitespace, sign prefix for nonnegative values, leading zero, fraction, or exponent; `"-0"` is not canonical. Every accepted write is normalized immediately to the typed Host state above. Other historical bridge coercions are not reproduced, and wrong forms return `HOST_ARGUMENT_ERROR`. Undeclared Image members fail closed through the Host denylist.
+
+Both native controls emit `OnClick` from the control without first testing whether authored Lua declared the handler, while only 336 of 4,612 authored Images declare one. A missing `${name}_OnClick` therefore completes as an empty successful handler under the shared runtime rule; a present non-function global still fails with `HOST_LOOKUP_MISS`.
 
 Image remains absent from `TABORDER_INFO`, but its `Pressable` rendering is accessibility-focusable when visible. Disabled state suppresses clicks and publishes the disabled accessibility state.
 
@@ -115,4 +121,4 @@ Nested XMF container ownership, XMS decoding, direct networking, cache and tempo
 
 ## Verification
 
-`npm run verify:ctlimage` proves parser defaults and limits, hidden/blank/fallback/provider cases, multiple Images, descriptor projection, OnClick, immutable model data, warning-only metadata, and negative diagnostics. `npm run verify:runtime` proves Image Host get/set, rollback, deny-by-default behavior, canonical snapshots, and unchanged iOS/Android adapter output against one independent golden. `npm run verify:docs` proves owner routing and machine-ledger integrity. Editing uses `npm run verify:fast`; complete acceptance uses `npm run verify:ci`.
+`npm run verify:ctlimage` proves the complete `HS1100S64` parse-to-descriptor/provider path, parser defaults and limits, executable own-property resource resolution, hidden/blank/fallback/provider cases, multiple Images, descriptor projection, OnClick, immutable model data, warning-only metadata, and negative diagnostics. `npm run verify:runtime` proves authored Image scalar normalization, missing-handler success, Host get/set, rollback, deny-by-default behavior, canonical snapshots, and unchanged iOS/Android adapter output against one independent golden. `npm run verify:fixtures` pins the authored sources and provenance. `npm run verify:docs` proves owner routing and machine-ledger integrity. Editing uses `npm run verify:fast`; complete acceptance uses `npm run verify:ci`.

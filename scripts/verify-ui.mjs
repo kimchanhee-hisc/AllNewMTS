@@ -302,22 +302,24 @@ if (forwardingRegression) {
 
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'allnewmts-ui-verifier-'));
 const originalPath = 'test/oracles/sources/mts_screen/HS1200P08.xmf_';
+const imageScreenPath = 'test/oracles/sources/mts_screen/HS1100S64.xmf_';
 const syntheticPath = 'test/oracles/synthetic/renamed-reordered.xmf_';
 const expectedSourceHash = '4d63ba22ac5339cfd3068cffa91710e0099481da81d974e2aff0ce7ae39ed53e';
+const expectedImageScreenHash = '22355b775c39410a28321a01f8a805b945de155a76ccb1fa78ae09b0532b21b1';
 const sourceManifest = json('native/lua-source-manifest.json');
 const expectedGolden = read('test/ui/runtime-client-golden.json', 'utf8').trim();
 const independentGrammar = Object.freeze([
-  { parent: 'document', order: 1, tag: 'ROOT', form: 'paired', cardinality: '1', required: [], optional: [], body: 'MAP_INFO,FORM_INFO,CONTROL_INFO,SCRIPT_INFO,DATAIO_INFO; no trailing data' },
+  { parent: 'document', order: 1, tag: 'ROOT', form: 'paired', cardinality: '1', required: [], optional: [], body: 'MAP_INFO,FORM_INFO,CONTROL_INFO,SCRIPT_INFO,optional DATAIO_INFO; no trailing data' },
   { parent: 'ROOT', order: 1, tag: 'MAP_INFO', form: 'self', cardinality: '1', required: ['scrno', 'scrname', 'version', 'writer', 'scrtype', 'scripttype'], optional: [], body: 'token/text/decimal metadata bounds' },
-  { parent: 'ROOT', order: 2, tag: 'FORM_INFO', form: 'self', cardinality: '1', required: ['name', 'bgcolor', 'ly_vert'], optional: [], body: 'identifier,encoded-color,layout' },
-  { parent: 'ROOT', order: 3, tag: 'CONTROL_INFO', form: 'paired', cardinality: '1', required: [], optional: [], body: 'five base controls plus 0..64 IMAGE in arbitrary order then TABORDER_INFO; unique names' },
-  { parent: 'CONTROL_INFO', order: 1, tag: 'LABEL', form: 'self', cardinality: '2', required: ['name', 'caption', 'ly_vert'], optional: ['fontsize', 'fontstyle'], body: 'identifier,text<=2048,registry projection' },
-  { parent: 'CONTROL_INFO', order: 1, tag: 'EDIT', form: 'self', cardinality: '1', required: ['name', 'hintcaption', 'imetype', 'maxlength', 'leadheight', 'paddinginfo', 'ly_vert'], optional: ['caption'], body: 'identifier,text<=2048,registry projection' },
-  { parent: 'CONTROL_INFO', order: 1, tag: 'BUTTON', form: 'self', cardinality: '2', required: ['name', 'caption', 'fgcolor', 'fontsize', 'ly_vert'], optional: ['enable', 'bgcolor', 'bordersize'], body: 'identifier,text<=2048,registry projection' },
+  { parent: 'ROOT', order: 2, tag: 'FORM_INFO', form: 'self', cardinality: '1', required: ['name', 'ly_vert'], optional: ['bgcolor'], body: 'identifier,optional encoded-color,layout' },
+  { parent: 'ROOT', order: 3, tag: 'CONTROL_INFO', form: 'paired', cardinality: '1', required: [], optional: [], body: '1..69 included controls in arbitrary order then TABORDER_INFO; unique names; <=64 IMAGE' },
+  { parent: 'CONTROL_INFO', order: 1, tag: 'LABEL', form: 'self', cardinality: '0..69', required: ['name', 'caption', 'ly_vert'], optional: ['fgcolor', 'fontsize', 'fontstyle'], body: 'identifier,text<=2048,registry projection' },
+  { parent: 'CONTROL_INFO', order: 1, tag: 'EDIT', form: 'self', cardinality: '0..69', required: ['name', 'hintcaption', 'imetype', 'maxlength', 'leadheight', 'paddinginfo', 'ly_vert'], optional: ['caption'], body: 'identifier,text<=2048,registry projection' },
+  { parent: 'CONTROL_INFO', order: 1, tag: 'BUTTON', form: 'self', cardinality: '0..69', required: ['name', 'caption', 'fgcolor', 'fontsize', 'ly_vert'], optional: ['enable', 'bgcolor', 'bordersize'], body: 'identifier,text<=2048,registry projection' },
   { parent: 'CONTROL_INFO', order: 1, tag: 'IMAGE', form: 'self', cardinality: '0..64', required: ['name', 'ly_vert'], optional: ['imgpath', 'imagetarget', 'defaultimg', 'visible', 'enable', 'autosize', 'circle', 'bgcolor', 'borderradius', 'border', 'bordersize', 'tmpdnfiledel'], body: 'canonical Image owner; exact provider keys and flat layout' },
-  { parent: 'CONTROL_INFO', order: 2, tag: 'TABORDER_INFO', form: 'self', cardinality: '1', required: ['horz', 'vert'], optional: [], body: 'backtick list 1..5; unique declared Edit/Button; <=644 bytes' },
+  { parent: 'CONTROL_INFO', order: 2, tag: 'TABORDER_INFO', form: 'self', cardinality: '1', required: ['horz', 'vert'], optional: [], body: 'empty or backtick list 1..5; unique declared Edit/Button; <=644 bytes' },
   { parent: 'ROOT', order: 4, tag: 'SCRIPT_INFO', form: 'paired', cardinality: '1', required: ['_len', '_ulen'], optional: [], body: 'opaque 0..2097152 bytes; exact single close' },
-  { parent: 'ROOT', order: 5, tag: 'DATAIO_INFO', form: 'paired', cardinality: '1', required: [], optional: [], body: 'TRID_INFO then TRIO_INFO' },
+  { parent: 'ROOT', order: 5, tag: 'DATAIO_INFO', form: 'paired', cardinality: '0..1', required: [], optional: [], body: 'when present, TRID_INFO then TRIO_INFO' },
   { parent: 'DATAIO_INFO', order: 1, tag: 'TRID_INFO', form: 'paired', cardinality: '1', required: [], optional: [], body: 'two self-closing TRAN; unique tranid' },
   { parent: 'TRID_INFO', order: 1, tag: 'TRAN', form: 'self', cardinality: '2', required: ['tranid', 'trcode', 'encryption', 'useattr'], optional: [], body: 'identifier/token/decimal metadata' },
   { parent: 'DATAIO_INFO', order: 2, tag: 'TRIO_INFO', form: 'paired', cardinality: '1', required: [], optional: [], body: 'two paired TRAN; names equal TRID_INFO set' },
@@ -337,17 +339,19 @@ function compileTypeScript() {
   run('node_modules/.bin/tsc', [
     '--ignoreConfig', '--module', 'commonjs', '--moduleResolution', 'node', '--target', 'es2022',
     '--resolveJsonModule', '--esModuleInterop', '--skipLibCheck', '--noCheck', '--ignoreDeprecations', '6.0',
-    '--outDir', temp, '--rootDir', '.', 'src/xmf.ts', 'src/runtime-client.ts'
+    '--outDir', temp, '--rootDir', '.', 'src/xmf.ts', 'src/runtime-client.ts', 'src/controls/image.ts'
   ]);
   const require = createRequire(import.meta.url);
   return {
     xmf: require(path.join(temp, 'src/xmf.js')),
-    runtimeClient: require(path.join(temp, 'src/runtime-client.js'))
+    runtimeClient: require(path.join(temp, 'src/runtime-client.js')),
+    image: require(path.join(temp, 'src/controls/image.js'))
   };
 }
 
 const modules = compileTypeScript();
 const original = read(originalPath);
+const imageScreen = read(imageScreenPath);
 const synthetic = read(syntheticPath);
 
 function phase(name, work) {
@@ -435,6 +439,10 @@ function contractRegistry() {
     ['XMF', 'include', null], ['XMS', 'unsupported', 'UNSUPPORTED_INPUT_ROLE']
   ]);
   assert.deepEqual(registry.controls.filter(({ decision }) => decision === 'include').map(({ normalizedType }) => normalizedType), ['Label', 'Edit', 'Button', 'Image']);
+  assert.deepEqual(registry.form.properties.find(({ name }) => name === 'bgcolor'), {
+    name: 'bgcolor', policy: 'encoded-color', required: false, default: 'native-default', maxBytes: 13
+  });
+  assert.ok(registry.controls.find(({ normalizedType }) => normalizedType === 'Label').properties.some(({ name, required }) => name === 'fgcolor' && required === false));
   const image = registry.controls.find(({ normalizedType }) => normalizedType === 'Image');
   assert.equal(image.maxPerScope, 64);
   assert.deepEqual(image.properties.map(({ name }) => name), [
@@ -521,8 +529,7 @@ function parserModel() {
     [mutate(original, '\t<MAP_INFO', '\t<FORM_INFO_COPY'), 'INVALID_STRUCTURE'],
     [mutate(original, '\t<FORM_INFO', '\t<MAP_INFO_COPY'), 'INVALID_STRUCTURE'],
     [mutate(original, '\t<FORM_INFO name=', '\t<MAP_INFO scrno="extra" /><FORM_INFO name='), 'INVALID_STRUCTURE'],
-    [mutate(original, '\t\t<TABORDER_INFO', '\t\t<LABEL name="early" caption="x" ly_vert="0,0,1,1,1" />\r\n\t\t<TABORDER_INFO'), 'INVALID_STRUCTURE'],
-    [mutate(original, 'horz="btnAdd`btnCancel"', 'horz=""'), 'INVALID_STRUCTURE'],
+    [mutate(original, '\t\t<TABORDER_INFO', `${Array.from({ length: 65 }, (_, index) => `\t\t<LABEL name="extra${index}" caption="x" ly_vert="0,0,1,1,1" />`).join('\r\n')}\r\n\t\t<TABORDER_INFO`), 'INVALID_STRUCTURE'],
     [mutate(original, 'horz="btnAdd`btnCancel"', 'horz="`btnAdd"'), 'INVALID_STRUCTURE'],
     [mutate(original, 'horz="btnAdd`btnCancel"', 'horz="btnAdd`btnAdd"'), 'INVALID_STRUCTURE'],
     [mutate(original, 'horz="btnAdd`btnCancel"', 'horz="lbl0"'), 'INVALID_STRUCTURE'],
@@ -554,6 +561,7 @@ function parserModel() {
   rejects(new Uint8Array(4_194_305), 'INVALID_RESOURCE');
 
   parses(mutate(original, 'writer="조승희"', 'writer="조&amp;승희"'));
+  parses(mutate(original, 'horz="btnAdd`btnCancel"', 'horz=""'));
   parses(mutate(original, 'scrname="관심종목_그룹추가"', `scrname="${'s'.repeat(512)}"`));
   rejects(mutate(original, 'scrname="관심종목_그룹추가"', `scrname="${'s'.repeat(513)}"`), 'INVALID_STRUCTURE');
   parses(mutate(original, 'caption="관심그룹 추가"', `caption="${'c'.repeat(2048)}"`));
@@ -719,6 +727,42 @@ function ctlImage() {
   for (const boundary of ['<IMAGE>', '<CTLIMAGE>', 'SetCircleBorder', 'UNSUPPORTED_INPUT_ROLE', 'UNSUPPORTED_CONTROL_TYPE', 'INVALID_STRUCTURE', 'INVALID_PROPERTY', 'HOST_ARGUMENT_ERROR', 'HOST_LOOKUP_MISS', 'UNRESOLVED_IMAGE_RESOURCE', 'resizeMode="contain"']) {
     assert.ok(contract.includes(boundary), `Image canonical owner omits ${boundary}`);
   }
+  assert.equal(imageScreen.length, 911);
+  assert.equal(sha256(imageScreen), expectedImageScreenHash);
+  const acceptedScreen = modules.xmf.ingestApprovedXmf({
+    bytes: imageScreen, byteCount: imageScreen.length, sha256: expectedImageScreenHash, inputRole: 'XMF'
+  });
+  assert.deepEqual(summary(acceptedScreen), { forms: 1, labels: 1, edits: 0, buttons: 0, images: 1, transactionIds: 0, transactions: 0, blocks: 0 });
+  assert.deepEqual(acceptedScreen.form, { name: 'Form', layout: { left: 0, top: 0, width: 360, height: 78 } });
+  assert.deepEqual(acceptedScreen.tabOrder, { horizontal: [], vertical: [] });
+  assert.deepEqual(acceptedScreen.warnings, [
+    { code: 'UNSUPPORTED_IMAGE_METADATA', normalizedType: 'Image', property: 'tmpdnfiledel' }
+  ]);
+  assert.deepEqual(Buffer.from(acceptedScreen.script.bytes), Buffer.from(scriptSlice(imageScreen)));
+  const acceptedDescriptors = modules.xmf.toRenderDescriptors(acceptedScreen);
+  const acceptedImage = acceptedDescriptors.find(({ component }) => component === 'Image');
+  const acceptedLabel = acceptedDescriptors.find(({ component }) => component === 'Text');
+  assert.deepEqual({
+    imageResource: acceptedImage.imageResource, imageTarget: acceptedImage.imageTarget, style: acceptedImage.style
+  }, {
+    imageResource: 'ic_emo_24_06', imageTarget: 0, style: { left: 99, top: 36, width: 24, height: 24 }
+  });
+  assert.deepEqual({
+    text: acceptedLabel.text, foregroundColor: acceptedLabel.foregroundColor, style: acceptedLabel.style
+  }, {
+    text: 'NXT 미거래 종목이에요.', foregroundColor: 'rgb(111,111,111)', style: { left: 131, top: 38, width: 180, height: 20 }
+  });
+  const injectedSource = Object.freeze({ testAsset: true });
+  assert.equal(modules.image.resolveImageSource(acceptedImage.imageResource, acceptedImage.imageTarget, acceptedImage.defaultImageResource, {
+    0: { ic_emo_24_06: injectedSource }
+  }), injectedSource);
+  const withoutControls = mutate(mutate(
+    imageScreen,
+    '\t\t<IMAGE name="imgNoData" tmpdnfiledel="5505102" imgpath="ic_emo_24_06" ly_vert="99,36,24,24,1" />\r\n',
+    ''
+  ), '\t\t<LABEL name="lblNoNxt" fgcolor="104:111111111" caption="NXT 미거래 종목이에요." ly_vert="131,38,180,20,1" />\r\n', '');
+  rejects(withoutControls, 'INVALID_STRUCTURE');
+  rejects(mutate(imageScreen, '</ROOT>', '\t<DATAIO_INFO></DATAIO_INFO>\r\n</ROOT>'), 'INVALID_STRUCTURE');
   const row = '<IMAGE name="imgStatus" imgpath="https://example.invalid/icon" imagetarget="2" defaultimg="fallback" visible="0" enable="0" autosize="1" circle="1" bgcolor="010:001002003" borderradius="7" border="1" bordersize="2" tmpdnfiledel="1" ly_vert="-4,8,16,20,0" />';
   const blankRow = '<IMAGE name="imgBlank" ly_vert="20,8,16,20,1" />';
   const bytes = mutate(original, '\t\t<TABORDER_INFO', `\t\t${row}\r\n\t\t${blankRow}\r\n\t\t<TABORDER_INFO`);
@@ -817,18 +861,21 @@ function ctlImage() {
   const renderer = read('src/controls/ControlView.tsx', 'utf8');
   assert.match(screen, /<ControlView /);
   assert.match(renderer, /ImageSourcePropType/);
-  assert.match(renderer, /Object\.hasOwn\(imageSources, target\)/);
-  assert.match(renderer, /Object\.hasOwn\(bucket, resource\)/);
-  assert.match(renderer, /Object\.hasOwn\(imageSources, 0\)/);
-  assert.match(renderer, /Object\.hasOwn\(local, fallback\)/);
+  const inherited = Object.create({ stolen: 'prototype-value' });
+  inherited.local = 'local-value';
+  const sources = { 0: inherited, 2: { primary: 'primary-value' } };
+  assert.equal(modules.image.resolveImageSource('primary', 2, '', sources), 'primary-value');
+  assert.equal(modules.image.resolveImageSource('missing', 2, 'local', sources), 'local-value');
+  assert.equal(modules.image.resolveImageSource('', 0, '', sources), undefined);
+  assert.throws(() => modules.image.resolveImageSource('stolen', 0, '', sources), /UNRESOLVED_IMAGE_RESOURCE/);
+  assert.throws(() => modules.image.resolveImageSource('missing', 3, 'missing', sources), /UNRESOLVED_IMAGE_RESOURCE/);
   assert.match(renderer, /if \(descriptor\.visible === false\) return null/);
   assert.match(renderer, /left: \(descriptor\.style\.width - size\) \/ 2/);
   assert.match(renderer, /top: \(descriptor\.style\.height - size\) \/ 2/);
   assert.match(renderer, /accessibilityState=\{\{ disabled: !enabled \}\}/);
   assert.match(renderer, /accessible=\{false\}/);
-  assert.match(renderer, /UNRESOLVED_IMAGE_RESOURCE/);
   assert.doesNotMatch(renderer, /source=\{\{\s*uri:|(?:https?|ftp|sftp):\/\//i);
-  return { fixtureSha256: sha256(bytes), imageControls: 2, maximumImages: 64, negativeCases: 17, runtimeProperties: 10, events: 1, remoteOperations: 0 };
+  return { realScreenSha256: expectedImageScreenHash, fixtureSha256: sha256(bytes), imageControls: 2, maximumImages: 64, negativeCases: 19, runtimeProperties: 10, events: 1, remoteOperations: 0 };
 }
 
 function controlModules() {

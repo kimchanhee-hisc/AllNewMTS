@@ -6,6 +6,7 @@ export const labelControl: ControlModule<LabelControl> = {
     ...common,
     type: 'Label',
     caption: values.caption as string,
+    ...(values.fgcolor === undefined ? {} : { foregroundColor: values.fgcolor as LabelControl['foregroundColor'] }),
     ...(values.fontsize === undefined ? {} : { fontsize: values.fontsize as string }),
     ...(values.fontstyle === undefined ? {} : { fontstyle: values.fontstyle as string }),
   }),
@@ -13,6 +14,7 @@ export const labelControl: ControlModule<LabelControl> = {
     ...descriptorBase(control),
     component: 'Text',
     text: control.caption,
+    foregroundColor: control.foregroundColor?.value,
     accessibilityLabel: control.caption || control.name,
   }),
 };

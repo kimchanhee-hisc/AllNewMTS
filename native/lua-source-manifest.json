@@ -373,7 +373,7 @@
     {
       "logicalPath": "fixtures/image-runtime.lua",
       "path": "native/resources/image-runtime.lua",
-      "sha256": "0d208fc76bc804c2c2b0e316024ed292434b57c73ef7f763fa1f9b6a22a47985"
+      "sha256": "a27cc5b30ed20495dbffdead8222dc8450278e248c217e5ed1be6258ca468fe0"
     },
     {
       "logicalPath": "fixtures/runtime-conformance.lua",
@@ -528,8 +528,8 @@
     },
     {
       "path": "modules/allnewmts-lua/shared/allnewmts_runtime.cpp",
-      "bytes": 84299,
-      "sha256": "c78821248a9362d10cca5157baa6f46e666165f515b24bce94f611f27973c309"
+      "bytes": 85078,
+      "sha256": "054d34733382e3b8afedda983ac35739a4c563f8b5cf7be7108786c657b99c1e"
     },
     {
       "path": "modules/allnewmts-lua/shared/allnewmts_runtime.h",
@@ -548,18 +548,18 @@
     },
     {
       "path": "modules/allnewmts-lua/shared/allnewmts_runtime_lua.c",
-      "bytes": 18224,
-      "sha256": "984b32e4954175c2af1303d20af627302aa692f9428a8ea02f39b906609958db"
+      "bytes": 18200,
+      "sha256": "74716823558b8958d07058269f747ee85d6e1bf51784f7f7eda1bacaf5246af3"
     },
     {
       "path": "modules/allnewmts-lua/shared/allnewmts_runtime_lua.h",
-      "bytes": 3793,
-      "sha256": "83ac673bc479a6a7d210f5245009e5d225d3df012fe97059e00cd43fa829d2c4"
+      "bytes": 3771,
+      "sha256": "762ff8474a39202b3b5109f9d834ed9528c68badfb4179df7efc06d7424015cb"
     },
     {
       "path": "modules/allnewmts-lua/shared/resource_bundle.c",
       "bytes": 33030,
-      "sha256": "fb36eb93473ac98f7d5e026c360167469cedab8dc096382987e9d0a84b7a3a91"
+      "sha256": "4dc2fc5caad95166298a1c8cfff13a789e0ce74315e628422746f7c551c4028d"
     },
     {
       "path": "modules/allnewmts-lua/shared/resource_bundle.h",
@@ -614,7 +614,7 @@
     {
       "path": "native/resources/image-runtime.lua",
       "bytes": 793,
-      "sha256": "0d208fc76bc804c2c2b0e316024ed292434b57c73ef7f763fa1f9b6a22a47985"
+      "sha256": "a27cc5b30ed20495dbffdead8222dc8450278e248c217e5ed1be6258ca468fe0"
     },
     {
       "path": "native/resources/multi.lua",
@@ -648,8 +648,8 @@
     },
     {
       "path": "native/test/image_runtime_golden_test.cpp",
-      "bytes": 5728,
-      "sha256": "56ab7ebf20cdefe596033498c7f0f9319e917b4e43523b15b8079b8b67b6f7ca"
+      "bytes": 6266,
+      "sha256": "9fbdd482a49b93ff99feb5e7932c3b4919543d659d0b311b8e05f987abb6f8fb"
     },
     {
       "path": "native/test/native_harness_test.c",

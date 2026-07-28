@@ -215,14 +215,19 @@
             "integer",
             "number",
             "string",
-            "string-or-number"
+            "string-or-number",
+            "boolean-or-string-or-number"
           ]
         },
         "required": {
           "type": "boolean"
         },
         "coercion": {
-          "const": "none"
+          "enum": [
+            "none",
+            "canonical-integer",
+            "zero-one-boolean"
+          ]
         },
         "restrictions": {
           "type": "array",

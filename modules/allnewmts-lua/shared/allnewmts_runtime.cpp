@@ -898,6 +898,19 @@ static bool luaString(lua_State *state,int index,std::string &result) {
 static bool luaFinite(lua_State *state,int index,double &result) {
   if(lua_type(state,index)!=LUA_TNUMBER)return false;result=lua_tonumber(state,index);return std::isfinite(result);
 }
+static bool luaIntegerScalar(lua_State *state,int index,double &result) {
+  if(luaFinite(state,index,result))return std::floor(result)==result;
+  std::string text;if(!luaString(state,index,text)||text.empty())return false;
+  int64_t parsed=0;auto converted=std::from_chars(text.data(),text.data()+text.size(),parsed);
+  if(converted.ec!=std::errc()||converted.ptr!=text.data()+text.size()||std::to_string(parsed)!=text)return false;
+  result=static_cast<double>(parsed);return true;
+}
+static bool luaBooleanScalar(lua_State *state,int index,bool &result) {
+  if(lua_type(state,index)==LUA_TBOOLEAN){result=lua_toboolean(state,index)!=0;return true;}
+  double number=0;if(luaFinite(state,index,number)&&(number==0||number==1)){result=number==1;return true;}
+  std::string text;if(!luaString(state,index,text)||(text!="0"&&text!="1"))return false;
+  result=text=="1";return true;
+}
 static bool luaScalar(lua_State *state,int index,Scalar &result,bool boolean=false) {
   if(lua_type(state,index)==LUA_TSTRING){result.kind=Scalar::Kind::String;return luaString(state,index,result.string);}
   if(lua_type(state,index)==LUA_TNUMBER){result.kind=Scalar::Kind::Number;return luaFinite(state,index,result.number);}
@@ -978,9 +991,9 @@ extern "C" int allnewmts_runtime_lua_control_call(AllNewMTSLuaControlRef *ref,in
         if(key=="imgpath"){
           value.kind=Scalar::Kind::String;if(!luaString(state,3,value.string)||!imageResource(value.string))return ALLNEWMTS_LUA_ARGUMENT;
         }else if(key=="visible"||key=="enabled"||key=="autosize"||key=="circle"){
-          if(lua_type(state,3)!=LUA_TBOOLEAN)return ALLNEWMTS_LUA_ARGUMENT;value.kind=Scalar::Kind::Boolean;value.boolean=lua_toboolean(state,3)!=0;
+          value.kind=Scalar::Kind::Boolean;if(!luaBooleanScalar(state,3,value.boolean))return ALLNEWMTS_LUA_ARGUMENT;
         }else if(key=="imagetarget"||key=="left"||key=="top"||key=="width"||key=="height"){
-          value.kind=Scalar::Kind::Number;if(!luaFinite(state,3,value.number)||std::floor(value.number)!=value.number)return ALLNEWMTS_LUA_ARGUMENT;
+          value.kind=Scalar::Kind::Number;if(!luaIntegerScalar(state,3,value.number))return ALLNEWMTS_LUA_ARGUMENT;
           if((key=="imagetarget"&&(value.number<0||value.number>3))||((key=="left"||key=="top")&&(value.number<-8192||value.number>8192))||((key=="width"||key=="height")&&(value.number<0||value.number>8192)))return ALLNEWMTS_LUA_ARGUMENT;
         }else return ALLNEWMTS_LUA_ARGUMENT;
       }else return ALLNEWMTS_LUA_ARGUMENT;
@@ -1015,7 +1028,7 @@ bool Runtime::loadEntry(uint32_t &code) {
 }
 
 bool Runtime::callHandler(const char *name,const Event &event) {
-  size_t size=event.kind==EventKind::Handler?event.handler.size():std::strlen(name);AllNewMTSLuaInvocation call{this,&event,name,size,event.kind==EventKind::InternalClose};int status=allnewmts_lua_call_handler(lua_,&call);if(!status)status=allnewmts_lua_validate_boundary(lua_,this);if(status){if(!failure_code_)failure_code_="LUA_ERROR";return false;}lua_settop(lua_,0);return !budgetExpired();
+  size_t size=event.kind==EventKind::Handler?event.handler.size():std::strlen(name);AllNewMTSLuaInvocation call{this,&event,name,size};int status=allnewmts_lua_call_handler(lua_,&call);if(!status)status=allnewmts_lua_validate_boundary(lua_,this);if(status){if(!failure_code_)failure_code_="LUA_ERROR";return false;}lua_settop(lua_,0);return !budgetExpired();
 }
 
 bool Runtime::issueRequest(std::string_view transaction, uint64_t token) {

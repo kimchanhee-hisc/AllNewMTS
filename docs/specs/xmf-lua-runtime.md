@@ -32,30 +32,32 @@ Current tests use integrity-approved repository fixtures after dependency bootst
 
 The parser scans an immutable `Uint8Array` in `O(n + model-size)` time with at most `O(model-size + copied opaque bytes)` memory. Input is `1..4,194,304` bytes, contains no NUL or BOM, and begins at byte zero with exact ASCII `<?xml version="1.0" encoding="utf-8"?>`. There is exactly one declaration and no other processing instruction, DTD, entity declaration, comment, or CDATA section.
 
+The first real-screen acceptance fixture is immutable authored [`HS1100S64.xmf_`](../../test/oracles/sources/mts_screen/HS1100S64.xmf_) from mts_screen commit `f079792bcf383b2743676384ffda6c6671ddda10`, blob `95f6ffa7d72fa88905759c1417a2cabfba3ef2c5`. It establishes a flat Image+Label screen with omitted Form background, empty tab orders, no `DATAIO_INFO`, explicit Label foreground color, one local Image provider key, and inert Image cleanup metadata. Plus Android/iOS accept optional data managers, register Label foreground color, and leave absent Form background at the native view default. The shared result uses prop omission rather than a platform-selected color.
+
 Tag and attribute names use the exact spelling below. Tags use ASCII delimiters, attributes use double quotes only, `=` has no surrounding whitespace, and attributes may appear in any order. Duplicate or unknown attributes reject. One or more ASCII `SP|HTAB|CR|LF` bytes separate attributes; zero or more may precede `>` or `/>`. Outside opaque bodies, element text may contain only those four whitespace bytes.
 
 Attribute raw bytes are capped at `4,096`. Values use fatal UTF-8 decoding, reject controls other than `HTAB|CR|LF`, raw `<`, raw `&`, unknown entities, and numeric entities, and decode only `&amp;`, `&lt;`, `&gt;`, `&quot;`, and `&apos;`. `identifier` is ASCII `[A-Za-z_][A-Za-z0-9_]{0,127}`; `token` is ASCII `[A-Za-z0-9_-]{1,128}`; `decimal10` is ASCII `[0-9]{1,10}`. Comparisons are byte-exact and case-sensitive. Paired closes are exact and properly nested, self-closing elements cannot use paired form, paired elements cannot self-close, maximum grammar nesting depth is six, and every rejection is atomic.
 
 | Parent / exact child order | Element form and cardinality | Exact required attributes | Exact optional attributes | Body / correlation rule |
 | --- | --- | --- | --- | --- |
-| document | `ROOT`, paired, exactly 1 | none | none | After declaration and ASCII whitespace, owns the five children below in exact order; no trailing non-whitespace bytes. |
+| document | `ROOT`, paired, exactly 1 | none | none | After declaration and ASCII whitespace, owns `MAP_INFO`, `FORM_INFO`, `CONTROL_INFO`, `SCRIPT_INFO`, then optional `DATAIO_INFO`; no trailing non-whitespace bytes. |
 | `ROOT` child 1 | `MAP_INFO`, self-closing, exactly 1 | `scrno` token; `scrname` UTF-8 `1..512` bytes; `version` decimal `1..3` digits; `writer` UTF-8 `1..256` bytes; `scrtype` decimal `1..3` digits; `scripttype` decimal `1..3` digits | none | Values are preserved metadata; only `scrno` is screen identity data and none selects behavior. |
-| `ROOT` child 2 | `FORM_INFO`, self-closing, exactly 1 | `name` identifier; `bgcolor` encoded color; `ly_vert` layout tuple | none | `name` is identity data; projection uses registry policies. |
-| `ROOT` child 3 | `CONTROL_INFO`, paired, exactly 1 | none | none | First exactly five base controls in arbitrary order—exactly 2 `LABEL`, 1 `EDIT`, 2 `BUTTON`—plus `0..64` `IMAGE`, then exactly 1 `TABORDER_INFO`; names are unique. |
-| `CONTROL_INFO` | `LABEL`, self-closing, exactly 2 | `name`; `caption` UTF-8 `0..2,048` bytes; `ly_vert` | `fontsize` ASCII `[0-9]{1,3}`; `fontstyle` ASCII `[01]{2}` | Registry-owned projection. |
-| `CONTROL_INFO` | `EDIT`, self-closing, exactly 1 | `name`; `hintcaption` UTF-8 `0..2,048` bytes; `imetype`; `maxlength`; `leadheight`; `paddinginfo`; `ly_vert` | `caption` UTF-8 `0..2,048` bytes | Missing caption uses registry default `""`. |
-| `CONTROL_INFO` | `BUTTON`, self-closing, exactly 2 | `name`; `caption` UTF-8 `0..2,048` bytes; `fgcolor`; `fontsize`; `ly_vert` | `enable`; `bgcolor`; `bordersize` | Missing enable is enabled. |
+| `ROOT` child 2 | `FORM_INFO`, self-closing, exactly 1 | `name` identifier; `ly_vert` layout tuple | `bgcolor` encoded color | `name` is identity data; missing background omits the React Native prop. |
+| `ROOT` child 3 | `CONTROL_INFO`, paired, exactly 1 | none | none | Owns `1..69` included controls in arbitrary order, then exactly 1 `TABORDER_INFO`; names are unique and Images remain capped at 64. |
+| `CONTROL_INFO` | `LABEL`, self-closing, `0..69` | `name`; `caption` UTF-8 `0..2,048` bytes; `ly_vert` | `fgcolor` encoded color; `fontsize` ASCII `[0-9]{1,3}`; `fontstyle` ASCII `[01]{2}` | Missing foreground omits the React Native prop. |
+| `CONTROL_INFO` | `EDIT`, self-closing, `0..69` | `name`; `hintcaption` UTF-8 `0..2,048` bytes; `imetype`; `maxlength`; `leadheight`; `paddinginfo`; `ly_vert` | `caption` UTF-8 `0..2,048` bytes | Missing caption uses registry default `""`. |
+| `CONTROL_INFO` | `BUTTON`, self-closing, `0..69` | `name`; `caption` UTF-8 `0..2,048` bytes; `fgcolor`; `fontsize`; `ly_vert` | `enable`; `bgcolor`; `bordersize` | Missing enable is enabled. |
 | `CONTROL_INFO` | `IMAGE`, self-closing, `0..64` | Registry-required `name` and `ly_vert` | Registry-declared Image attributes only | The exact attribute set, defaults, coercions, and semantics are owned by the [`Image` contract](controls/image.md) and machine registry. |
-| `CONTROL_INFO` final child | `TABORDER_INFO`, self-closing, exactly 1 | `horz`; `vert` | none | Backtick-delimited `1..5` unique declared Edit/Button identifiers, no empty segment or edge delimiter, decoded maximum `644` bytes; Labels and Images are forbidden. |
+| `CONTROL_INFO` final child | `TABORDER_INFO`, self-closing, exactly 1 | `horz`; `vert` | none | Empty string or backtick-delimited `1..5` unique declared Edit/Button identifiers, no empty segment or edge delimiter, decoded maximum `644` bytes; Labels and Images are forbidden. |
 | `ROOT` child 4 | `SCRIPT_INFO`, paired, exactly 1 | `_len` decimal10; `_ulen` decimal10 | none | Preserved metadata; opaque body `0..2,097,152` bytes. |
-| `ROOT` child 5 | `DATAIO_INFO`, paired, exactly 1 | none | none | Owns exactly `TRID_INFO` then `TRIO_INFO`. |
+| `ROOT` child 5 | `DATAIO_INFO`, paired, `0..1` | none | none | When present, owns exactly `TRID_INFO` then `TRIO_INFO`; when absent, both transaction arrays are empty. |
 | `DATAIO_INFO` child 1 | `TRID_INFO`, paired, exactly 1 | none | none | Owns exactly two self-closing `TRAN`; `tranid` values are unique. |
 | `TRID_INFO` | `TRAN`, self-closing, exactly 2 | `tranid` identifier; `trcode` token; `encryption` decimal `1..3` digits; `useattr` decimal `1..3` digits | none | Preserved metadata; `tranid` is the correlation key. |
 | `DATAIO_INFO` child 2 | `TRIO_INFO`, paired, exactly 1 | none | none | Owns exactly two paired `TRAN`; names are unique and equal the `TRID_INFO.tranid` set. |
 | `TRIO_INFO` | `TRAN`, paired, exactly 2 | `name` identifier; `title` UTF-8 `0..512` bytes; `realdata` decimal10; `dessvr` token capped at 32 bytes; `occurslen` decimal10; `memfieldlen` decimal10 | none | Exactly four blocks: two `in`, two `out`; per direction one omits `occurs` and one has `occurs="1"`; order is data. |
 | `TRIO_INFO/TRAN` | `TRBLOCK`, paired, exactly 4 | `name` identifier; `inout` exact `in\|out`; `_len` decimal10; `_ulen` decimal10 | `occurs`, exact `"1"` | Names unique per transaction; lengths are preserved only; opaque body `1..262,144` bytes. |
 
-There are `5..69` controls, two transactions, eight blocks, at most 8,192 field rows, and at most 64 diagnostics occupying at most 65,536 UTF-8 bytes. `_len` and `_ulen` are bounded preserved metadata, not asserted byte lengths.
+There are `1..69` controls, zero or two transactions, zero or eight blocks, at most 8,192 field rows, and at most 64 diagnostics occupying at most 65,536 UTF-8 bytes. `_len` and `_ulen` are bounded preserved metadata, not asserted byte lengths.
 
 ### Opaque bodies
 
@@ -77,7 +79,7 @@ A block uses LF or CRLF consistently; bare CR and mixed endings reject. Splittin
 | `maxlength` | canonical `[1-9][0-9]{0,5}`, value `1..262144` | only a declared registry default | reject |
 | `paddinginfo` | Four canonical decimals, each `0..1024` | four zeros when declared | reject |
 | `imetype`, `leadheight` | exact `"0"` | native prop omission | reject every other code |
-| `fgcolor`, `bgcolor` | `[0-9]{3}:[0-9]{9}`, each RGB channel `000..255` | native prop omission | reject |
+| `fgcolor`, `bgcolor` | `[0-9]{3}:[0-9]{9}`, each RGB channel `000..255` | optional Form background and Label foreground use native prop omission | reject |
 | `bordersize` | canonical decimal `0..255` | `0` | reject |
 | `fontsize` | ASCII `[0-9]{1,3}` preserved | prop omission, no warning | omit prop and emit `UNSUPPORTED_PRESENTATION_CODE` |
 | `fontstyle` | exact `[01]{2}` preserved | prop omission, no warning | omit font props and emit `UNSUPPORTED_PRESENTATION_CODE` |

@@ -1,8 +1,9 @@
 import { Image, Pressable, Text, TextInput, View, type ImageSourcePropType } from 'react-native';
 import { buildControlEvent, type XmfControlEvent } from '../xmf';
-import type { ImageResourceTarget, XmfControl, XmfRenderDescriptor } from './types';
+import { resolveImageSource, type ImageSourceMap } from './image';
+import type { XmfControl, XmfRenderDescriptor } from './types';
 
-export type ControlImageSources = Readonly<Partial<Record<ImageResourceTarget, Readonly<Record<string, ImageSourcePropType>>>>>;
+export type ControlImageSources = ImageSourceMap<ImageSourcePropType>;
 
 type Props = {
   control: XmfControl;
@@ -33,14 +34,7 @@ export function ControlView({ control, descriptor, imageSources, onControlEvent 
     }
     case 'Image': {
       if (descriptor.visible === false) return null;
-      const resource = descriptor.imageResource;
-      const target = descriptor.imageTarget ?? 0;
-      const bucket = Object.hasOwn(imageSources, target) ? imageSources[target] : undefined;
-      let source = resource && bucket && Object.hasOwn(bucket, resource) ? bucket[resource] : undefined;
-      const fallback = descriptor.defaultImageResource;
-      const local = Object.hasOwn(imageSources, 0) ? imageSources[0] : undefined;
-      if (source === undefined && fallback && local && Object.hasOwn(local, fallback)) source = local[fallback];
-      if ((resource || fallback) && source === undefined) throw new Error('UNRESOLVED_IMAGE_RESOURCE');
+      const source = resolveImageSource(descriptor.imageResource ?? '', descriptor.imageTarget ?? 0, descriptor.defaultImageResource ?? '', imageSources);
       const enabled = descriptor.enabled !== false;
       const size = Math.min(descriptor.style.width, descriptor.style.height);
       const clip = descriptor.circle
