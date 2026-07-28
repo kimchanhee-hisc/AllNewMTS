@@ -27,8 +27,6 @@ constexpr uint8_t kBetaEndpointSha256[32] = {
 constexpr std::string_view kBetaSection =
     "[\xeb\xb2\xa0\xed\x83\x80]";
 constexpr size_t kGd1000q1BodySize = 569;
-constexpr size_t kS00RecordSize = 158;
-constexpr size_t kS00PriceOffset = 17;
 constexpr std::array<std::string_view, 104> kGd1000q1OutputFids = {
     "0001",  "9241",  "*0004", "*0005", "0007",  "0006", "1731",
     "0011",  "1251",  "1682",  "1254",  "0003",  "2517", "2518",
@@ -45,6 +43,24 @@ constexpr std::array<std::string_view, 104> kGd1000q1OutputFids = {
     "0174",  "0278",  "0279",  "0797",  "0798",  "0799", "0800",
     "0684",  "0016",  "0378",  "0265",  "0571",  "0572", "0189",
     "0223",  "0327",  "2167",  "2168",  "1008",  "2665"};
+
+struct RealtimeRecordLayout {
+  std::string_view service;
+  size_t record_size;
+  size_t known_size;
+  size_t primary_price_offset;
+  size_t secondary_price_offset;
+  uint8_t kind;
+};
+
+constexpr std::array<RealtimeRecordLayout, 6> kRealtimeRecordLayouts = {{
+    {"S00", 158, 158, 17, 0, ALLNEWMTS_MCI_REALTIME_TRADE},
+    {"X00", 158, 158, 17, 0, ALLNEWMTS_MCI_REALTIME_TRADE},
+    {"X50", 160, 160, 17, 0, ALLNEWMTS_MCI_REALTIME_TRADE},
+    {"S15", 380, 365, 16, 66, ALLNEWMTS_MCI_REALTIME_ORDER_BOOK},
+    {"X15", 468, 453, 16, 66, ALLNEWMTS_MCI_REALTIME_ORDER_BOOK},
+    {"X55", 802, 772, 16, 66, ALLNEWMTS_MCI_REALTIME_ORDER_BOOK},
+}};
 
 enum class BetaMode { Connect, InitProbe, Gd1000q1Probe, S00Probe };
 
@@ -809,6 +825,54 @@ extern "C" uint32_t allnewmts_mci_parse_realtime_push(
   return ALLNEWMTS_MCI_OK;
 }
 
+extern "C" uint32_t allnewmts_mci_decode_realtime_record(
+    const char *service, const uint8_t *record, size_t record_size,
+    AllNewMTSMciRealtimeRecord *decoded) {
+  if (!service || !record || !decoded) return ALLNEWMTS_MCI_INVALID_ARGUMENT;
+  const auto layout = std::find_if(
+      kRealtimeRecordLayouts.begin(), kRealtimeRecordLayouts.end(),
+      [service](const RealtimeRecordLayout &candidate) {
+        return candidate.service == service;
+      });
+  if (layout == kRealtimeRecordLayouts.end())
+    return ALLNEWMTS_MCI_TRANSACTION_INVALID;
+  if (record_size != layout->record_size)
+    return ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID;
+
+  char code[10]{};
+  if (!textField(record, 9, code, sizeof(code), true) ||
+      !bytesAreDigits(reinterpret_cast<const char *>(record + 9), 6))
+    return ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID;
+  const size_t code_size = std::strlen(code);
+  if (code_size < 6 || !bytesAreDigits(code + code_size - 6, 6))
+    return ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID;
+  auto price = [record](size_t offset) {
+    return static_cast<uint32_t>(record[offset]) |
+           (static_cast<uint32_t>(record[offset + 1]) << 8) |
+           (static_cast<uint32_t>(record[offset + 2]) << 16) |
+           (static_cast<uint32_t>(record[offset + 3]) << 24);
+  };
+  const uint32_t primary = price(layout->primary_price_offset);
+  const uint32_t secondary =
+      layout->secondary_price_offset ? price(layout->secondary_price_offset)
+                                     : 0;
+
+  *decoded = {};
+  std::memcpy(decoded->service, service, 3);
+  std::memcpy(decoded->instrument, code + code_size - 6, 6);
+  std::memcpy(decoded->event_time, record + 9, 6);
+  decoded->kind = layout->kind;
+  if (layout->kind == ALLNEWMTS_MCI_REALTIME_TRADE)
+    decoded->current_price = primary;
+  else {
+    decoded->best_ask_price = primary;
+    decoded->best_bid_price = secondary;
+  }
+  decoded->known_size = layout->known_size;
+  decoded->extension_size = layout->record_size - layout->known_size;
+  return ALLNEWMTS_MCI_OK;
+}
+
 uint32_t decodeSfidRows(
     const uint8_t *body, size_t payload_begin, size_t payload_end,
     size_t record_count, const char gid[5], const char output_fids[][5],
@@ -1046,29 +1110,21 @@ uint32_t parseS00Quote(const uint8_t *frame, size_t frame_size,
   for (size_t push_index = 0; push_index < push_count; ++push_index) {
     const AllNewMTSMciRealtimePush &push = pushes[push_index];
     if (std::strcmp(push.service, "S00") != 0 ||
-        std::strcmp(push.key, "005930") != 0 ||
-        push.item_size != kS00RecordSize)
+        std::strcmp(push.key, "005930") != 0)
       continue;
     for (size_t item_index = 0; item_index < push.item_count; ++item_index) {
       const uint8_t *item =
           frame + push.payload_offset + item_index * push.item_size;
-      char item_code[10]{};
-      if (!textField(item, 9, item_code, sizeof(item_code), true))
+      AllNewMTSMciRealtimeRecord decoded{};
+      if (allnewmts_mci_decode_realtime_record(
+              push.service, item, push.item_size, &decoded) !=
+              ALLNEWMTS_MCI_OK ||
+          std::strcmp(decoded.instrument, "005930") != 0 ||
+          decoded.current_price == 0 || decoded.current_price > 10000000)
         continue;
-      const size_t item_code_size = std::strlen(item_code);
-      if (item_code_size < 6 ||
-          std::strcmp(item_code + item_code_size - 6, "005930") != 0 ||
-          !bytesAreDigits(reinterpret_cast<const char *>(item + 9), 6))
-        continue;
-      const uint32_t price =
-          static_cast<uint32_t>(item[kS00PriceOffset]) |
-          (static_cast<uint32_t>(item[kS00PriceOffset + 1]) << 8) |
-          (static_cast<uint32_t>(item[kS00PriceOffset + 2]) << 16) |
-          (static_cast<uint32_t>(item[kS00PriceOffset + 3]) << 24);
-      if (price == 0 || price > 10000000) continue;
-      std::memcpy(quote->trade_time, item + 9, 6);
+      std::memcpy(quote->trade_time, decoded.event_time, 6);
       quote->trade_time[6] = '\0';
-      quote->current_price = price;
+      quote->current_price = decoded.current_price;
       return ALLNEWMTS_MCI_OK;
     }
   }

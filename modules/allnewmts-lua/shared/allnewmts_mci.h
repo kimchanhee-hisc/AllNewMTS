@@ -162,6 +162,23 @@ typedef struct {
   size_t item_count;
 } AllNewMTSMciRealtimePush;
 
+enum {
+  ALLNEWMTS_MCI_REALTIME_TRADE = 1,
+  ALLNEWMTS_MCI_REALTIME_ORDER_BOOK = 2
+};
+
+typedef struct {
+  char service[4];
+  char instrument[7];
+  char event_time[7];
+  uint8_t kind;
+  uint32_t current_price;
+  uint32_t best_ask_price;
+  uint32_t best_bid_price;
+  size_t known_size;
+  size_t extension_size;
+} AllNewMTSMciRealtimeRecord;
+
 typedef struct {
   char trade_time[7];
   uint32_t current_price;
@@ -251,6 +268,10 @@ uint32_t allnewmts_mci_parse_realtime_push(
     const uint8_t *frame, size_t frame_size,
     AllNewMTSMciRealtimePush *pushes, size_t push_capacity,
     size_t *push_count);
+
+uint32_t allnewmts_mci_decode_realtime_record(
+    const char *service, const uint8_t *record, size_t record_size,
+    AllNewMTSMciRealtimeRecord *decoded);
 
 uint32_t allnewmts_mci_parse_command_response(
     const uint8_t *frame, size_t frame_size,

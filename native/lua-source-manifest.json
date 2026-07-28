@@ -533,13 +533,13 @@
     },
     {
       "path": "modules/allnewmts-lua/shared/allnewmts_mci.cpp",
-      "bytes": 62212,
-      "sha256": "170321d0567efcebcca27ec3c6361879c8d72553caf81a9f35feaa46db66dfc9"
+      "bytes": 64427,
+      "sha256": "1a620b62affbbe074fd2b7c460fb018eecd8c780288930ba6900f9408905338d"
     },
     {
       "path": "modules/allnewmts-lua/shared/allnewmts_mci.h",
-      "bytes": 10719,
-      "sha256": "5edf1443d4fb3c7a21121ce1051dc0c8ad384d0233fd64995e38d88a91898afc"
+      "bytes": 11217,
+      "sha256": "280787dc147c62d866b3501d43fb38b77e2be62c39661a4389522fc00360fa34"
     },
     {
       "path": "modules/allnewmts-lua/shared/allnewmts_mci_socket.cpp",
@@ -718,8 +718,8 @@
     },
     {
       "path": "native/test/mci_transport_test.cpp",
-      "bytes": 51867,
-      "sha256": "77329acf9a2aa7cdca6b73f301ff26280daa7002dc524851f85d7e5a09eb03ff"
+      "bytes": 56068,
+      "sha256": "b79b9f730c16d59caa7065e67892c2d495f8188179dc912bdcc79b7984030ea2"
     },
     {
       "path": "native/test/product_config_test.cpp",

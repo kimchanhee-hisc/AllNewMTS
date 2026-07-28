@@ -445,6 +445,93 @@ int main(int argc, char **argv) {
            std::string(reinterpret_cast<char *>(
                            push.data() + parsed_push.payload_offset),
                        parsed_push.item_size) == "0059300000715000");
+    struct ObservedRealtimeLayout {
+      const char *service;
+      size_t item_size;
+      size_t known_size;
+    };
+    constexpr ObservedRealtimeLayout layouts[] = {
+        {"X00", 158, 158}, {"X50", 160, 160}, {"S15", 380, 365},
+        {"X15", 468, 453}, {"X55", 802, 772}};
+    for (const auto &layout : layouts) {
+      std::vector<uint8_t> payload(layout.item_size, 0);
+      std::memcpy(payload.data(), "005930   145959", 15);
+      const bool order_book = layout.service[1] == '1' ||
+                              std::strcmp(layout.service, "X55") == 0;
+      const size_t primary_offset = order_book ? 16 : 17;
+      const uint32_t primary_price = order_book ? 221500 : 221000;
+      payload[primary_offset] = static_cast<uint8_t>(primary_price);
+      payload[primary_offset + 1] =
+          static_cast<uint8_t>(primary_price >> 8);
+      payload[primary_offset + 2] =
+          static_cast<uint8_t>(primary_price >> 16);
+      payload[primary_offset + 3] =
+          static_cast<uint8_t>(primary_price >> 24);
+      if (order_book) {
+        constexpr uint32_t best_bid = 221000;
+        payload[66] = static_cast<uint8_t>(best_bid);
+        payload[67] = static_cast<uint8_t>(best_bid >> 8);
+        payload[68] = static_cast<uint8_t>(best_bid >> 16);
+        payload[69] = static_cast<uint8_t>(best_bid >> 24);
+      }
+      payload[layout.known_size - 1] = 0x5a;
+      if (layout.known_size != layout.item_size) {
+        payload[layout.known_size] = 0xa5;
+        payload.back() = 0x3c;
+      }
+      push = realtimePushBytes(layout.service, "005930", payload.data(),
+                               payload.size());
+      parsed_push = {};
+      push_count = 0;
+      assert(allnewmts_mci_parse_realtime_push(
+                 push.data(), push.size(), &parsed_push, 1, &push_count) ==
+             ALLNEWMTS_MCI_OK);
+      assert(push_count == 1 &&
+             std::strcmp(parsed_push.service, layout.service) == 0 &&
+             std::strcmp(parsed_push.key, "005930") == 0 &&
+             parsed_push.item_size == layout.item_size &&
+             parsed_push.item_count == 1 &&
+             push.size() == ALLNEWMTS_MCI_REALTIME_HEADER_SIZE + 3 +
+                                ALLNEWMTS_MCI_REALTIME_KEY_SIZE + 4 + 2 +
+                                layout.item_size &&
+             std::equal(payload.begin(), payload.end(),
+                        push.begin() + parsed_push.payload_offset));
+      AllNewMTSMciRealtimeRecord decoded{};
+      assert(allnewmts_mci_decode_realtime_record(
+                 parsed_push.service,
+                 push.data() + parsed_push.payload_offset,
+                 parsed_push.item_size, &decoded) == ALLNEWMTS_MCI_OK);
+      assert(std::strcmp(decoded.service, layout.service) == 0 &&
+             std::strcmp(decoded.instrument, "005930") == 0 &&
+             std::strcmp(decoded.event_time, "145959") == 0 &&
+             decoded.known_size == layout.known_size &&
+             decoded.extension_size ==
+                 layout.item_size - layout.known_size);
+      if (order_book) {
+        assert(decoded.kind == ALLNEWMTS_MCI_REALTIME_ORDER_BOOK &&
+               decoded.current_price == 0 &&
+               decoded.best_ask_price == 221500 &&
+               decoded.best_bid_price == 221000);
+      } else {
+        assert(decoded.kind == ALLNEWMTS_MCI_REALTIME_TRADE &&
+               decoded.current_price == 221000 &&
+               decoded.best_ask_price == 0 &&
+               decoded.best_bid_price == 0);
+      }
+    }
+    std::vector<uint8_t> unsupported(155, 0);
+    assert(allnewmts_mci_decode_realtime_record(
+               "S02", unsupported.data(), unsupported.size(), nullptr) ==
+           ALLNEWMTS_MCI_INVALID_ARGUMENT);
+    AllNewMTSMciRealtimeRecord unsupported_decoded{};
+    assert(allnewmts_mci_decode_realtime_record(
+               "S02", unsupported.data(), unsupported.size(),
+               &unsupported_decoded) == ALLNEWMTS_MCI_TRANSACTION_INVALID);
+    std::vector<uint8_t> wrong_size(157, 0);
+    assert(allnewmts_mci_decode_realtime_record(
+               "X00", wrong_size.data(), wrong_size.size(),
+               &unsupported_decoded) ==
+           ALLNEWMTS_MCI_TRANSACTION_BODY_INVALID);
     push[9] = '2';
     assert(allnewmts_mci_parse_realtime_push(
                push.data(), push.size(), &parsed_push, 1, &push_count) ==
